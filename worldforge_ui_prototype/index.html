@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorldForge Studio</title>
+    <!-- Tailwind CSS for rapid UI prototyping -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        wfs: {
+                            bg: '#121212',
+                            panel: '#1E1E1E',
+                            border: '#333333',
+                            primary: '#3B82F6',
+                            hover: '#2D2D2D',
+                            text: '#E5E5E5',
+                            muted: '#A3A3A3'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; overflow: hidden; }
+        /* Custom scrollbar for panels */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #121212; }
+        ::-webkit-scrollbar-thumb { background: #333333; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4B5563; }
+        .canvas-bg { background-image: radial-gradient(#333 1px, transparent 0); background-size: 40px 40px; }
+        dialog { color: #E5E5E5; }
+        dialog::backdrop { background: rgb(0 0 0 / 75%); }
+        .project-cover { background: linear-gradient(135deg, #1d3557, #3B82F6); }
+        #canvas-container { min-width: 0; min-height: 0; }
+        #map-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+        #map-canvas.is-panning { cursor: grabbing; }
+        .tool-button {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 0.375rem;
+            color: #a3a3a3;
+            transition: background-color 120ms ease, color 120ms ease;
+        }
+        .tool-button:hover { background: #2d2d2d; color: #fff; }
+        .tool-button[aria-pressed="true"] { background: #3b82f6; color: #fff; }
+    </style>
+</head>
+<body class="bg-wfs-bg text-wfs-text h-screen w-screen flex flex-col text-sm select-none">
+
+    <section id="project-manager" class="fixed inset-0 z-30 overflow-y-auto bg-wfs-bg">
+        <div class="mx-auto max-w-6xl px-6 py-10">
+            <header class="mb-10 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <div class="mb-2 flex items-center gap-3">
+                        <span class="h-8 w-8 rounded bg-wfs-primary"></span>
+                        <h1 class="text-2xl font-bold text-white">WorldForge Studio</h1>
+                    </div>
+                    <p class="text-wfs-muted">Quản lý các thế giới và dự án của bạn</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button id="import-project-button" class="rounded border border-wfs-border bg-wfs-hover px-4 py-2 hover:bg-gray-700">Nhập dự án</button>
+                    <input id="import-project-file" type="file" accept=".json,.wforge,application/json,application/zip" class="hidden">
+                    <button id="create-project-button" class="rounded bg-wfs-primary px-4 py-2 font-medium text-white hover:bg-blue-600">+ Tạo dự án</button>
+                </div>
+            </header>
+
+            <section class="mb-10">
+                <div class="mb-4 flex items-end justify-between">
+                    <div>
+                        <h2 class="text-lg font-semibold text-white">Dự án gần đây</h2>
+                        <p class="mt-1 text-xs text-wfs-muted">Mở lại những dự án bạn đã làm việc gần đây</p>
+                    </div>
+                </div>
+                <div id="recent-project-list" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
+                <p id="recent-project-empty" class="hidden rounded border border-dashed border-wfs-border p-8 text-center text-wfs-muted">Chưa có dự án gần đây. Hãy tạo hoặc mở một dự án.</p>
+            </section>
+
+            <section>
+                <div class="mb-4 flex items-end justify-between">
+                    <div>
+                        <h2 class="text-lg font-semibold text-white">Tất cả dự án</h2>
+                        <p class="mt-1 text-xs text-wfs-muted">Dữ liệu được lưu cục bộ trong IndexedDB của trình duyệt</p>
+                    </div>
+                    <span id="project-count" class="text-xs text-wfs-muted"></span>
+                </div>
+                <div id="project-list" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
+                <p id="project-empty" class="hidden rounded border border-dashed border-wfs-border p-10 text-center text-wfs-muted">Chưa có dự án nào. Tạo dự án đầu tiên để bắt đầu.</p>
+            </section>
+        </div>
+    </section>
+
+    <dialog id="project-form-dialog" class="w-[min(92vw,540px)] rounded-lg border border-wfs-border bg-wfs-panel p-0 shadow-2xl">
+        <form id="project-form" class="space-y-4 p-6">
+            <div>
+                <h2 id="project-form-title" class="text-lg font-semibold text-white">Tạo dự án</h2>
+                <p class="mt-1 text-xs text-wfs-muted">Thông tin dự án có thể chỉnh sửa sau.</p>
+            </div>
+            <label class="block">
+                <span class="mb-1 block text-xs text-wfs-muted">Tên dự án *</span>
+                <input id="project-name" required maxlength="80" autocomplete="off" class="w-full rounded border border-wfs-border bg-wfs-bg px-3 py-2 text-white outline-none focus:border-wfs-primary">
+            </label>
+            <label class="block">
+                <span class="mb-1 block text-xs text-wfs-muted">Mô tả</span>
+                <textarea id="project-description" maxlength="2000" rows="3" class="w-full resize-y rounded border border-wfs-border bg-wfs-bg px-3 py-2 text-white outline-none focus:border-wfs-primary"></textarea>
+            </label>
+            <label class="block">
+                <span class="mb-1 block text-xs text-wfs-muted">Ảnh bìa (URL)</span>
+                <input id="project-cover" type="text" maxlength="3145728" placeholder="https://... hoặc chọn tệp ảnh" class="w-full rounded border border-wfs-border bg-wfs-bg px-3 py-2 text-white outline-none focus:border-wfs-primary">
+            </label>
+            <label class="block text-xs text-wfs-muted">
+                <span class="mb-1 block">Hoặc tải ảnh lên (tối đa 2 MB)</span>
+                <input id="project-cover-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" class="block w-full text-xs">
+            </label>
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="button" id="cancel-project-form" class="rounded border border-wfs-border px-4 py-2 hover:bg-wfs-hover">Hủy</button>
+                <button type="submit" class="rounded bg-wfs-primary px-4 py-2 font-medium text-white hover:bg-blue-600">Lưu</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="project-info-dialog" class="w-[min(92vw,540px)] rounded-lg border border-wfs-border bg-wfs-panel p-0 shadow-2xl">
+        <div id="project-info-content" class="p-6"></div>
+    </dialog>
+
+    <dialog id="project-export-dialog" class="w-[min(92vw,460px)] rounded-lg border border-wfs-border bg-wfs-panel p-0 shadow-2xl">
+        <div class="space-y-4 p-6">
+            <div>
+                <h2 class="text-lg font-semibold text-white">Xuất dự án</h2>
+                <p id="project-export-title" class="mt-1 break-words text-xs text-wfs-muted"></p>
+            </div>
+            <p class="text-xs text-wfs-muted">JSON phù hợp trao đổi dữ liệu; .wforge đóng gói dữ liệu cùng các ảnh thành một gói dự án.</p>
+            <div class="flex flex-wrap justify-end gap-2">
+                <button type="button" id="cancel-project-export" class="rounded border border-wfs-border px-4 py-2 hover:bg-wfs-hover">Hủy</button>
+                <button type="button" id="export-project-json" class="rounded border border-wfs-border px-4 py-2 hover:bg-wfs-hover">Xuất JSON</button>
+                <button type="button" id="export-project-wforge" class="rounded bg-wfs-primary px-4 py-2 text-white hover:bg-blue-600">Xuất .wforge</button>
+            </div>
+        </div>
+    </dialog>
+
+    <dialog id="map-export-dialog" class="max-h-[92vh] w-[min(94vw,620px)] overflow-y-auto rounded-lg border border-wfs-border bg-wfs-panel p-0 shadow-2xl">
+        <form id="map-export-form" class="space-y-4 p-6">
+            <div>
+                <h2 class="text-lg font-semibold text-white">Xuất bản đồ</h2>
+                <p class="mt-1 text-xs text-wfs-muted">PNG, JPG, SVG vector hoặc PDF một trang. Giữ nguyên tỷ lệ; đầu ra raster tối đa 32 megapixel.</p>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <label class="text-xs text-wfs-muted">Định dạng
+                    <select id="map-export-format" name="format" class="mt-1 w-full rounded border border-wfs-border bg-wfs-bg px-3 py-2 text-white">
+                        <option value="png">PNG</option><option value="jpg">JPG</option><option value="svg">SVG</option><option value="pdf">PDF</option>
+                    </select>
+                </label>
+                <label class="text-xs text-wfs-muted">Độ phân giải
+                    <select name="dpi" class="mt-1 w-full rounded border border-wfs-border bg-wfs-bg px-3 py-2 text-white">
+                        <option value="96">96 DPI</option><option value="150">150 DPI</option><option value="300">300 DPI</option>
+                    </select>
+                </label>
+                <label class="text-xs text-wfs-muted">Chiều rộng (px)
+                    <input id="map-export-width" name="width" type="number" min="256" max="8192" required class="mt-1 w-full rounded border border-wfs-border bg-wfs-bg px-3 py-2 text-white">
+                </label>
+                <label class="text-xs text-wfs-muted">Chiều cao (px)
+                    <input id="map-export-height" name="height" type="number" min="256" max="8192" required class="mt-1 w-full rounded border border-wfs-border bg-wfs-bg px-3 py-2 text-white">
+                </label>
+                <label class="text-xs text-wfs-muted">Phong cách
+                    <select name="style" class="mt-1 w-full rounded border border-wfs-border bg-wfs-bg px-3 py-2 text-white">
+                        <option value="standard">Tiêu chuẩn</option><option value="parchment">Giấy cổ</option><option value="monochrome">Đơn sắc</option><option value="vivid">Rực rỡ</option>
+                    </select>
+                </label>
+                <label class="flex items-center gap-2 self-end pb-2 text-xs text-wfs-muted">
+                    <input id="map-export-transparent" name="transparent" type="checkbox">
+                    Nền trong suốt (PNG/SVG)
+                </label>
+            </div>
+            <label class="block text-xs text-wfs-muted">Chú thích
+                <input name="caption" maxlength="300" class="mt-1 w-full rounded border border-wfs-border bg-wfs-bg px-3 py-2 text-white" placeholder="Không bắt buộc">
+            </label>
+            <fieldset>
+                <legend class="mb-2 text-xs text-wfs-muted">Layer cần xuất</legend>
+                <div id="map-export-layers" class="grid max-h-40 grid-cols-2 gap-2 overflow-y-auto rounded border border-wfs-border p-3"></div>
+            </fieldset>
+            <div class="flex justify-end gap-2">
+                <button type="button" id="cancel-map-export" class="rounded border border-wfs-border px-4 py-2 hover:bg-wfs-hover">Hủy</button>
+                <button type="submit" class="rounded bg-wfs-primary px-4 py-2 text-white hover:bg-blue-600">Xuất bản đồ</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="map-size-dialog" class="w-[min(92vw,420px)] rounded-lg border border-wfs-border bg-wfs-panel p-0 shadow-2xl">
+        <form id="map-size-form" class="space-y-4 p-6">
+            <div>
+                <h2 class="text-lg font-semibold text-white">Kích thước bản đồ</h2>
+                <p class="mt-1 text-xs text-wfs-muted">Mỗi chiều từ 256 đến 8192 world units. Đổi kích thước không di chuyển các đối tượng.</p>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <label class="block">
+                    <span class="mb-1 block text-xs text-wfs-muted">Chiều rộng</span>
+                    <input id="map-width" type="number" min="256" max="8192" step="1" required class="w-full rounded border border-wfs-border bg-wfs-bg px-3 py-2 text-white outline-none focus:border-wfs-primary">
+                </label>
+                <label class="block">
+                    <span class="mb-1 block text-xs text-wfs-muted">Chiều cao</span>
+                    <input id="map-height" type="number" min="256" max="8192" step="1" required class="w-full rounded border border-wfs-border bg-wfs-bg px-3 py-2 text-white outline-none focus:border-wfs-primary">
+                </label>
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="button" id="cancel-map-size" class="rounded border border-wfs-border px-4 py-2 hover:bg-wfs-hover">Hủy</button>
+                <button type="submit" class="rounded bg-wfs-primary px-4 py-2 text-white hover:bg-blue-600">Áp dụng</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="geography-dialog" class="max-h-[90vh] w-[min(96vw,1100px)] overflow-hidden rounded-lg border border-wfs-border bg-wfs-panel p-0 shadow-2xl">
+        <div class="flex max-h-[90vh] flex-col">
+            <header class="flex items-start justify-between gap-4 border-b border-wfs-border p-5">
+                <div>
+                    <h2 class="text-lg font-semibold text-white">Geography Database</h2>
+                    <p class="mt-1 text-xs text-wfs-muted">Dữ liệu địa lý được lưu cùng dự án trong IndexedDB.</p>
+                </div>
+                <button id="close-geography-dialog" class="rounded px-2 py-1 text-wfs-muted hover:bg-wfs-hover" aria-label="Đóng">✕</button>
+            </header>
+            <nav id="geography-tabs" class="flex flex-wrap gap-2 border-b border-wfs-border px-5 py-3">
+                <button data-geo-type="worlds" class="rounded bg-wfs-primary px-3 py-1.5 text-xs text-white">Worlds</button>
+                <button data-geo-type="continents" class="rounded border border-wfs-border px-3 py-1.5 text-xs text-wfs-muted">Continents</button>
+                <button data-geo-type="countries" class="rounded border border-wfs-border px-3 py-1.5 text-xs text-wfs-muted">Countries</button>
+                <button data-geo-type="cities" class="rounded border border-wfs-border px-3 py-1.5 text-xs text-wfs-muted">Cities / Settlements</button>
+                <button data-geo-type="locations" class="rounded border border-wfs-border px-3 py-1.5 text-xs text-wfs-muted">Locations</button>
+            </nav>
+            <div class="grid min-h-0 flex-1 md:grid-cols-2">
+                <section class="flex min-h-0 flex-col border-b border-wfs-border p-5 md:border-b-0 md:border-r">
+                    <div class="mb-3 flex gap-2">
+                        <input id="geography-search" type="search" placeholder="Tìm theo tên hoặc mô tả..." class="min-w-0 flex-1 rounded border border-wfs-border bg-wfs-bg px-3 py-2 text-xs text-white outline-none focus:border-wfs-primary">
+                        <button id="create-geography-record" class="shrink-0 rounded bg-wfs-primary px-3 py-2 text-xs text-white hover:bg-blue-600">+ Tạo mới</button>
+                    </div>
+                    <label class="mb-3 flex items-center gap-2 text-xs text-wfs-muted">
+                        Lọc theo quan hệ
+                        <select id="geography-filter" class="min-w-0 flex-1 rounded border border-wfs-border bg-wfs-bg px-2 py-2 text-white">
+                            <option value="">Tất cả</option>
+                        </select>
+                    </label>
+                    <div id="geography-list" class="min-h-24 flex-1 space-y-2 overflow-y-auto"></div>
+                </section>
+                <section id="geography-detail-panel" class="min-h-0 overflow-y-auto p-5">
+                    <div id="geography-detail" class="text-sm text-wfs-muted">Chọn một bản ghi để xem chi tiết hoặc tạo bản ghi mới.</div>
+                    <form id="geography-form" class="hidden space-y-3"></form>
+                </section>
+            </div>
+        </div>
+    </dialog>
+
+    <dialog id="civilization-dialog" class="max-h-[92vh] w-[min(96vw,1160px)] overflow-hidden rounded-lg border border-wfs-border bg-wfs-panel p-0 shadow-2xl">
+        <div class="flex max-h-[92vh] flex-col">
+            <header class="flex items-start justify-between gap-4 border-b border-wfs-border p-5">
+                <div>
+                    <h2 class="text-lg font-semibold text-white">Civilization Database</h2>
+                    <p class="mt-1 text-xs text-wfs-muted">Characters, races, cultures, religions và organizations trong dự án.</p>
+                </div>
+                <button id="close-civilization-dialog" class="rounded px-2 py-1 text-wfs-muted hover:bg-wfs-hover" aria-label="Đóng">✕</button>
+            </header>
+            <nav id="civilization-tabs" class="flex flex-wrap gap-2 border-b border-wfs-border px-5 py-3">
+                <button data-civ-type="characters" class="rounded bg-wfs-primary px-3 py-1.5 text-xs text-white">Characters</button>
+                <button data-civ-type="races" class="rounded border border-wfs-border px-3 py-1.5 text-xs text-wfs-muted">Races</button>
+                <button data-civ-type="cultures" class="rounded border border-wfs-border px-3 py-1.5 text-xs text-wfs-muted">Cultures</button>
+                <button data-civ-type="religions" class="rounded border border-wfs-border px-3 py-1.5 text-xs text-wfs-muted">Religions</button>
+                <button data-civ-type="organizations" class="rounded border border-wfs-border px-3 py-1.5 text-xs text-wfs-muted">Organizations</button>
+            </nav>
+            <div class="grid min-h-0 flex-1 md:grid-cols-2">
+                <section class="flex min-h-0 flex-col border-b border-wfs-border p-5 md:border-b-0 md:border-r">
+                    <div class="mb-3 flex gap-2">
+                        <input id="civilization-search" type="search" placeholder="Tìm theo tên, mô tả hoặc trường mở rộng..." class="min-w-0 flex-1 rounded border border-wfs-border bg-wfs-bg px-3 py-2 text-xs text-white outline-none focus:border-wfs-primary">
+                        <button id="create-civilization-record" class="shrink-0 rounded bg-wfs-primary px-3 py-2 text-xs text-white hover:bg-blue-600">+ Tạo mới</button>
+                    </div>
+                    <label class="mb-3 flex items-center gap-2 text-xs text-wfs-muted">
+                        Lọc theo quan hệ
+                        <select id="civilization-filter" class="min-w-0 flex-1 rounded border border-wfs-border bg-wfs-bg px-2 py-2 text-white">
+                            <option value="">Tất cả</option>
+                        </select>
+                    </label>
+                    <div id="civilization-list" class="min-h-24 flex-1 space-y-2 overflow-y-auto"></div>
+                </section>
+                <section id="civilization-detail-panel" class="min-h-0 overflow-y-auto p-5">
+                    <div id="civilization-detail" class="text-sm text-wfs-muted">Chọn đối tượng để xem chi tiết hoặc tạo đối tượng mới.</div>
+                    <form id="civilization-form" class="hidden space-y-3"></form>
+                    <input id="civilization-image-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" class="hidden">
+                </section>
+            </div>
+        </div>
+    </dialog>
+
+    <dialog id="history-dialog" class="max-h-[92vh] w-[min(96vw,1240px)] overflow-hidden rounded-lg border border-wfs-border bg-wfs-panel p-0 shadow-2xl">
+        <div class="flex max-h-[92vh] flex-col">
+            <header class="flex items-start justify-between gap-4 border-b border-wfs-border p-5">
+                <div>
+                    <h2 class="text-lg font-semibold text-white">History &amp; Timeline</h2>
+                    <p class="mt-1 text-xs text-wfs-muted">Lịch, niên đại, sự kiện và các mối liên hệ được lưu cùng dự án.</p>
+                </div>
+                <button id="close-history-dialog" class="rounded px-2 py-1 text-wfs-muted hover:bg-wfs-hover" aria-label="Đóng">✕</button>
+            </header>
+            <nav id="history-tabs" class="flex flex-wrap gap-2 border-b border-wfs-border px-5 py-3">
+                <button data-history-type="timeline" class="rounded bg-wfs-primary px-3 py-1.5 text-xs text-white">Timeline</button>
+                <button data-history-type="events" class="rounded border border-wfs-border px-3 py-1.5 text-xs text-wfs-muted">Events</button>
+                <button data-history-type="eras" class="rounded border border-wfs-border px-3 py-1.5 text-xs text-wfs-muted">Eras</button>
+                <button data-history-type="periods" class="rounded border border-wfs-border px-3 py-1.5 text-xs text-wfs-muted">Periods</button>
+                <button data-history-type="records" class="rounded border border-wfs-border px-3 py-1.5 text-xs text-wfs-muted">Records</button>
+                <button data-history-type="calendars" class="rounded border border-wfs-border px-3 py-1.5 text-xs text-wfs-muted">Calendars</button>
+            </nav>
+            <div class="grid min-h-0 flex-1 md:grid-cols-2">
+                <section class="flex min-h-0 flex-col border-b border-wfs-border p-5 md:border-b-0 md:border-r">
+                    <div class="mb-3 flex gap-2">
+                        <input id="history-search" type="search" placeholder="Tìm trong mục đang mở..." class="min-w-0 flex-1 rounded border border-wfs-border bg-wfs-bg px-3 py-2 text-xs text-white outline-none focus:border-wfs-primary">
+                        <button id="create-history-record" class="shrink-0 rounded bg-wfs-primary px-3 py-2 text-xs text-white hover:bg-blue-600">+ Tạo mới</button>
+                    </div>
+                    <div id="history-list" class="min-h-24 flex-1 space-y-2 overflow-y-auto"></div>
+                </section>
+                <section class="min-h-0 overflow-y-auto p-5">
+                    <div id="history-detail" class="text-sm text-wfs-muted">Chọn một mục để xem chi tiết hoặc tạo mục mới.</div>
+                    <form id="history-form" class="hidden space-y-3"></form>
+                </section>
+            </div>
+        </div>
+    </dialog>
+
+    <div id="toast" role="status" aria-live="polite" class="pointer-events-none fixed bottom-5 right-5 z-50 hidden max-w-md rounded border border-wfs-border bg-wfs-panel px-4 py-3 text-white shadow-xl"></div>
+
+    <div id="studio-shell" class="hidden h-full flex-col">
+    <!-- TOP NAVIGATION -->
+    <header class="h-12 bg-wfs-panel border-b border-wfs-border flex items-center justify-between px-4 shrink-0">
+        <div class="flex items-center gap-6">
+            <div class="font-bold text-lg text-white flex items-center gap-2">
+                <span class="w-6 h-6 bg-wfs-primary rounded"></span> WorldForge
+            </div>
+            <nav class="flex gap-4 text-wfs-muted">
+                <button class="hover:text-white">File</button>
+                <button class="hover:text-white">Edit</button>
+                <button class="hover:text-white">View</button>
+                <button id="open-geography-database" class="hover:text-white">Database</button>
+                <button id="open-civilization-database" class="hover:text-white">Civilization</button>
+                <button id="open-history-database" class="hover:text-white">History</button>
+            </nav>
+        </div>
+        <div class="flex items-center gap-4">
+            <span id="save-status" class="text-wfs-muted text-xs flex items-center gap-1">
+                <span class="w-2 h-2 rounded-full bg-green-500"></span> Saved just now
+            </span>
+            <span id="current-project-name" class="max-w-48 truncate text-xs text-white"></span>
+            <div class="flex gap-2">
+                <button id="save-project-button" class="shrink-0 whitespace-nowrap px-3 py-1 bg-wfs-hover rounded hover:bg-gray-700">Lưu dự án</button>
+                <button id="export-project-button" class="shrink-0 whitespace-nowrap px-3 py-1 bg-wfs-hover rounded hover:bg-gray-700">Xuất dự án</button>
+                <button id="map-export-button" class="shrink-0 whitespace-nowrap px-3 py-1 bg-wfs-hover rounded hover:bg-gray-700">Xuất bản đồ</button>
+                <button id="project-manager-button" class="shrink-0 whitespace-nowrap px-3 py-1 bg-wfs-primary text-white rounded hover:bg-blue-600">Dự án</button>
+                <button class="shrink-0 whitespace-nowrap px-3 py-1 bg-wfs-primary text-white rounded hover:bg-blue-600">Settings</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN WORKSPACE -->
+    <main class="flex-1 flex overflow-hidden">
+        
+        <!-- LEFT SIDEBAR (Tools) -->
+        <aside class="w-16 overflow-y-auto bg-wfs-panel border-r border-wfs-border flex flex-col items-center py-3 gap-1 shrink-0 z-10">
+            <button data-tool="select" class="tool-button" aria-label="Select Tool" title="Select Tool (V)">V</button>
+            <button data-tool="brush" class="tool-button" aria-label="Brush Tool" title="Brush Tool (B)">B</button>
+            <button data-tool="eraser" class="tool-button" aria-label="Eraser Tool" title="Eraser Tool (E)">E</button>
+            <button data-tool="landmass" class="tool-button" aria-label="Landmass Tool" title="Landmass Tool (L)">L</button>
+            <button data-tool="terrain" class="tool-button" aria-label="Terrain Tool" title="Terrain Tool (T)">T</button>
+            <button data-tool="river" class="tool-button" aria-label="River Tool" title="River Tool (R)">R</button>
+            <button data-tool="lake" class="tool-button" aria-label="Lake Tool" title="Lake Tool (A)">A</button>
+            <button data-tool="border" class="tool-button" aria-label="Border Tool" title="Border Tool (D)">D</button>
+            <button data-tool="text" class="tool-button" aria-label="Text Tool" title="Text Tool (X)">X</button>
+            <button data-tool="icon" class="tool-button" aria-label="Icon Tool" title="Icon Tool (I)">I</button>
+            <div class="w-8 h-px bg-wfs-border my-2"></div>
+            <button id="open-geography-database-side" class="w-10 h-10 rounded hover:bg-wfs-hover flex justify-center items-center text-wfs-muted hover:text-white" title="Geography Database">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+            </button>
+        </aside>
+
+        <!-- CENTRAL WORKSPACE -->
+        <section class="flex-1 flex flex-col relative overflow-hidden bg-wfs-bg canvas-bg" id="canvas-container">
+            <canvas id="map-canvas" aria-label="World map canvas"></canvas>
+            <div class="absolute left-4 top-4 flex flex-wrap gap-2">
+                <button id="map-size-button" class="rounded border border-wfs-border bg-wfs-panel/95 px-3 py-2 text-xs text-white shadow hover:bg-wfs-hover">Kích thước bản đồ</button>
+                <span id="map-dimensions" class="flex items-center rounded border border-wfs-border bg-wfs-panel/95 px-3 py-2 text-xs text-wfs-muted"></span>
+            </div>
+            <div id="tool-options" class="absolute left-4 top-16 hidden flex-wrap items-center gap-3 rounded border border-wfs-border bg-wfs-panel/95 px-3 py-2 shadow">
+                <span id="active-tool-name" class="text-xs font-semibold text-white"></span>
+                <label id="tool-color-control" class="flex items-center gap-2 text-[11px] text-wfs-muted">
+                    Màu <input id="tool-color" type="color" value="#334155" class="h-7 w-9 cursor-pointer rounded border-0 bg-transparent">
+                </label>
+                <label id="tool-size-control" class="flex items-center gap-2 text-[11px] text-wfs-muted">
+                    Cỡ <input id="tool-size" type="number" min="1" max="512" value="8" class="w-16 rounded border border-wfs-border bg-wfs-bg px-2 py-1 text-white">
+                </label>
+                <label id="tool-terrain-control" class="hidden items-center gap-2 text-[11px] text-wfs-muted">
+                    Địa hình
+                    <select id="tool-terrain" class="rounded border border-wfs-border bg-wfs-bg px-2 py-1 text-white">
+                        <option value="mountain">Núi</option><option value="forest">Rừng</option><option value="hills">Đồi</option>
+                        <option value="desert">Sa mạc</option><option value="swamp">Đầm lầy</option><option value="snow">Tuyết</option>
+                    </select>
+                </label>
+                <label id="tool-icon-control" class="hidden items-center gap-2 text-[11px] text-wfs-muted">
+                    Biểu tượng
+                    <select id="tool-icon" class="rounded border border-wfs-border bg-wfs-bg px-2 py-1 text-white">
+                        <option value="capital">Thủ đô</option><option value="city">Thành phố</option>
+                        <option value="village">Làng</option><option value="port">Cảng</option>
+                    </select>
+                </label>
+                <label id="tool-text-control" class="hidden items-center gap-2 text-[11px] text-wfs-muted">
+                    Nhãn <input id="tool-text" type="text" maxlength="500" value="Label" class="w-36 rounded border border-wfs-border bg-wfs-bg px-2 py-1 text-white">
+                </label>
+            </div>
+            
+            <!-- Floating Zoom Controls -->
+            <div id="view-controls" class="absolute left-6 flex items-center rounded border border-wfs-border bg-wfs-panel shadow-lg" style="bottom: 216px">
+                <button id="zoom-out" title="Zoom out (-)" class="px-3 py-1.5 text-wfs-text hover:bg-wfs-hover">−</button>
+                <span id="zoom-percent" class="flex min-w-16 items-center justify-center px-2 py-1.5 text-xs text-wfs-text">100%</span>
+                <button id="zoom-in" title="Zoom in (+)" class="px-3 py-1.5 text-wfs-text hover:bg-wfs-hover">+</button>
+                <span class="h-5 w-px bg-wfs-border"></span>
+                <button id="fit-view" title="Fit to Screen (F)" class="px-3 py-1.5 text-xs text-wfs-text hover:bg-wfs-hover">Vừa màn hình</button>
+                <button id="reset-view" title="Reset View (0)" class="px-3 py-1.5 text-xs text-wfs-text hover:bg-wfs-hover">Đặt lại</button>
+                <span class="h-5 w-px bg-wfs-border"></span>
+                <button id="undo-action" title="Undo (Ctrl+Z)" disabled class="px-3 py-1.5 text-xs text-wfs-text enabled:hover:bg-wfs-hover disabled:opacity-40">Undo</button>
+                <button id="redo-action" title="Redo (Ctrl+Y)" disabled class="px-3 py-1.5 text-xs text-wfs-text enabled:hover:bg-wfs-hover disabled:opacity-40">Redo</button>
+            </div>
+            <div id="coordinate-panel" class="absolute right-4 rounded border border-wfs-border bg-wfs-panel/95 px-3 py-2 text-[11px] text-wfs-muted shadow" style="bottom: 216px">
+                <span id="coordinate-status">X: — · Y: —</span>
+            </div>
+
+            <!-- BOTTOM PANEL (Collapsible) -->
+            <div id="bottom-panel" class="absolute bottom-0 w-full h-48 bg-wfs-panel border-t border-wfs-border flex flex-col transition-all duration-300">
+                <button id="bottom-panel-toggle" class="h-8 bg-wfs-hover flex w-full justify-between items-center px-4 text-left cursor-pointer">
+                    <span class="font-semibold text-xs text-wfs-muted uppercase tracking-wider">History / Console</span>
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <div class="p-4 overflow-y-auto text-wfs-muted text-xs font-mono">
+                    <p class="mb-1 text-green-400">> IndexedDB Connection Established.</p>
+                    <p class="mb-1">> UI Framework Initialized.</p>
+                    <p class="mb-1">> Ready for Drawing commands...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT PROPERTIES PANEL -->
+        <aside class="w-72 bg-wfs-panel border-l border-wfs-border flex flex-col shrink-0 z-10">
+            <!-- Panel Tabs -->
+            <div class="flex border-b border-wfs-border">
+                <button id="properties-tab" class="flex-1 border-b-2 border-wfs-primary py-3 text-center font-medium text-white">Properties</button>
+                <button id="layers-tab" class="flex-1 border-b-2 border-transparent py-3 text-center text-wfs-muted hover:text-white">Layers</button>
+            </div>
+            
+            <!-- Properties Content -->
+            <div id="properties-content" class="flex-1 overflow-y-auto p-4">
+                <div id="selection-details" class="text-sm text-wfs-muted">Chọn một đối tượng trên bản đồ để xem tọa độ.</div>
+                <form id="selection-form" class="mt-4 hidden space-y-3 border-t border-wfs-border pt-4">
+                    <label class="flex items-center justify-between gap-2 text-xs text-wfs-muted">
+                        Màu
+                        <input id="selection-color" type="color" class="h-7 w-10 cursor-pointer rounded border-0 bg-transparent">
+                    </label>
+                    <label id="selection-text-control" class="hidden text-xs text-wfs-muted">
+                        Nội dung
+                        <input id="selection-text" type="text" maxlength="500" class="mt-1 w-full rounded border border-wfs-border bg-wfs-bg px-2 py-1.5 text-white">
+                    </label>
+                    <label id="selection-size-control" class="hidden text-xs text-wfs-muted">
+                        Kích thước
+                        <input id="selection-size" type="number" min="1" max="512" class="mt-1 w-full rounded border border-wfs-border bg-wfs-bg px-2 py-1.5 text-white">
+                    </label>
+                    <div class="flex gap-2">
+                        <button type="submit" class="flex-1 rounded bg-wfs-primary px-3 py-2 text-xs text-white">Cập nhật</button>
+                        <button type="button" id="delete-selection" class="rounded border border-red-900 px-3 py-2 text-xs text-red-300">Xóa</button>
+                    </div>
+                </form>
+            </div>
+            <div id="layers-content" class="hidden flex-1 overflow-y-auto p-4">
+                <div class="mb-3 flex items-center justify-between">
+                    <h2 class="text-xs font-semibold uppercase tracking-wider text-wfs-muted">Map Layers</h2>
+                    <div class="flex gap-1">
+                        <button id="add-layer-button" title="Thêm layer" class="rounded border border-wfs-border px-2 py-1 text-xs hover:bg-wfs-hover">+</button>
+                        <button id="remove-layer-button" title="Xóa layer đang chọn" class="rounded border border-wfs-border px-2 py-1 text-xs hover:bg-wfs-hover">−</button>
+                    </div>
+                </div>
+                <div class="mb-3 flex gap-1">
+                    <button id="add-layer-group-button" class="rounded border border-wfs-border px-2 py-1 text-[10px] hover:bg-wfs-hover">+ Group</button>
+                    <select id="layer-group-manager" aria-label="Chọn layer group" class="min-w-0 flex-1 rounded border border-wfs-border bg-wfs-bg px-1 py-1 text-[10px] text-white">
+                        <option value="">Chọn group...</option>
+                    </select>
+                    <button id="rename-layer-group-button" title="Đổi tên group" disabled class="rounded border border-wfs-border px-2 py-1 text-[10px] hover:bg-wfs-hover disabled:opacity-40">✎</button>
+                    <button id="delete-layer-group-button" title="Xóa group" disabled class="rounded border border-wfs-border px-2 py-1 text-[10px] hover:bg-wfs-hover disabled:opacity-40">−</button>
+                </div>
+                <div id="layer-list" class="space-y-2"></div>
+            </div>
+        </aside>
+
+    </main>
+    </div>
+
+    <script type="module" src="src/app.js"></script>
+</body>
+</html>

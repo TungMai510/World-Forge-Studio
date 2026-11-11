@@ -1,0 +1,191 @@
+{
+  "id": "5038574a-d653-4415-b56d-dedccff431ff",
+  "name": "QA Import Export 2026-11-11",
+  "description": "Temporary end-to-end export test",
+  "coverImage": "",
+  "createdAt": "2026-11-11T13:12:07.446Z",
+  "updatedAt": "2026-11-11T13:21:33.596Z",
+  "schemaVersion": 2,
+  "data": {
+    "map": {
+      "width": 4096,
+      "height": 2048,
+      "layers": [
+        {
+          "id": "layer-background",
+          "name": "Background",
+          "visible": true,
+          "locked": false,
+          "opacity": 1,
+          "groupId": null,
+          "role": "background",
+          "renderer": "canvas",
+          "objects": []
+        },
+        {
+          "id": "layer-ocean",
+          "name": "Ocean",
+          "visible": true,
+          "locked": false,
+          "opacity": 1,
+          "groupId": null,
+          "role": null,
+          "renderer": "canvas",
+          "objects": []
+        },
+        {
+          "id": "layer-landmass",
+          "name": "Landmass",
+          "visible": true,
+          "locked": false,
+          "opacity": 1,
+          "groupId": null,
+          "role": null,
+          "renderer": "canvas",
+          "objects": []
+        },
+        {
+          "id": "layer-elevation",
+          "name": "Elevation",
+          "visible": true,
+          "locked": false,
+          "opacity": 1,
+          "groupId": null,
+          "role": null,
+          "renderer": "canvas",
+          "objects": []
+        },
+        {
+          "id": "layer-mountains",
+          "name": "Mountains",
+          "visible": true,
+          "locked": false,
+          "opacity": 1,
+          "groupId": null,
+          "role": null,
+          "renderer": "canvas",
+          "objects": []
+        },
+        {
+          "id": "layer-forests",
+          "name": "Forests",
+          "visible": true,
+          "locked": false,
+          "opacity": 1,
+          "groupId": null,
+          "role": null,
+          "renderer": "canvas",
+          "objects": []
+        },
+        {
+          "id": "layer-rivers",
+          "name": "Rivers",
+          "visible": true,
+          "locked": false,
+          "opacity": 1,
+          "groupId": null,
+          "role": null,
+          "renderer": "canvas",
+          "objects": []
+        },
+        {
+          "id": "layer-lakes",
+          "name": "Lakes",
+          "visible": true,
+          "locked": false,
+          "opacity": 1,
+          "groupId": null,
+          "role": null,
+          "renderer": "canvas",
+          "objects": []
+        },
+        {
+          "id": "layer-borders",
+          "name": "Borders",
+          "visible": true,
+          "locked": false,
+          "opacity": 1,
+          "groupId": null,
+          "role": null,
+          "renderer": "canvas",
+          "objects": []
+        },
+        {
+          "id": "layer-cities",
+          "name": "Cities",
+          "visible": true,
+          "locked": false,
+          "opacity": 1,
+          "groupId": null,
+          "role": null,
+          "renderer": "canvas",
+          "objects": []
+        },
+        {
+          "id": "layer-locations",
+          "name": "Locations",
+          "visible": true,
+          "locked": false,
+          "opacity": 1,
+          "groupId": null,
+          "role": null,
+          "renderer": "canvas",
+          "objects": []
+        },
+        {
+          "id": "layer-text",
+          "name": "Text",
+          "visible": true,
+          "locked": false,
+          "opacity": 1,
+          "groupId": null,
+          "role": null,
+          "renderer": "canvas",
+          "objects": []
+        },
+        {
+          "id": "layer-decorations",
+          "name": "Decorations",
+          "visible": true,
+          "locked": false,
+          "opacity": 1,
+          "groupId": null,
+          "role": null,
+          "renderer": "canvas",
+          "objects": []
+        }
+      ],
+      "groups": []
+    },
+    "geography": {
+      "worlds": [],
+      "continents": [],
+      "countries": [],
+      "cities": [],
+      "locations": []
+    },
+    "civilization": {
+      "characters": [],
+      "races": [],
+      "cultures": [],
+      "religions": [],
+      "organizations": []
+    },
+    "history": {
+      "calendars": [
+        {
+          "id": "calendar-default",
+          "name": "Default Calendar",
+          "months": [],
+          "description": "",
+          "createdAt": "2026-11-11T13:12:07.487Z",
+          "updatedAt": "2026-11-11T13:12:07.487Z"
+        }
+      ],
+      "eras": [],
+      "periods": [],
+      "records": [],
+      "events": []
+    }
+  }
+}
