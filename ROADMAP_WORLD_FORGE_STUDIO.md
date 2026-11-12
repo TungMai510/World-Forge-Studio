@@ -362,50 +362,59 @@ Công việc:
 
 **Definition of Done còn lại:** chạy lại toàn bộ test suite; hoàn tất browser checklist với cả mountain (96×64) và forest (64×96), đặc biệt fit modes, layer visibility/opacity, pan/zoom và bốn định dạng export; ghi nhận browser/OS và lỗi console. Chưa đánh dấu Phase 2 complete cho đến khi các bước này được xác nhận.
 
-### Phase 3 — Place Asset Tool và chỉnh sửa
+### Phase 3 — Tool–Asset Integration
 
-**Mục tiêu:** người dùng đặt và chỉnh asset trực tiếp trên bản đồ.
+**Mục tiêu:** hợp nhất Asset System với các công cụ bản đồ hiện có. Asset Pack trở thành nguồn tài nguyên dùng chung; người dùng chọn asset ngay trong ngữ cảnh của công cụ phù hợp.
 
-Công việc:
-1. Tạo PlaceAssetTool và đăng ký qua ToolManager.
-2. Chọn asset từ thư viện hoặc trạng thái pending selection.
-3. Click/drag để đặt asset.
-4. Chỉnh vị trí, kích thước, rotation, opacity.
-5. Nhân bản, xóa, multi-select nếu phù hợp với SelectTool.
-6. Tích hợp Undo/Redo bằng command/snapshot hiện tại.
-7. Quy định hành vi khi asset không load được.
+#### Phase 3A — Tool–Asset Integration Contract
 
-**Tiêu chí hoàn thành:**
-- Đặt, di chuyển, resize, rotate và delete asset được.
-- Undo/Redo khôi phục chính xác.
-- Tool không phá các tool hiện có.
-- Có kiểm thử thao tác và regression test cho tool hiện hữu.
+1. Định nghĩa capability/usage vocabulary độc lập với category của Pack.
+2. Thiết kế Tool Binding API để mỗi tool khai báo capability cần thiết, bộ lọc phụ và cách nhận asset selection.
+3. Thiết kế semantic object/assetRef cho Icon, Terrain, Lake và Border; không biến tất cả thành Image Object.
+4. Xác định renderer extension, export, hit-test, history và persistence contract.
+5. Thêm contract tests cho capability matching, disabled Pack, stale/missing references và backward compatibility.
+6. Giữ nguyên các chế độ vector/procedural đang có.
 
-### Phase 4 — Asset Library UI
+**Tiêu chí hoàn thành:** contract và schema được tài liệu hóa; test pass; tool cũ vẫn hoạt động không cần Pack.
 
-**Mục tiêu:** duyệt và tìm kiếm asset từ mọi Pack đang bật.
+#### Phase 3B — Shared Asset Library
 
-Công việc:
-1. Tạo component riêng, không tiếp tục phình `layout.js`.
-2. Hiển thị category động từ Pack metadata.
-3. Search theo tên, ID và tag.
-4. Filter theo Pack, category và type.
-5. Thumbnail grid, preview và metadata panel.
-6. Chọn/kéo thả asset lên map.
-7. Empty/loading/error states và lazy thumbnail loading.
+1. Xây Asset Library thành component/module dùng chung, không triển khai riêng từng tool.
+2. Duyệt thumbnail, tìm kiếm theo tên/ID/tag, lọc theo Pack/category.
+3. Nhận capability query từ Tool Binding đang hoạt động.
+4. Trả asset selection về đúng Tool Binding.
+5. Có loading/error/empty state, trạng thái Pack/version và khả năng điều hướng bàn phím.
 
-**Tiêu chí hoàn thành:**
-- Pack mới cài tự xuất hiện trong UI không cần sửa code.
-- Category do cộng đồng định nghĩa được hiển thị.
-- Search/filter hoạt động trên nhiều Pack.
-- Thư viện không tải toàn bộ ảnh gốc cùng lúc.
+**Tiêu chí hoàn thành:** cùng một Asset Library phục vụ ít nhất hai tool với capability filter khác nhau; không có logic đọc Pack lặp lại trong từng tool.
 
-### Phase 5 — Persistence, Archive và khả năng khôi phục
+#### Phase 3C — Tích hợp các công cụ chuyên biệt
+
+Thứ tự ưu tiên:
+
+1. **Icon Tool:** chọn asset có capability icon, giữ built-in icon làm fallback.
+2. **Terrain/Mountain:** giữ vẽ polygon procedural; bổ sung asset stamp, sau đó mới scatter.
+3. **Lake:** giữ ellipse/vector; bổ sung texture-fill được clip theo hình học hồ.
+4. **Border:** giữ path/stroke/dash; bổ sung pattern-stroke lặp theo chiều dài đường biên.
+
+Mỗi tích hợp phải có unit tests, renderer/export tests và browser QA trước khi chuyển sang tool tiếp theo.
+
+**Tiêu chí hoàn thành:** asset selection tạo đúng semantic map object; thao tác chọn/sửa/duplicate/delete/Undo/Redo và export không làm mất asset reference.
+
+#### Phase 3D — Generic Placement và mở rộng
+
+1. Giữ PlaceAssetTool làm công cụ đặt stamp/decoration tự do.
+2. Hoàn thiện generic placement và các thuộc tính transform.
+3. Chỉ triển khai Scatter sau khi có thuật toán seeded/deterministic, spacing và grouped Undo/Redo.
+4. Mở rộng Brush, River và Landmass sau khi các contract texture-fill/pattern-stroke/scatter được kiểm chứng.
+
+**Tiêu chí hoàn thành:** PlaceAssetTool không còn là con đường bắt buộc để dùng asset trong các tool chuyên biệt; các chế độ nâng cao có kết quả lặp lại được và kiểm thử đầy đủ.
+
+### Phase 4 — Persistence, Archive và khả năng khôi phục
 
 **Mục tiêu:** project luôn mở lại đúng kể cả khi môi trường Pack thay đổi.
 
 Công việc:
-1. Chuẩn hóa Project asset references.
+1. Chuẩn hóa Project asset references cho semantic object.
 2. Bổ sung embedded asset snapshot vào archive hiện tại.
 3. Bổ sung metadata Pack/version/checksum đã dùng.
 4. Xử lý missing asset và fallback.
@@ -419,19 +428,18 @@ Công việc:
 - Missing/corrupt asset có cảnh báo, không crash.
 - Migration dữ liệu cũ không mất dữ liệu.
 
-### Phase 6 — .wfpack Import/Export và Asset Pack Manager UI
+### Phase 5 — .wfpack Import/Export và Asset Pack Manager UI
 
 **Mục tiêu:** người dùng cài và quản lý Pack an toàn.
 
 Công việc:
 1. Hoàn thiện .wfpack parser/writer dùng chung schema.
-2. Import qua file picker.
-3. Preview nội dung trước khi cài.
-4. Validate toàn bộ Pack trước khi commit cài đặt.
-5. Installed Packs: enable/disable, details, uninstall, update.
-6. Phát hiện Pack đang được Project tham chiếu.
-7. Quản lý version, duplicate pack ID và update policy.
-8. Kiểm thử Pack lỗi, quá lớn, file trùng và path độc hại.
+2. Import qua file picker và preview nội dung trước khi cài.
+3. Validate toàn bộ Pack trước khi commit cài đặt.
+4. Installed Packs: enable/disable, details, uninstall, update.
+5. Phát hiện Pack đang được Project tham chiếu.
+6. Quản lý version, duplicate pack ID và update policy.
+7. Kiểm thử Pack lỗi, quá lớn, file trùng và path độc hại.
 
 **Tiêu chí hoàn thành:**
 - Người dùng import một .wfpack hợp lệ và asset xuất hiện trong Library.
@@ -439,7 +447,7 @@ Công việc:
 - Enable/disable/uninstall không làm hỏng Core.
 - Project đã lưu không mất ảnh khi Pack bị gỡ.
 
-### Phase 7 — WorldForge Asset Studio
+### Phase 6 — WorldForge Asset Studio
 
 **Mục tiêu:** người không biết lập trình tự tạo Pack.
 
@@ -460,7 +468,7 @@ Chức năng:
 - Export .wfpack rồi import lại vào WorldForge Studio thành công.
 - Metadata, file và thumbnail không bị mất sau round-trip.
 
-### Phase 8 — Mã nguồn mở và hệ sinh thái cộng đồng
+### Phase 7 — Mã nguồn mở và hệ sinh thái cộng đồng
 
 **Mục tiêu:** người dùng có thể đóng góp Core hoặc phân phối Pack độc lập.
 
