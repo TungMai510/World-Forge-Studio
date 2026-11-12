@@ -261,7 +261,7 @@ export class UIController {
         const definition = TOOL_DEFINITIONS.find(item => item.id === toolId);
         const binding = this.canvasEngine.toolManager.getAssetBinding(toolId);
         const tool = this.canvasEngine.toolManager.getTool(toolId);
-        const canSelect = Boolean(binding && toolId === 'place-asset' && typeof tool.setAssetSelection === 'function');
+        const canSelect = Boolean(binding && ['place-asset', 'icon'].includes(toolId) && typeof tool.setAssetSelection === 'function');
         const packs = this.assetRegistry.listPacks();
         const packFilter = document.getElementById('asset-library-pack-filter');
         const previousPack = this.assetLibraryState.packId;
@@ -292,7 +292,7 @@ export class UIController {
         document.getElementById('asset-library-compatibility').textContent = canSelect
             ? 'Các tài nguyên bên dưới tương thích và có thể chọn cho công cụ hiện tại.'
             : binding
-                ? 'Đã lọc theo khả năng của công cụ. Chức năng áp dụng asset cho công cụ này sẽ được hoàn thiện ở Phase 3C.'
+                ? 'Đã lọc theo khả năng của công cụ. Tích hợp asset-backed cho công cụ này sẽ được mở khóa theo từng bước trong Phase 3C.'
                 : 'Đang hiển thị toàn bộ tài nguyên đã bật. Hãy chọn một công cụ có hỗ trợ Asset Pack để áp dụng.';
         document.getElementById('asset-library-select').disabled = !canSelect || !this.assetLibraryState.selectedKey;
         document.getElementById('asset-library-count').textContent = `${assets.length} tài nguyên phù hợp`;
@@ -396,10 +396,12 @@ export class UIController {
                 packId, assetId
             });
             const toolId = this.canvasEngine.toolManager.activeToolId;
-            if (toolId !== 'place-asset') {
-                this.notify('Asset đã được gắn với công cụ. Hành vi tạo đối tượng chuyên biệt sẽ được hoàn thiện ở Phase 3C.');
-            } else {
+            if (toolId === 'icon') {
+                this.notify(`Đã chọn biểu tượng "${resolved.asset.name}". Click trên bản đồ để đặt icon.`);
+            } else if (toolId === 'place-asset') {
                 this.notify(`Đã chọn "${resolved.asset.name}". Click hoặc kéo trên bản đồ để đặt asset.`);
+            } else {
+                this.notify(`Đã gắn asset "${resolved.asset.name}" với công cụ hiện tại.`);
             }
             document.getElementById('asset-library-dialog').close();
         } catch (error) {
