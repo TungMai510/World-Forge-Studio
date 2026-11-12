@@ -1,6 +1,6 @@
 # WorldForge Studio — Tool–Asset Integration Specification
 
-**Status:** Architecture decision / implementation plan  
+**Status:** Active implementation specification — Phase 3C.1–3C.3 verified; Phase 3C.4 implementation added, browser QA pending  
 **Date:** 12/11/2026  
 **Applies to:** WorldForge Core, Map Editor, Tool System, Asset Runtime and Asset Packs  
 **Related:** ASSET_PACK_SPECIFICATION.md, ROADMAP_WORLD_FORGE_STUDIO.md
@@ -401,3 +401,16 @@ The first shared Asset Library UI is now implemented in the editor:
 - CanvasLayerRenderer requests the texture image from ImageObjectRenderer and repeats it inside the ellipse clip; the existing lake outline is drawn above it.
 - Classic Fantasy QA fixture adds `WTR-001` Lake Water Texture with `usages: ["texture-fill"]`.
 - Unit coverage and browser verification are pending on the owner’s local checkout.
+
+
+## 14. Phase 3C.4 implementation update — Border Tool pattern-stroke
+
+- Border Tool now accepts assets declared with `pattern-stroke` through the existing ToolAssetBinding. The original dashed vector workflow remains unchanged when no pattern is selected.
+- A patterned border remains a semantic `type: 'path', feature: 'border'` object. It stores `patternAssetRef`, source `patternSize` and `patternScale`; it is not flattened into unrelated image objects.
+- CanvasLayerRenderer repeats the loaded pattern image along each path subpath, samples positions at even intervals, rotates each tile to the local segment tangent, and retains the vector stroke underneath as a loading/missing-image fallback.
+- Patterned-border selection bounds are expanded to include artwork around the path centerline. Existing path hit testing remains based on the semantic path and stroke tolerance.
+- The Classic Fantasy QA Pack fixture now includes `BND-001 Stone Border Pattern` with `usages: ['pattern-stroke']`.
+- Asset Library selection is enabled for Border Tool and displays a context-specific instruction after selection.
+- Automated coverage added for vector fallback, semantic reference metadata, repeated/rotated rendering and expanded bounds.
+
+**Verification status:** implementation and test changes are committed; run `npm run assets:fixture` and `npm test` on the updated checkout, then complete the manual browser checklist in `tests/assets/README.md`. Do not mark Phase 3C.4 complete until browser QA and export checks are confirmed.
