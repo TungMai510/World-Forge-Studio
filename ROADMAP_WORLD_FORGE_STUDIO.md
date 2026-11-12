@@ -67,6 +67,13 @@ Tài liệu thiết kế chi tiết và hợp đồng đề xuất: [`TOOL_ASSET
 
 ## 1. Tầm nhìn sản phẩm đã thống nhất
 
+### Cập nhật tiến độ Phase 3C — 12/11/2026
+
+- **Đang triển khai 3C.1 — Icon Tool:** Icon Tool có thể nhận asset qua Asset Library, tạo semantic icon object kèm `assetRef` và render ảnh thông qua ImageObjectRenderer. Chế độ icon vector mặc định vẫn được giữ.
+- Đã bổ sung automated tests cho vector fallback, asset-backed icon object và renderer delegation. Cần chạy lại `npm test` trên checkout mới nhất và thực hiện browser QA trước khi xác nhận lát cắt này hoàn tất.
+- Terrain/Mountain, Lake và Border chưa được coi là tích hợp; tiếp tục triển khai lần lượt sau khi Icon Tool đạt QA.
+
+
 WorldForge Studio là công cụ **world-building và sáng tạo bản đồ**, hướng tới người viết tiểu thuyết và người xây dựng thế giới giả tưởng. Sản phẩm kết hợp:
 
 - Map Editor để tạo bản đồ và bố trí đối tượng.
