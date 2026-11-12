@@ -68,3 +68,23 @@ Open `http://localhost:8000`, open a map project, then verify:
 12. Reopen the library and confirm no duplicate element IDs, uncaught console errors or broken previews.
 
 Pack installation and enabled state are currently in-memory for the editor session; persistence across reloads is not part of Phase 3B.
+
+
+## Phase 3C.4 — Border Tool pattern-stroke browser QA
+
+After pulling the latest `main`, run:
+
+```powershell
+npm run assets:fixture
+npm test
+npx --yes http-server . -p 8000 -c-1
+```
+
+Open `http://localhost:8000`, open a map, import `tests/assets/fixtures/classic-fantasy.wfpack`, then:
+
+1. Select **Border Tool** and open Asset Library. Confirm only `Stone Border Pattern` (`BND-001`) is offered.
+2. Select the pattern and draw a long straight border. Confirm the pattern repeats continuously along the stroke and the existing vector line remains underneath as a fallback.
+3. Draw a diagonal border and a multi-segment border. Confirm each tile rotates to follow the local path direction.
+4. Select a patterned border and verify its selection bounds include the artwork extending beyond the centerline.
+5. With no pattern selected, draw another border and confirm the original dashed vector border is unchanged.
+6. Export PNG, JPG, SVG and PDF; confirm the patterned border is present in each supported export path and check the console for errors.
