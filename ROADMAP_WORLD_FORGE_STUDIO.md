@@ -691,3 +691,19 @@ Chỉ bắt đầu thiết kế Cloud Sync sau khi Project Persistence/Archive, 
 - Đã đăng ký tool trong ToolManager với phím tắt P và thêm Node tests cho đăng ký, click placement, drag placement, validation và cancel.
 - Phần này mới là nền tảng đặt asset. Di chuyển, resize/rotate handles, duplicate/delete UI và kiểm thử Undo/Redo tích hợp vẫn là các bước tiếp theo của Phase 3.
 - Automated tests chưa được chạy trên checkout thực tế trong phiên cập nhật này; cần chạy `npm test` tại `worldforge_ui_prototype` trước khi xem implementation đã tested.
+
+
+### Phase 3 — UI entry point and temporary Asset Pack selection (12/11/2026)
+
+Đã bổ sung bước kết nối PlaceAssetTool với giao diện hiện tại:
+
+- Thêm nút **Place Asset** vào thanh công cụ bên trái, cạnh Icon Tool.
+- Nút chuyển sang Place Asset Tool và mở hộp chọn file `.wfpack`.
+- Sau khi chọn file, ứng dụng dùng AssetPackService hiện có để inspect, validate và cài Pack vào Registry trong phiên làm việc.
+- Hiển thị danh sách asset của Pack bằng hộp thoại chọn số thứ tự (prompt tạm thời).
+- Asset được chọn sẽ được truyền vào PlaceAssetTool cùng Pack version; người dùng có thể click hoặc kéo trên Canvas để đặt.
+- File input được reset sau mỗi lần xử lý để có thể chọn lại cùng một file.
+
+**Giới hạn đã biết:** đây là luồng giao diện tối thiểu để kiểm chứng Place Asset end-to-end, chưa phải Asset Library UI. Danh sách asset hiện chọn bằng prompt; chưa có thumbnail/grid/search/filter, Pack Manager, hoặc lưu trạng thái cài Pack qua lần khởi động. Nếu hủy hộp chọn asset, Pack đã import vẫn nằm trong Registry của phiên hiện tại.
+
+**Chưa xác minh:** các thay đổi giao diện vừa commit chưa được chạy trên trình duyệt và chưa có kết quả `npm test` sau hai commit UI. Cần pull, chạy test tự động, sau đó thử import Pack → chọn asset → click/drag đặt ảnh trên Canvas. Phase 3 vẫn In Progress.
