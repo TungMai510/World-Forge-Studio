@@ -74,7 +74,7 @@ test('unknown asset usages are ignored and never execute or grant capabilities',
 test('legacy Pack v1 assets are generic-only and are not inferred from category names', () => {
     assert.deepEqual(getAssetCapabilities(assets[4], { allowLegacyGeneric: true }), ['stamp', 'decoration']);
     assert.deepEqual(getAssetCapabilities(assets[4]), []);
-    assert.equal(assetMatchesQuery(assets[4], { requiredCapabilities: ['stamp'] }), true);
+    assert.equal(assetMatchesQuery(assets[4], { requiredCapabilities: ['stamp'] }, { allowLegacyGeneric: true }), true);
     assert.equal(assetMatchesQuery(assets[4], { requiredCapabilities: ['icon'] }), false);
     assert.equal(assetMatchesQuery(assets[4], { requiredCapabilities: ['texture-fill'] }), false);
 });
