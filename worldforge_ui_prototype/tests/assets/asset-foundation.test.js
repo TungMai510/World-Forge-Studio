@@ -125,22 +125,23 @@ test('integration: Archive → Validator → Registry → Loader', async () => {
 
     const revokedUrls = [];
     const originalRevoke = URL.revokeObjectURL;
-    URL.revokeObjectURL = url => revokedUrls.push(url);
-    assert.equal(service.setPackEnabled(manifest.id, false), false);
-    assert.ok(revokedUrls.includes(loaded.url));
-    assert.equal(registry.getAsset(manifest.id, 'MNT-001'), null);
-    assert.throws(() => loader.load(manifest.id, 'MNT-001'), /missing or its Pack is disabled/);
-    service.setPackEnabled(manifest.id, true);
-    assert.ok(loader.load(manifest.id, 'MNT-001'));
-
-    const reloaded = loader.load(manifest.id, 'MNT-001');
-    assert.equal(service.uninstallPack(manifest.id), true);
-    assert.ok(revokedUrls.includes(reloaded.url));
-    URL.revokeObjectURL = originalRevoke;
-    assert.equal(loader.cache.size, 0);
-    assert.equal(registry.getPack(manifest.id), null);
-    assert.equal(registry.listAssets().length, 0);
-    loader.clear();
+    try {
+        URL.revokeObjectURL = url => revokedUrls.push(url);
+        assert.equal(service.setPackEnabled(manifest.id, false), false);
+        assert.ok(revokedUrls.includes(loaded.url));
+        assert.equal(registry.getAsset(manifest.id, 'MNT-001'), null);
+        assert.throws(() => loader.load(manifest.id, 'MNT-001'), /missing or its Pack is disabled/);
+        service.setPackEnabled(manifest.id, true);
+        const reloaded = loader.load(manifest.id, 'MNT-001');
+        assert.equal(service.uninstallPack(manifest.id), true);
+        assert.ok(revokedUrls.includes(reloaded.url));
+        assert.equal(loader.cache.size, 0);
+        assert.equal(registry.getPack(manifest.id), null);
+        assert.equal(registry.listAssets().length, 0);
+    } finally {
+        URL.revokeObjectURL = originalRevoke;
+        loader.clear();
+    }
 });
 
 test('registry: same local asset ID can exist in different Packs', () => {
