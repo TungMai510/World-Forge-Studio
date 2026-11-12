@@ -897,7 +897,7 @@ Phần này là **snapshot trạng thái mới nhất**, thay thế các trạng
 | 3C.1 | Icon Tool: semantic icon object + assetRef | User-confirmed browser QA |
 | 3C.2 | Terrain Tool: asset stamp + procedural polygon fallback | User-confirmed browser QA |
 | 3C.3 | Lake Tool: texture-fill trên ellipse + solid-color fallback | User-confirmed browser QA |
-| 3C.4 | Border Tool: pattern-stroke lặp theo path | Implemented; automated/browser QA pending |
+| 3C.4 | Border Tool: pattern-stroke lặp theo path | Implemented + GitHub Actions tests PASS; browser QA pending |
 
 ### Bằng chứng kiểm thử đã được người dùng báo cáo
 
@@ -906,6 +906,7 @@ Phần này là **snapshot trạng thái mới nhất**, thay thế các trạng
 - Phase 3A: 52/52 tests PASS; browser smoke test thành công.
 - Phase 3B: 57/57 tests PASS; browser QA Asset Library hoàn tất.
 - Phase 3C.3 trước khi bắt đầu Border: 66/66 tests PASS; người dùng xác nhận Pack có đủ bốn asset và Lake Tool hoạt động đúng.
+- Phase 3C.4: GitHub Actions workflow run #102 đã chạy thành công sau khi bổ sung Border pattern rendering, export và regression test; run #103 cho cập nhật tài liệu cũng thành công. Chưa có số lượng test tổng hợp được xác nhận từ log trong snapshot này.
 - Các kết quả trên là kết quả local do người dùng xác nhận, không được hiểu là GitHub Actions/CI đã chạy tương ứng.
 
 ### Fixture Pack hiện tại
@@ -948,7 +949,7 @@ Nếu Pack đang được cài trong phiên browser cũ, cần gỡ Pack cũ r�
 
 **Cần xác minh trên máy người dùng:**
 - `npm run assets:fixture` → Pack có 5 asset.
-- `npm test` → xác nhận số test mới nhất và không có regression.
+- Có thể chạy `npm test` để xác nhận trên môi trường local; GitHub Actions run #102 đã xác nhận job Asset Foundation tests và all prototype tests đều PASS.
 - Browser QA: Asset Library chỉ lọc BND-001 cho Border; vẽ đường thẳng/chéo/gấp khúc; vector fallback khi bỏ chọn pattern; chọn đối tượng; export PNG/JPG/SVG/PDF.
 - Chỉ sau khi người dùng xác nhận browser QA mới chuyển Phase 3C.4 sang hoàn tất.
 
