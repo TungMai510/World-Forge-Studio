@@ -17,7 +17,8 @@ const assets = [
     { id: 'MNT-1', name: 'Mountain Stamp', category: 'terrain', type: 'image', usages: ['stamp', 'scatter'], tags: ['mountain'], defaultSize: { width: 180, height: 140 } },
     { id: 'LAKE-1', name: 'Water Texture', category: 'water', type: 'image', usages: ['texture-fill'], tags: ['water'] },
     { id: 'BORDER-1', name: 'Border Pattern', category: 'lines', type: 'image', usages: ['pattern-stroke'], tags: ['border'] },
-    { id: 'OLD-1', name: 'Legacy Decoration', category: 'misc', type: 'image', tags: ['ornament'] }
+    { id: 'OLD-1', name: 'Legacy Decoration', category: 'misc', type: 'image', tags: ['ornament'] },
+    { id: 'DECOR-1', name: 'Banner Decoration', category: 'decor', type: 'image', usages: ['decoration'], tags: ['banner'] }
 ];
 
 function createRegistry() {
@@ -60,6 +61,8 @@ test('asset capability matching requires every requested capability', () => {
     assert.equal(assetMatchesQuery(assets[0], { requiredCapabilities: ['icon', 'scatter'] }), false);
     assert.equal(assetMatchesQuery(assets[2], { requiredCapabilities: ['texture-fill'] }), true);
     assert.equal(assetMatchesQuery(assets[3], { requiredCapabilities: ['pattern-stroke'] }), true);
+    assert.equal(assetMatchesQuery(assets[5], { anyCapabilities: ['stamp', 'decoration'] }), true);
+    assert.equal(assetMatchesQuery(assets[5], { anyCapabilities: ['stamp', 'icon'] }), false);
 });
 
 test('unknown asset usages are ignored and never execute or grant capabilities', () => {
@@ -104,7 +107,7 @@ test('ToolManager exposes per-tool bindings without coupling tools to Pack parsi
     assert.deepEqual(manager.listAssetsForTool('terrain').map(asset => asset.id), ['ICON-1', 'MNT-1', 'OLD-1']);
     assert.deepEqual(manager.listAssetsForTool('lake').map(asset => asset.id), ['LAKE-1']);
     assert.deepEqual(manager.listAssetsForTool('border').map(asset => asset.id), ['BORDER-1']);
-    assert.deepEqual(manager.listAssetsForTool('place-asset').map(asset => asset.id), ['ICON-1', 'MNT-1', 'OLD-1']);
+    assert.deepEqual(manager.listAssetsForTool('place-asset').map(asset => asset.id), ['ICON-1', 'MNT-1', 'OLD-1', 'DECOR-1']);
     assert.deepEqual(manager.listAssetsForTool('select'), []);
 });
 
