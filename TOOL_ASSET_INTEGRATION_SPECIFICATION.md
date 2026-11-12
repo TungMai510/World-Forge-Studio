@@ -376,3 +376,19 @@ The first shared Asset Library UI is now implemented in the editor:
 - Added a pure Asset Library filtering model and automated tests for search, combined category/search filters, disabled assets and category enumeration.
 
 **Known boundaries:** Pack installation and enabled state are session-only; IndexedDB persistence and project asset snapshots belong to later persistence/Pack Manager work. The dialog is a first usable shared library, not yet a dedicated dockable panel. Browser QA and full `npm test` are pending on the owner's checkout.
+
+
+## Phase 3C.1 — Icon Tool integration verified (12/11/2026)
+
+- IconTool stores the selected namespaced Asset Pack reference on a semantic `icon` map object; the existing vector icon remains the fallback when no asset is selected.
+- CanvasLayerRenderer delegates asset-backed icon drawing to ImageObjectRenderer.
+- Shared Asset Library allows applying a compatible asset to Icon Tool.
+- The Classic Fantasy QA Pack now includes `ICO-001` Castle Icon with `usages: ["icon"]`.
+- The repository owner confirmed the fixture regeneration and Icon Tool browser test completed successfully.
+
+## Phase 3C.2 — Terrain/Mountain integration in progress
+
+- TerrainTool will retain its existing polygon-area workflow when no asset is selected.
+- When a compatible `stamp` asset is selected, a click places a centered Image Object using the Pack's `defaultSize` and namespaced asset reference.
+- The shared Asset Library apply action is enabled for Terrain.
+- Unit coverage is being added for vector fallback, semantic image-stamp creation and renderer delegation. Local test and browser verification remain pending until the owner pulls this commit.
