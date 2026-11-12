@@ -39,6 +39,13 @@ export class PlaceAssetTool extends BaseTool {
         this.setOptions(options);
     }
 
+    setAssetSelection(selection) {
+        super.setAssetSelection(selection);
+        const defaultSize = selection.asset.defaultSize || this.options.defaultSize;
+        this.setOptions({ assetRef: selection.assetRef, defaultSize });
+        return this.assetSelection;
+    }
+
     setOptions(options) {
         if (!options || typeof options !== 'object' || Array.isArray(options)) {
             throw new Error('Place Asset Tool options must be an object.');
