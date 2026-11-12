@@ -107,13 +107,15 @@ This list is extensible. Unknown capability strings must be safely ignored by ol
 
 ### 5.2 Backward compatibility
 
-The current Asset Pack v1 manifest supports type=image, category, tags and defaultSize, but has no usage capability field.
+The Asset Pack v1.0 manifest is extended with an **optional** `usages` string array. This is additive: existing v1 Packs remain valid without changes.
 
-- Existing Pack v1 assets remain valid.
-- If usages is absent, the asset remains discoverable through generic stamp/decoration workflows only where the product explicitly permits legacy fallback.
-- Specialized tools must not assume an asset is compatible merely because its category is named mountains, lakes or icons.
-- A future manifest revision may add optional usages, with schema validation and documentation. Do not silently change the meaning of required v1 fields.
-- A possible future example:
+- Existing Pack v1 assets without `usages` remain eligible only for generic stamp/decoration placement.
+- Specialized tools must not infer compatibility merely because a category is named `mountains`, `lakes` or `icons`.
+- The validator accepts up to 20 unique non-empty usage strings (maximum 40 characters each). Core recognizes the capability vocabulary defined above; unknown strings are preserved as metadata and ignored by Core versions that do not recognize them.
+- A present empty `usages: []` means the asset has no declared supported usage; it does not receive the legacy generic fallback.
+- The field is descriptive data only. It cannot name a module, script, callback or executable handler.
+
+Example:
 
 ~~~json
 {
@@ -127,8 +129,6 @@ The current Asset Pack v1 manifest supports type=image, category, tags and defau
   "defaultSize": { "width": 180, "height": 140 }
 }
 ~~~
-
-The example is a design proposal, not currently accepted by the v1 validator. Implement it only with an explicit schema/version decision and tests.
 
 ### 5.3 Tool-side query contract
 
