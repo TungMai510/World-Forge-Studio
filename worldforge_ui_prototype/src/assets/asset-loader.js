@@ -2,7 +2,17 @@ const MIME={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp'
 export class AssetLoader {
     constructor(registry,{maxCacheEntries=200}={}){
         if(!registry||typeof registry.getAssetFile!=='function')throw new Error('AssetLoader requires an AssetRegistry.');
-        this.registry=registry;this.maxCacheEntries=Math.max(1,maxCacheEntries);this.cache=new Map();
+        this.registry=registry;this.maxCacheEntries=Math.max(1,maxCacheEntries);this.cache=new Map();this.listeners=new Set();
+    }
+    subscribe(listener){
+        if(typeof listener!=='function')throw new Error('AssetLoader subscriber must be a function.');
+        this.listeners.add(listener);
+        return ()=>this.listeners.delete(listener);
+    }
+    notify(event){
+        for(const listener of this.listeners){
+            try{listener(event);}catch(error){queueMicrotask(()=>{throw error;});}
+        }
     }
     getCacheKey(packId,assetId){const pack=this.registry.getPack(packId);return pack?`${packId}::${pack.manifest.version}::${assetId}`:null;}
     load(packId,assetId){
@@ -19,6 +29,16 @@ export class AssetLoader {
         this.cache.set(key,loaded);this.evictOverflow();return loaded;
     }
     evictOverflow(){while(this.cache.size>this.maxCacheEntries){const [key,item]=this.cache.entries().next().value;URL.revokeObjectURL(item.url);this.cache.delete(key);}}
-    invalidatePack(packId){for(const [key,item] of this.cache){if(item.packId===packId){URL.revokeObjectURL(item.url);this.cache.delete(key);}}}
-    clear(){for(const item of this.cache.values())URL.revokeObjectURL(item.url);this.cache.clear();}
+    invalidatePack(packId){
+        let invalidated=0;
+        for(const [key,item] of this.cache){if(item.packId===packId){URL.revokeObjectURL(item.url);this.cache.delete(key);invalidated+=1;}}
+        this.notify({type:'pack-invalidated',packId,invalidated});
+        return invalidated;
+    }
+    clear(){
+        const invalidated=this.cache.size;
+        for(const item of this.cache.values())URL.revokeObjectURL(item.url);
+        this.cache.clear();
+        this.notify({type:'cleared',invalidated});
+    }
 }
