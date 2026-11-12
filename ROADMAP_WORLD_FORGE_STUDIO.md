@@ -1,6 +1,6 @@
 # WorldForge Studio — Tổng quan hiện trạng và lộ trình phát triển
 
-> **Ngày rà soát:** 12/11/2026 (cập nhật trạng thái sau khi hoàn tất Phase 3C.4; chuẩn bị Phase 3D)  
+> **Ngày rà soát:** 12/11/2026 (Phase 3C.4 hoàn tất; Phase 3D.1 đã triển khai, chờ kiểm thử local/browser)  
 > **Repository:** https://github.com/TungMai510/World-Forge-Studio  
 > **Nhánh:** `main`  
 > **Phạm vi mã nguồn:** `worldforge_ui_prototype/`  
@@ -898,6 +898,7 @@ Phần này là **snapshot trạng thái mới nhất**, thay thế các trạng
 | 3C.2 | Terrain Tool: asset stamp + procedural polygon fallback | User-confirmed browser QA |
 | 3C.3 | Lake Tool: texture-fill trên ellipse + solid-color fallback | User-confirmed browser QA |
 | 3C.4 | Border Tool: pattern-stroke lặp theo path | Completed; automated tests + user-confirmed browser QA |
+| 3D.1 | Generic Place Asset: click/drag placement + transform options | Implemented + new automated tests committed; local/browser QA pending |
 
 ### Bằng chứng kiểm thử đã được người dùng báo cáo
 
@@ -956,9 +957,15 @@ Nếu Pack đang được cài trong phiên browser cũ, cần gỡ Pack cũ r�
 
 ### Phase 3D — Generic Asset Placement
 
-- Hoàn thiện luồng đặt stamp/decoration tổng quát.
-- Giữ selection, move, resize, rotation, opacity, fit, duplicate/delete và undo/redo.
-- Kiểm thử tương thích với asset refs và layer visibility/lock.
+#### 3D.1 — Click/drag placement và transform options (đã triển khai, chờ xác minh)
+- Place Asset hỗ trợ click để đặt theo `defaultSize` của Pack, căn giữa tại con trỏ; kéo để xác định bounding rectangle tùy chỉnh.
+- Toolbar có tùy chọn default width/height, rotation, opacity và fit (`contain`, `cover`, `fill`). Các thuộc tính được lưu trực tiếp trên Image Object cùng namespaced `assetRef`.
+- Từ chối thao tác nếu chưa chọn asset hoặc active layer đang ẩn/khóa.
+- Đã thêm automated tests cho click, drag, transform metadata và validation; cần người dùng chạy `npm test` và browser QA theo `tests/assets/README.md`.
+
+#### Các lát cắt tiếp theo
+- Kiểm chứng selection, move, resize, rotation, opacity, fit, duplicate/delete và Undo/Redo cho generic asset objects; bổ sung UI chỉnh sửa opacity/fit nếu còn thiếu.
+- Kiểm tra Asset Pack disable/uninstall khi map còn object đang tham chiếu; giữ nguyên object metadata và thể hiện missing-asset fallback rõ ràng.
 - Không đưa scatter hoặc Brush texture nâng cao vào scope trước khi thiết kế deterministic placement và grouped history.
 
 ### Phase 4 — Persistence & Archive
