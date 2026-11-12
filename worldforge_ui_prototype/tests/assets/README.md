@@ -60,9 +60,10 @@ Open `http://localhost:8000`, open a map project, then verify:
 4. Filter by Pack and category; combine the filters and confirm only matching assets remain.
 5. Select an asset card and confirm its image and metadata appear in the preview.
 6. Switch to **Place Asset**, reopen the library and confirm the list is filtered to assets compatible with generic placement. Select one and place it on the map.
-7. Switch to Icon Tool. Confirm only the castle icon (`ICO-001`) is listed, select it, and apply it. Click on the map and confirm the castle emblem renders as an icon object. The apply button remains unavailable for Terrain, Lake and Border until their respective Phase 3C integrations are implemented.
-8. Disable the imported Pack. Confirm its assets disappear from results and any active selection from that Pack is cleared.
-9. Re-enable the Pack and confirm its assets return. Uninstall it and confirm the Pack and assets disappear.
-10. Reopen the library and confirm no duplicate element IDs, uncaught console errors or broken previews.
+7. Switch to Icon Tool. Confirm only the castle icon (`ICO-001`) is listed, select it, and apply it. Click on the map and confirm the castle emblem renders as an icon object.
+8. Switch to Terrain Tool. Confirm only stamp-compatible assets are listed (the mountain fixture), select `Sample Mountain`, and click the map. Confirm an image stamp is placed centered at the click point. With no selected asset, verify the existing polygon-area workflow still works.
+9. Disable the imported Pack. Confirm its assets disappear from results and any active selection from that Pack is cleared.
+10. Re-enable the Pack and confirm its assets return. Uninstall it and confirm the Pack and assets disappear.
+11. Reopen the library and confirm no duplicate element IDs, uncaught console errors or broken previews.
 
 Pack installation and enabled state are currently in-memory for the editor session; persistence across reloads is not part of Phase 3B.
