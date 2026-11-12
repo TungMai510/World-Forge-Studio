@@ -1,13 +1,13 @@
-import test, { after } from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { createZipArchive, readZipArchive } from '../src/services/archive-service.js';
-import { validateAssetPackManifest } from '../src/assets/asset-pack-validator.js';
-import { AssetRegistry } from '../src/assets/asset-registry.js';
-import { AssetLoader } from '../src/assets/asset-loader.js';
-import { AssetPackService } from '../src/assets/asset-pack-service.js';
+import { createZipArchive, readZipArchive } from '../../src/services/archive-service.js';
+import { validateAssetPackManifest } from '../../src/assets/asset-pack-validator.js';
+import { AssetRegistry } from '../../src/assets/asset-registry.js';
+import { AssetLoader } from '../../src/assets/asset-loader.js';
+import { AssetPackService } from '../../src/assets/asset-pack-service.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fixtureDir = resolve(here, 'fixtures');
