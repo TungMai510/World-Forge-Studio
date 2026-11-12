@@ -421,3 +421,14 @@ The first shared Asset Library UI is now implemented in the editor:
 - Canvas-based PNG/JPG/PDF export preloads border pattern references before rendering.
 - SVG export embeds the pattern image as a data URI and emits repeated, tangent-rotated SVG image tiles along the semantic path.
 - Export coverage includes a focused SVG regression test. Browser QA for the user-facing export formats has been confirmed complete by the user.
+
+
+## 15. Phase 3D.1 — Generic Place Asset placement
+
+The generic Place Asset workflow now supports two placement gestures:
+- Click: place at the Pack asset's `defaultSize`, centered on the pointer.
+- Drag: use the pointer-down and pointer-up world coordinates as a custom bounding rectangle.
+
+The Place Asset toolbar exposes default width and height, rotation, opacity, and image fit (`contain`, `cover`, `fill`). These settings are copied onto the created semantic image object along with its namespaced `assetRef`. Placement is rejected if no asset is selected or the active layer is hidden/locked.
+
+Automated tests cover click placement, drag bounds, transform metadata and invalid state/options. The test file is committed; local `npm test` and manual browser QA remain pending. See `worldforge_ui_prototype/tests/assets/README.md`.
