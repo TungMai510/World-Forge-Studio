@@ -437,3 +437,67 @@ Automated tests cover click placement, drag bounds, transform metadata and inval
 ## Phase 3D.2 — Selected Image Object property editing
 
 The Place Asset toolbar configures defaults for newly placed assets. Editing an existing image is handled separately in the Properties panel after selecting it with Select Tool. The panel exposes width, height, rotation, opacity and fit; submitting updates the selected object through the engine's normal object-edit/history path. This keeps creation defaults separate from per-object properties.
+
+
+---
+
+## 16. Tool Enhancement Program — phases 3E–3I
+
+The next tool work is organized around shared editing foundations rather than isolated tool-specific UI patches. The detailed contracts, data models, gestures, test matrix and exit criteria are maintained in `WORLD_FORGE_TOOL_ENHANCEMENT_SPECIFICATION.md`.
+
+### 16.1 Phase 3E — Advanced Selection System
+
+- Evolve the current single-object selection into a multi-selection model with `selectedObjectIds` and a primary selected object. Preserve `setSelection(id)` as a backward-compatible wrapper.
+- Add `setSelections(ids)`, additive/toggle selection operations, selection clear, and a stable selection-change payload.
+- Implement marquee selection in world coordinates after applying the viewport transform:
+  - left-to-right drag: fully contained objects;
+  - right-to-left drag: intersecting objects;
+  - Shift: additive selection;
+  - Ctrl/Cmd-click: toggle one object.
+- Exclude objects on hidden layers. Locked-layer objects may be inspectable/selectable only if the UI clearly prevents mutation; default first release may exclude them for predictable behavior.
+- Add multi-object move, duplicate and delete. Each bulk operation must be one history transaction, preserve object geometry/metadata and validate every affected layer before mutation.
+- First release focuses on selection, move, duplicate and delete. Multi-resize/rotate and persistent Group/Ungroup are later 3E slices, not prerequisites.
+- Existing `deleteObjects(ids)` may be reused after verifying atomic history and layer validation. Current engine single-ID assumptions in SelectTool, MapCanvasEngine and layout must be migrated deliberately.
+
+### 16.2 Phase 3F — Brush Tool
+
+- Keep editable vector stroke geometry as the source of truth.
+- Add smoothing with a deterministic algorithm, size, opacity, hardness/edge falloff and a small set of clear presets.
+- Pressure sensitivity is optional and must degrade gracefully to constant-width mouse input.
+- Textured brush/stamping is deferred until seeded deterministic placement and grouped undo are available.
+- Preserve current brush behavior as a default preset and test pointer cancellation, short taps, fast strokes, zoom/pan and export.
+
+### 16.3 Phase 3G — River Tool
+
+- Model rivers as editable path segments with nodes and curve handles, not a baked bitmap.
+- Support smooth curves, node/tangent editing, width profile (source, middle, downstream), color/opacity/outline and optional texture.
+- Represent tributaries as linked segments using stable `riverSystemId` and optional `parentSegmentId`; avoid forcing branching topology into a single path object.
+- Use a shared Path/Vertex Editor where possible; keep the existing simple river workflow as a compatible default.
+- Define Canvas, hit-test, selection bounds and SVG/PNG/PDF export behavior for variable-width curves.
+
+### 16.4 Phase 3H — Landmass Tool
+
+- Add editable vertices, insertion/deletion, smooth coastline controls and seeded coastline noise.
+- Preserve base polygon points and procedural parameters (seed, amplitude, frequency/scale) so users can regenerate or reduce effects without losing the original geometry.
+- Add island-generation presets and style controls after editing foundations.
+- Polygon merge/split is explicitly deferred until a robust offline polygon-boolean implementation, dependency/license review and topology tests are approved.
+- Keep existing polygon creation behavior available.
+
+### 16.5 Phase 3I — Typography System
+
+- Add local font-family registration and a font fallback stack; no runtime dependency on remote font CDNs.
+- Font choices must include Vietnamese glyph coverage and documented open-font licenses/attribution.
+- Text object properties: family, size, weight, style, letter spacing, line height, alignment, fill, opacity, outline and optional shadow.
+- Add semantic label presets for empire/country, region, city/capital, mountain range, river, sea/ocean and point-of-interest.
+- Ensure font loading lifecycle, missing-font fallback, hit testing, selection bounds and Canvas/SVG export parity.
+- Curved text is a later slice after straight text styling and export are stable; Canvas glyph placement and SVG textPath must be tested separately.
+
+### 16.6 Cross-phase acceptance requirements
+
+- Existing maps and vector-only workflows remain usable without Packs.
+- New geometry remains editable after save/reopen (once Phase 4 persistence is implemented).
+- All multi-object edits are atomic in History and respect hidden/locked layers.
+- Pointer gestures work at different zoom levels and while the canvas is panned.
+- Tests cover model/engine, renderer, export and browser interactions.
+- Local-first/offline behavior and asset/font licensing are documented.
+- Do not mark a phase complete based only on committed code; require automated tests and browser QA appropriate to the feature.
