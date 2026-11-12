@@ -1,0 +1,29 @@
+name: WorldForge Prototype Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'worldforge_ui_prototype/**'
+      - '.github/workflows/worldforge-tests.yml'
+  pull_request:
+    paths:
+      - 'worldforge_ui_prototype/**'
+      - '.github/workflows/worldforge-tests.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run Asset Foundation tests
+        working-directory: worldforge_ui_prototype
+        run: npm run test:assets
+      - name: Run all prototype tests
+        working-directory: worldforge_ui_prototype
+        run: npm test
