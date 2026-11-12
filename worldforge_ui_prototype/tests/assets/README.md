@@ -88,3 +88,24 @@ Open `http://localhost:8000`, open a map, import `tests/assets/fixtures/classic-
 4. Select a patterned border and verify its selection bounds include the artwork extending beyond the centerline.
 5. With no pattern selected, draw another border and confirm the original dashed vector border is unchanged.
 6. Export PNG, JPG, SVG and PDF; confirm the patterned border is present in every format and check the console for errors. SVG embeds the pattern image as a data URI; Canvas-based PNG/JPG/PDF export preloads the pattern asset before rendering.
+
+
+## Phase 3D.1 — Generic Place Asset placement
+
+The generic placement tool supports two gestures: click to place an asset at its configured default dimensions, centered on the pointer; drag to define a custom bounding rectangle. The Place Asset toolbar exposes default width/height, rotation, opacity and fit mode (contain/cover/fill). The tool rejects placement when no asset is selected or the active layer is hidden/locked.
+
+After pulling the latest `main`, run:
+
+```powershell
+npm test
+npm run assets:fixture
+npx --yes http-server . -p 8000 -c-1
+```
+
+Browser QA:
+1. Import the regenerated Classic Fantasy Pack and select Place Asset.
+2. Choose Sample Mountain; confirm width/height controls initialize from Pack defaultSize.
+3. Set rotation, opacity and fit; click once and confirm centered placement with the configured transform.
+4. Drag from one map point to another; confirm the resulting rectangle follows the drag dimensions.
+5. Repeat with Castle Icon and Stone Border Pattern if they are offered by generic capability filtering; verify unsupported assets are not offered.
+6. Confirm no asset selection and hidden/locked active layers prevent placement.
