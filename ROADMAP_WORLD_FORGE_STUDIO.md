@@ -1,6 +1,6 @@
 # WorldForge Studio — Tổng quan hiện trạng và lộ trình phát triển
 
-> **Ngày rà soát:** 12/11/2026  
+> **Ngày rà soát:** 12/11/2026 (cập nhật trạng thái sau Phase 3C.3; Phase 3C.4 đang triển khai)  
 > **Repository:** https://github.com/TungMai510/World-Forge-Studio  
 > **Nhánh:** `main`  
 > **Phạm vi mã nguồn:** `worldforge_ui_prototype/`  
@@ -57,9 +57,10 @@ Luồng chuẩn: Pack → Validator/Registry → Asset Library → Tool Binding 
 
 - Đã có Asset Foundation, Image Object/Renderer và PlaceAssetTool trong mã nguồn.
 - ToolManager hiện đăng ký cả các tool vector cũ và PlaceAssetTool; Asset Pack selection hiện chủ yếu phục vụ PlaceAssetTool.
-- Chưa có Shared Asset Library hoàn chỉnh và chưa có Tool Binding/Adapter dùng chung.
-- Chưa có tích hợp asset-backed thực sự cho Icon, Terrain/Mountain, Lake hoặc Border.
-- Vì vậy, đây là **quyết định kiến trúc và lộ trình mới**, chưa phải tính năng đã được triển khai. Không đánh dấu Phase 3 hoàn thành cho đến khi có test và browser QA cho từng tool tích hợp.
+- Shared Asset Library và ToolAssetBinding hiện đã được triển khai.
+- Icon, Terrain/Mountain và Lake đã được tích hợp; người dùng xác nhận browser QA hoàn tất. Lake hiện hỗ trợ texture-fill trên ellipse, chưa phải geometry editor nâng cao.
+- Border Tool đang được tích hợp pattern-stroke trong Phase 3C.4; browser QA chưa hoàn tất.
+- Trạng thái hiện tại được ghi chi tiết trong mục **Tiến độ Asset System** ở cuối tài liệu; các ghi chú cũ phía dưới là lịch sử triển khai và không thay thế trạng thái mới nhất.
 
 Tài liệu thiết kế chi tiết và hợp đồng đề xuất: [`TOOL_ASSET_INTEGRATION_SPECIFICATION.md`](TOOL_ASSET_INTEGRATION_SPECIFICATION.md).
 
@@ -877,3 +878,107 @@ Implemented in the current `main` branch:
 - CanvasLayerRenderer lặp texture bên trong vùng clip ellipse; đường viền hồ vẫn được render ở phía trên.
 - Fixture Classic Fantasy bổ sung `WTR-001` Lake Water Texture với `usages: ["texture-fill"]`.
 - Unit test đã được bổ sung; cần chạy test và browser QA trên máy local trước khi xác nhận hoàn tất.
+
+
+---
+
+## Tiến độ Asset System — cập nhật 12/11/2026
+
+Phần này là **snapshot trạng thái mới nhất**, thay thế các trạng thái "chưa triển khai/đang bắt đầu" trong các ghi chú lịch sử ở những mục phía trên.
+
+### Các phase đã hoàn thành
+
+| Phase | Nội dung | Trạng thái hiện tại |
+|---|---|---|
+| 1 | Asset Foundation: Manifest, Registry, Loader, Validator, Pack Manager service | Implemented + tested |
+| 2 | Image Object, Renderer, cache lifecycle, export integration | Implemented; browser harness đã được người dùng chạy |
+| 3A | Tool–Asset Integration Contract, capability metadata, ToolAssetBinding | Implemented + tested |
+| 3B | Shared Asset Library: thumbnail, search, Pack/category filter, import, enable/disable/uninstall | Implemented + tested + browser QA |
+| 3C.1 | Icon Tool: semantic icon object + assetRef | User-confirmed browser QA |
+| 3C.2 | Terrain Tool: asset stamp + procedural polygon fallback | User-confirmed browser QA |
+| 3C.3 | Lake Tool: texture-fill trên ellipse + solid-color fallback | User-confirmed browser QA |
+| 3C.4 | Border Tool: pattern-stroke lặp theo path | Implemented; automated/browser QA pending |
+
+### Bằng chứng kiểm thử đã được người dùng báo cáo
+
+- Phase 1: 12/12 tests PASS.
+- Phase 2: 25/25 tests PASS sau hardening.
+- Phase 3A: 52/52 tests PASS; browser smoke test thành công.
+- Phase 3B: 57/57 tests PASS; browser QA Asset Library hoàn tất.
+- Phase 3C.3 trước khi bắt đầu Border: 66/66 tests PASS; người dùng xác nhận Pack có đủ bốn asset và Lake Tool hoạt động đúng.
+- Các kết quả trên là kết quả local do người dùng xác nhận, không được hiểu là GitHub Actions/CI đã chạy tương ứng.
+
+### Fixture Pack hiện tại
+
+Lệnh `npm run assets:fixture` sinh file `tests/assets/fixtures/classic-fantasy.wfpack` từ script, không phải fixture binary được theo dõi trong Git. Pack hiện được mở rộng thành năm asset:
+
+| Asset ID | Nội dung | Capability |
+|---|---|---|
+| MNT-001 | Sample Mountain | stamp |
+| FST-001 | Sample Forest | legacy generic placement |
+| ICO-001 | Castle Icon | icon |
+| WTR-001 | Lake Water Texture | texture-fill |
+| BND-001 | Stone Border Pattern | pattern-stroke |
+
+Nếu Pack đang được cài trong phiên browser cũ, cần gỡ Pack cũ rồi import lại file vừa sinh để Registry nhận manifest năm asset. Đóng tab/server nếu file archive đang bị khóa trên Windows trước khi ghi đè fixture.
+
+### Trọng tâm sản phẩm đã thống nhất
+
+Ưu tiên không phải nâng cấp sâu hình học riêng của Lake Tool ở thời điểm này. Trọng tâm là đưa Asset Pack thành tính năng người dùng có thể cài đặt và quản lý thuận tiện:
+
+1. Hoàn tất Phase 3C.4 và kiểm thử Border.
+2. Hoàn tất Phase 3D — Generic Asset Placement và kiểm chứng luồng sử dụng asset xuyên các tool.
+3. Phase 4 — Persistence & Archive: project phải giữ được asset đã sử dụng kể cả khi Pack bị gỡ hoặc không có mặt.
+4. Phase 5 — Asset Pack Manager UI: cài đặt, xem trước, bật/tắt, cập nhật, gỡ, xem metadata/phiên bản/giấy phép, cảnh báo dependency và xử lý Pack trùng ID.
+5. Phase 6 — WorldForge Asset Studio để người dùng tự tạo và xuất Pack.
+6. Phase 7 — Community ecosystem, tài liệu công khai và quy trình phân phối Pack.
+
+**Nguyên tắc UX:** người dùng cuối không cần chỉnh sửa JSON hoặc hiểu assetRef/capability. Họ chỉ cần import một file `.wfpack`, duyệt thumbnail, chọn asset tương thích và sử dụng ngay trong công cụ bản đồ.
+
+### Phase 3C.4 — Border Tool pattern-stroke
+
+**Đã triển khai trong mã nguồn:**
+- Border Tool giữ nguyên vector path và dashed stroke nếu không chọn pattern.
+- Khi chọn asset có capability `pattern-stroke`, tool lưu `patternAssetRef`, `patternSize`, `patternScale` trên semantic border path.
+- CanvasLayerRenderer lặp ảnh theo chiều dài path, căn đều các tile và xoay theo hướng từng đoạn path.
+- Renderer vẫn vẽ vector stroke làm fallback khi ảnh pattern chưa load hoặc không khả dụng.
+- Bounds của patterned border được nới theo kích thước artwork để khung chọn bao trọn nội dung.
+- Asset Library cho phép áp dụng lựa chọn vào Border Tool.
+- Fixture generator thêm asset `BND-001 Stone Border Pattern`.
+
+**Cần xác minh trên máy người dùng:**
+- `npm run assets:fixture` → Pack có 5 asset.
+- `npm test` → xác nhận số test mới nhất và không có regression.
+- Browser QA: Asset Library chỉ lọc BND-001 cho Border; vẽ đường thẳng/chéo/gấp khúc; vector fallback khi bỏ chọn pattern; chọn đối tượng; export PNG/JPG/SVG/PDF.
+- Chỉ sau khi người dùng xác nhận browser QA mới chuyển Phase 3C.4 sang hoàn tất.
+
+### Phase 3D — Generic Asset Placement
+
+- Hoàn thiện luồng đặt stamp/decoration tổng quát.
+- Giữ selection, move, resize, rotation, opacity, fit, duplicate/delete và undo/redo.
+- Kiểm thử tương thích với asset refs và layer visibility/lock.
+- Không đưa scatter hoặc Brush texture nâng cao vào scope trước khi thiết kế deterministic placement và grouped history.
+
+### Phase 4 — Persistence & Archive
+
+- Lưu semantic object và asset references.
+- Nhúng snapshot các asset thực sự được project sử dụng vào archive.
+- Ghi nhận Pack ID/version/checksum và fallback cho missing/disabled Pack.
+- Kiểm thử save → close → reopen, export → uninstall Pack → import project và offline use.
+
+### Phase 5 — Asset Pack Manager UI
+
+- Import preview trước khi cài.
+- Installed Pack list và trang chi tiết.
+- Enable/disable/uninstall/update/version compatibility.
+- Duplicate Pack ID/update policy.
+- Cảnh báo Pack đang được project tham chiếu.
+- Persistence trạng thái cài đặt qua lần khởi động.
+- Hướng dẫn lỗi rõ ràng, không yêu cầu người dùng sửa manifest thủ công.
+
+### Phân biệt trạng thái
+
+- **Implemented:** mã nguồn đã được cập nhật.
+- **Automated tested:** test đã thực sự chạy trên checkout tương ứng.
+- **Browser verified:** người dùng đã thao tác thực tế và xác nhận.
+- Không suy diễn trạng thái CI từ kết quả local; không đánh dấu phase hoàn tất chỉ vì commit đã được tạo.
