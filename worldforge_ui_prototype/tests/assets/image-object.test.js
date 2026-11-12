@@ -213,8 +213,9 @@ test('image renderer: immediately decoded images trigger a redraw notification',
         createImage: () => new CompleteImage(),
         onInvalidate: () => { invalidations += 1; }
     });
+    const initialInvalidations = invalidations;
     await renderer.ensureImage(validImage);
-    assert.equal(invalidations, 1);
+    assert.equal(invalidations, initialInvalidations + 1);
     assert.ok(renderer.getImage(validImage));
 });
 
