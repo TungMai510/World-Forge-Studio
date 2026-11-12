@@ -65,6 +65,11 @@ export function createFixturePng(width, height, style = 'mountain') {
                     y >= height * 0.68 && y <= height * 0.9);
                 if (tree) color = [48, 105, 66, 255];
                 if (trunk) color = [105, 76, 48, 255];
+            } else if (style === 'water') {
+                const wave = Math.sin(x * 0.42 + Math.sin(y * 0.24) * 1.8) * 2.2;
+                const line = Math.abs((y % 12) - 6 + wave) < 1.7;
+                color = line ? [190, 231, 244, 255] : [45, 125, 164, 255];
+                if ((x + y) % 29 < 2) color = [117, 190, 211, 255];
             } else {
                 color = [190, 218, 232, 255];
                 const relativeY = y - height * 0.16;
