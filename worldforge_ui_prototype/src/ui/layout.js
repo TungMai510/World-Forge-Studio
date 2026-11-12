@@ -234,6 +234,10 @@ export class UIController {
         document.getElementById('undo-action').addEventListener('click', () => this.canvasEngine.undo());
         document.getElementById('redo-action').addEventListener('click', () => this.canvasEngine.redo());
         document.getElementById('selection-form').addEventListener('submit', event => this.handleSelectionSubmit(event));
+        document.getElementById('selection-image-opacity').addEventListener('input', event => {
+            document.getElementById('selection-image-opacity-value').textContent =
+                `${Math.round(Number(event.target.value) * 100)}%`;
+        });
         document.getElementById('delete-selection').addEventListener('click', () => this.deleteSelection());
         document.getElementById('duplicate-selection-action').addEventListener('click', () => this.duplicateSelection());
         document.getElementById('delete-selection-action').addEventListener('click', () => this.deleteSelection());
