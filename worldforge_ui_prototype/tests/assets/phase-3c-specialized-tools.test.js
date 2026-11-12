@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { IconTool } from '../../src/engine/tools/IconTool.js';
 import { TerrainTool } from '../../src/engine/tools/TerrainTool.js';
 import { LakeTool } from '../../src/engine/tools/LakeTool.js';
+import { BorderTool } from '../../src/engine/tools/BorderTool.js';
 import { CanvasLayerRenderer } from '../../src/engine/layers/CanvasLayerRenderer.js';
 
 function createEngine() {
@@ -157,4 +158,99 @@ test('CanvasLayerRenderer fills a lake ellipse with its repeated texture image',
     });
     assert.equal(calls[0].assetRef.assetId, 'WATER-01');
     assert.deepEqual(calls[1], [20, 20, 60, 40]);
+});
+
+test('BorderTool preserves the dashed vector border when no pattern asset is selected', () => {
+    const engine = createEngine();
+    const tool = new BorderTool(engine);
+    tool.pointerDown({ world: { x: 10, y: 20 } });
+    tool.pointerMove({ world: { x: 60, y: 20 } });
+    tool.pointerUp({ world: { x: 100, y: 20 } });
+    assert.equal(engine.objects.length, 1);
+    assert.equal(engine.objects[0].feature, 'border');
+    assert.deepEqual(engine.objects[0].dash, [12, 8]);
+    assert.equal(Object.hasOwn(engine.objects[0], 'patternAssetRef'), false);
+});
+
+test('BorderTool stores a semantic pattern-stroke reference and dimensions', () => {
+    const engine = createEngine();
+    const tool = new BorderTool(engine);
+    const assetRef = { packId: 'com.worldforge.classic-fantasy', assetId: 'BND-001', packVersion: '1.0.0' };
+    tool.setAssetSelection({
+        asset: { id: 'BND-001', packId: assetRef.packId, defaultSize: { width: 48, height: 16 } },
+        assetRef
+    });
+    tool.pointerDown({ world: { x: 10, y: 20 } });
+    tool.pointerMove({ world: { x: 60, y: 20 } });
+    tool.pointerUp({ world: { x: 100, y: 20 } });
+    assert.equal(engine.objects.length, 1);
+    assert.equal(engine.objects[0].type, 'path');
+    assert.equal(engine.objects[0].feature, 'border');
+    assert.deepEqual(engine.objects[0].patternAssetRef, assetRef);
+    assert.deepEqual(engine.objects[0].patternSize, { width: 48, height: 16 });
+    assert.equal(engine.objects[0].patternScale, 1);
+});
+
+test('CanvasLayerRenderer repeats a border pattern evenly along the path', () => {
+    const drawn = [];
+    const renderer = new CanvasLayerRenderer({
+        imageRenderer: { getImage: () => ({ naturalWidth: 48, naturalHeight: 16 }) }
+    });
+    const context = {
+        save() {}, restore() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {},
+        setLineDash() {}, translate: (x, y) => drawn.push({ translate: [x, y] }),
+        rotate: angle => drawn.push({ rotate: angle }),
+        drawImage: (...args) => drawn.push({ drawImage: args })
+    };
+    renderer.drawObject(context, {
+        type: 'path',
+        feature: 'border',
+        commands: [{ type: 'moveTo', x: 0, y: 0 }, { type: 'lineTo', x: 96, y: 0 }],
+        stroke: '#7c2d12',
+        strokeWidth: 3,
+        dash: [12, 8],
+        patternAssetRef: { packId: 'com.worldforge.classic-fantasy', assetId: 'BND-001' },
+        patternSize: { width: 48, height: 16 },
+        patternScale: 1
+    });
+    assert.equal(drawn.filter(item => item.drawImage).length, 2);
+    assert.deepEqual(drawn.filter(item => item.translate).map(item => item.translate), [[24, 0], [72, 0]]);
+});
+
+test('CanvasLayerRenderer rotates pattern tiles along multi-segment borders', () => {
+    const drawn = [];
+    const renderer = new CanvasLayerRenderer({
+        imageRenderer: { getImage: () => ({ naturalWidth: 24, naturalHeight: 8 }) }
+    });
+    const context = {
+        save() {}, restore() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {},
+        setLineDash() {}, translate: () => {}, rotate: angle => drawn.push(angle),
+        drawImage: () => {}
+    };
+    renderer.drawObject(context, {
+        type: 'path',
+        feature: 'border',
+        commands: [
+            { type: 'moveTo', x: 0, y: 0 },
+            { type: 'lineTo', x: 48, y: 0 },
+            { type: 'lineTo', x: 48, y: 48 }
+        ],
+        patternAssetRef: { packId: 'pack', assetId: 'pattern' },
+        patternSize: { width: 24, height: 8 }
+    });
+    assert.ok(drawn.some(angle => Math.abs(angle) < 0.001));
+    assert.ok(drawn.some(angle => Math.abs(angle - Math.PI / 2) < 0.001));
+});
+
+test('CanvasLayerRenderer expands patterned border bounds for its repeated artwork', () => {
+    const renderer = new CanvasLayerRenderer();
+    const bounds = renderer.getBounds({
+        type: 'path',
+        feature: 'border',
+        commands: [{ type: 'moveTo', x: 10, y: 20 }, { type: 'lineTo', x: 110, y: 20 }],
+        patternAssetRef: { packId: 'pack', assetId: 'border' },
+        patternSize: { width: 48, height: 16 },
+        patternScale: 1
+    });
+    assert.deepEqual(bounds, { x: -14, y: -4, width: 148, height: 48 });
 });
