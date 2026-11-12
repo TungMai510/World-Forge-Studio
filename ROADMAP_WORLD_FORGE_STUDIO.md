@@ -994,3 +994,18 @@ Nếu Pack đang được cài trong phiên browser cũ, cần gỡ Pack cũ r�
 
 
 **Export integration detail:** patterned Border paths are included in Canvas-based PNG/JPG/PDF asset preloading. SVG export embeds the pattern PNG as a data URI and emits repeated image tiles along the path. A focused SVG regression test has been added; local execution and browser export QA remain pending.
+
+
+### Phase 3D.2 — Selected Image Object properties (12/11/2026)
+
+Đã bổ sung nhóm thuộc tính dành riêng cho Image Object trong Properties panel khi người dùng chọn ảnh đã đặt trên Canvas:
+
+- Chỉnh sửa Width và Height độc lập.
+- Chỉnh sửa Rotation bằng số độ.
+- Chỉnh Opacity bằng slider có hiển thị phần trăm.
+- Chọn Fit: contain, cover hoặc fill.
+- Nút **Cập nhật** ghi các thuộc tính vào đúng Image Object đang chọn qua `MapCanvasEngine.updateObject()`, do đó thay đổi đi vào History và hỗ trợ Undo/Redo.
+- Các control chỉ xuất hiện với Image Object; bị vô hiệu hóa nếu layer không thể chỉnh sửa.
+- Các thông số trên Place Asset toolbar tiếp tục là mặc định cho lần đặt asset tiếp theo, tách biệt với thuộc tính của ảnh đã tạo.
+
+Người dùng báo cáo bộ kiểm thử Phase 3D.2 đạt **76/76 PASS** trước khi phát hiện thiếu luồng chỉnh sửa thuộc tính sau khi tạo. Bản cập nhật UI này đã được commit; cần pull và browser QA các trường Width/Height/Rotation/Opacity/Fit trước khi xác nhận hoàn tất.
