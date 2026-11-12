@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { MapCanvasEngine } from '../../src/engine/MapCanvasEngine.js';
 import { CanvasLayerRenderer } from '../../src/engine/layers/CanvasLayerRenderer.js';
+import { MapExportService } from '../../src/services/map-export-service.js';
 import {
     normalizeImageObject,
     getImageObjectBounds,
@@ -72,7 +73,7 @@ test('canvas layer renderer: delegates image drawing and hit testing', () => {
     assert.equal(renderer.hitTest(validImage, { x: 150, y: 160 }, 0), true);
 });
 
-test('image renderer: loads an AssetLoader URL and redraws after image load', () => {
+test('image renderer: loads an AssetLoader URL and redraws after image load', async () => {
     let invalidations = 0;
     let drawCalls = 0;
     class FakeImage {
@@ -90,13 +91,51 @@ test('image renderer: loads an AssetLoader URL and redraws after image load', ()
         beginPath() {}, rect() {}, clip() {},
         fillRect() {}, strokeRect() {}, moveTo() {}, lineTo() {}, stroke() {}
     };
-    renderer.draw(context, validImage);
+    const preload = renderer.preload([validImage]);
     const cached = [...renderer.images.values()][0];
     assert.equal(cached.status, 'loading');
     cached.image.complete = true;
     cached.image.onload();
+    await preload;
     renderer.draw(context, validImage);
     assert.equal(cached.status, 'ready');
     assert.equal(drawCalls, 1);
     assert.equal(invalidations, 1);
+});
+
+
+test('map export: embeds image assets in standalone SVG output', async () => {
+    const bytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+    const renderer = new CanvasLayerRenderer({
+        imageRenderer: {
+            assetLoader: {
+                load: () => ({
+                    blob: new Blob([bytes], { type: 'image/png' }),
+                    mimeType: 'image/png'
+                })
+            }
+        }
+    });
+    const service = new MapExportService(renderer);
+    const image = normalizeImageObject(validImage);
+    const svg = await service.renderSvg({
+        map: {
+            width: 1000,
+            height: 500,
+            groups: [],
+            layers: [{ id: 'layer-1', name: 'Images', visible: true, opacity: 1, role: null, objects: [image] }]
+        },
+        width: 1000,
+        height: 500,
+        scale: 1,
+        pixelWidth: 1000,
+        pixelHeight: 500,
+        dpi: 96,
+        transparent: true,
+        caption: '',
+        style: 'standard',
+        layerIds: new Set(['layer-1'])
+    });
+    assert.match(svg, /<image /);
+    assert.match(svg, /href="data:image\/png;base64,/);
 });
