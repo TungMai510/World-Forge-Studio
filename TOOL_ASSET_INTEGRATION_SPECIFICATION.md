@@ -350,3 +350,18 @@ The first Tool–Asset contract implementation has been committed:
 **Current boundary:** this establishes the runtime contract and connects the existing generic Place Asset flow. Icon, Terrain, Lake and Border still do not consume asset selections to create their semantic map objects; that work belongs to Phase 3C. The contextual Shared Asset Library belongs to Phase 3B.
 
 **Verification:** new automated tests cover capability validation/matching, optional metadata compatibility, per-tool filtering, stale Pack versions, disabled Packs, selection routing and generic fallback. These tests have been committed but have **not yet been run by the user on the latest checkout**. Phase 3A remains In Progress pending local test execution and review.
+
+
+## Phase 3B — Shared Asset Library implementation update (12/11/2026)
+
+The first shared Asset Library UI is now implemented in the editor:
+
+- Added a single Asset Library dialog reachable from the top navigation and the Place Asset tool.
+- Replaced the old numeric `prompt()` asset picker with a visual grid of compatible assets and image previews.
+- Added search across asset name, ID, Pack name, description and tags; category and Pack filters; and a selected-asset detail preview.
+- Added in-session Pack management: import `.wfpack`, enable/disable and uninstall. Disabling or uninstalling a Pack invalidates its loaded URLs and clears tool selections that reference that Pack.
+- The asset grid queries ToolManager's active-tool binding, so changing the active tool changes the compatibility-filtered collection. Tools without a binding show an explicit unsupported state.
+- Asset application is enabled only for tools that currently implement `setAssetSelection` (Place Asset). Icon, Terrain, Lake and Border can already expose their contract-filtered candidates but their semantic creation behavior remains Phase 3C.
+- Added a pure Asset Library filtering model and automated tests for search, combined category/search filters, disabled assets and category enumeration.
+
+**Known boundaries:** Pack installation and enabled state are session-only; IndexedDB persistence and project asset snapshots belong to later persistence/Pack Manager work. The dialog is a first usable shared library, not yet a dedicated dockable panel. Browser QA and full `npm test` are pending on the owner's checkout.
