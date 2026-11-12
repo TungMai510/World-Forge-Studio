@@ -598,10 +598,11 @@ The generated `.wfpack` is a disposable QA artifact. The repository ignores `wor
 
 - Added versioned image-object schema v1 with Pack/asset reference, world-space position, dimensions, rotation, opacity, and fit mode (`contain`, `cover`, `fill`).
 - Added a dedicated `ImageObjectRenderer` object renderer. The existing `CanvasLayerRenderer` delegates image drawing and image hit-testing to it; no image-specific layer renderer is introduced.
-- Added asynchronous image loading through the existing AssetLoader URL and redraw notification after image load.
+- Added asynchronous image loading through the existing AssetLoader URL, preloading for exports, and redraw notification after image load.
 - Added rotation-aware hit testing and rotated axis-aligned selection bounds.
-- Added `MapCanvasEngine.setAssetLoader(assetLoader)` as the integration point. The app bootstrap must supply the active AssetLoader before image objects can display.
+- Added `MapCanvasEngine.setAssetLoader(assetLoader)` and connected an in-memory AssetRegistry/AssetLoader/AssetPackService in the UI bootstrap.
+- Connected the same image renderer to map export; PNG/JPG/PDF render through the Canvas renderer after image preloading, while SVG embeds image bytes as data URLs.
 
 ### Phase 2 verification status
 
-Implemented code and automated tests are being added. Browser rendering, image export, missing/disabled Pack UX, and manual pan/zoom verification remain unverified until tested in the running app. Do not mark Phase 2 complete yet.
+Implemented code and automated tests are being added. Browser rendering, manual pan/zoom verification, and full user-facing Pack installation remain unverified until tested in the running app. Automated tests now cover image object validation, rotated bounds/hit-testing, asynchronous loading, and SVG data-URL embedding. Do not mark Phase 2 complete yet.
