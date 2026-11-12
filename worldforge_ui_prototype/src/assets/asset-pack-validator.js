@@ -52,6 +52,7 @@ export function validateAssetPackManifest(manifest, { worldForgeVersion='1.0.0',
     }
     if (!Array.isArray(manifest.assets) || manifest.assets.length>MAX_PACK_ENTRIES-1) throw new Error('Pack assets exceed the entry limit.');
     const ids=new Set();
+    const referencedFiles=new Set();
     for (const asset of manifest.assets) {
         if (!isObject(asset)) throw new Error('Each Pack asset must be an object.');
         if (typeof asset.id!=='string' || !ASSET_ID_PATTERN.test(asset.id) || ids.has(asset.id)) throw new Error('Asset IDs must be unique within a Pack.');
@@ -61,11 +62,14 @@ export function validateAssetPackManifest(manifest, { worldForgeVersion='1.0.0',
         if (asset.type!=='image') throw new Error(`Asset "${asset.id}" has an unsupported type; Phase 1 supports images only.`);
         safePath(asset.file,`Asset "${asset.id}" file`);
         if (!asset.file.startsWith('assets/')) throw new Error('Asset files must be inside assets/.');
+        if (referencedFiles.has(asset.file)) throw new Error('Each asset must reference a distinct file path.');
+        referencedFiles.add(asset.file);
         const ext=asset.file.split('.').pop().toLowerCase();
         if (!IMAGE_TYPES[ext]) throw new Error(`Asset "${asset.id}" has an unsupported image format.`);
         if (asset.thumbnail) {
             safePath(asset.thumbnail,`Asset "${asset.id}" thumbnail`);
             if (!asset.thumbnail.startsWith('thumbnails/')) throw new Error('Thumbnails must be inside thumbnails/.');
+            if (!IMAGE_TYPES[asset.thumbnail.split('.').pop().toLowerCase()]) throw new Error('Thumbnail format must be PNG, JPEG, WebP or GIF.');
         }
         if (asset.tags!==undefined && (!Array.isArray(asset.tags) || asset.tags.length>30 || asset.tags.some(tag=>typeof tag!=='string'||tag.length>40))) throw new Error(`Asset "${asset.id}" has invalid tags.`);
         if (asset.defaultSize!==undefined && (!isObject(asset.defaultSize) || !Number.isFinite(asset.defaultSize.width) || asset.defaultSize.width<=0 || asset.defaultSize.width>8192 || !Number.isFinite(asset.defaultSize.height) || asset.defaultSize.height<=0 || asset.defaultSize.height>8192)) throw new Error(`Asset "${asset.id}" has invalid default dimensions.`);
@@ -75,6 +79,10 @@ export function validateAssetPackManifest(manifest, { worldForgeVersion='1.0.0',
         let total=0;
         for (const [path,bytes] of files) {
             safePath(path,'Pack entry path');
+            if (path !== 'pack.json' && path !== 'preview.png' && path !== 'LICENSE.txt' &&
+                !path.startsWith('assets/') && !path.startsWith('thumbnails/')) {
+                throw new Error(`Unsupported Pack entry "${path}". Only manifest, image, preview and license files are allowed.`);
+            }
             if (!(bytes instanceof Uint8Array)) throw new Error(`Pack entry "${path}" is not binary data.`);
             total+=bytes.byteLength;
             if (total>MAX_PACK_BYTES) throw new Error('Asset Pack expands beyond 100 MB.');
@@ -88,7 +96,8 @@ export function validateAssetPackManifest(manifest, { worldForgeVersion='1.0.0',
             if (asset.mimeType!==undefined && asset.mimeType!==IMAGE_TYPES[ext].mime) throw new Error(`Asset "${asset.id}" MIME type does not match its extension.`);
             if (asset.thumbnail) {
                 const thumb=files.get(asset.thumbnail);
-                if (!thumb || !thumb.length || thumb.length>MAX_ASSET_BYTES) throw new Error(`Thumbnail "${asset.thumbnail}" is missing or invalid.`);
+                const thumbExt=asset.thumbnail.split('.').pop().toLowerCase();
+                if (!thumb || !thumb.length || thumb.length>MAX_ASSET_BYTES || !IMAGE_TYPES[thumbExt].matches(thumb)) throw new Error(`Thumbnail "${asset.thumbnail}" is missing, oversized or has an invalid image signature.`);
             }
         }
     }
