@@ -27,7 +27,7 @@ export const TOOL_DEFINITIONS = [
     { id: 'icon', label: 'Icon', shortcut: 'I', Tool: IconTool,
         assetQuery: { requiredCapabilities: ['icon'], acceptedTypes: ['image'] } },
     { id: 'place-asset', label: 'Place Asset', shortcut: 'P', Tool: PlaceAssetTool,
-        assetQuery: { requiredCapabilities: ['stamp'], acceptedTypes: ['image'] }, allowLegacyGeneric: true }
+        assetQuery: { anyCapabilities: ['stamp', 'decoration'], acceptedTypes: ['image'] }, allowLegacyGeneric: true }
 ];
 
 export class ToolManager {
