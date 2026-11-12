@@ -868,3 +868,12 @@ Implemented in the current `main` branch:
 - Khi chọn asset capability `stamp`, click Canvas sẽ đặt Image Object ở tâm con trỏ, lấy kích thước mặc định từ metadata Pack và giữ namespaced `assetRef`.
 - Mở quyền áp dụng asset trong Shared Asset Library cho Terrain Tool.
 - Đã bổ sung kiểm thử unit cho fallback polygon, tạo terrain stamp và ủy quyền render; cần chạy `npm test` và browser QA trên checkout local trước khi xác nhận hoàn tất.
+
+
+### Phase 3C.3 — Lake Tool texture fill (đang triển khai)
+
+- Giữ nguyên chế độ tô màu đặc cho ellipse hồ khi chưa chọn texture.
+- Khi chọn asset capability `texture-fill`, LakeTool lưu namespaced `textureAssetRef` trên Lake Object.
+- CanvasLayerRenderer lặp texture bên trong vùng clip ellipse; đường viền hồ vẫn được render ở phía trên.
+- Fixture Classic Fantasy bổ sung `WTR-001` Lake Water Texture với `usages: ["texture-fill"]`.
+- Unit test đã được bổ sung; cần chạy test và browser QA trên máy local trước khi xác nhận hoàn tất.
