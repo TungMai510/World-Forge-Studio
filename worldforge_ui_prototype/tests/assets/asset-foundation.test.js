@@ -71,6 +71,23 @@ test('validator: rejects path traversal', () => {
     assert.throws(() => validateAssetPackManifest(invalid), /safe relative path/);
 });
 
+test('validator: accepts optional usage capabilities and preserves unknown strings', () => {
+    const extended = structuredClone(manifest);
+    extended.assets[0].usages = ['stamp', 'scatter', 'future-capability'];
+    const result = validateAssetPackManifest(extended);
+    assert.deepEqual(result.assets[0].usages, ['stamp', 'scatter', 'future-capability']);
+    const legacy = validateAssetPackManifest(manifest);
+    assert.equal(Object.hasOwn(legacy.assets[0], 'usages'), false);
+});
+
+test('validator: rejects malformed usage capability metadata', () => {
+    const invalid = structuredClone(manifest);
+    invalid.assets[0].usages = ['stamp', ''];
+    assert.throws(() => validateAssetPackManifest(invalid), /invalid usages/);
+    invalid.assets[0].usages = ['stamp', 'stamp'];
+    assert.throws(() => validateAssetPackManifest(invalid), /invalid usages/);
+});
+
 test('validator: rejects duplicate asset IDs within one Pack', () => {
     const invalid = structuredClone(manifest);
     invalid.assets[1].id = invalid.assets[0].id;
