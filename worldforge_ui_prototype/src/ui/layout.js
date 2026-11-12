@@ -396,6 +396,7 @@ export class UIController {
                 packId, assetId
             });
             const toolId = this.canvasEngine.toolManager.activeToolId;
+            this.renderTools(toolId);
             if (toolId === 'icon') {
                 this.notify(`Đã chọn biểu tượng "${resolved.asset.name}". Click trên bản đồ để đặt icon.`);
             } else if (toolId === 'lake') {
