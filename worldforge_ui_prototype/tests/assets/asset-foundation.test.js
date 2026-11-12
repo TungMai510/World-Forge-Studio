@@ -104,7 +104,8 @@ test('validator: rejects a Pack requiring a newer WorldForge version', () => {
 
 test('integration: Archive → Validator → Registry → Loader', async () => {
     const registry = new AssetRegistry();
-    const service = new AssetPackService({ registry, worldForgeVersion: '1.0.0' });
+    const loader = new AssetLoader(registry);
+    const service = new AssetPackService({ registry, loader, worldForgeVersion: '1.0.0' });
     const pack = service.installPack(fixtureBytes);
     assert.equal(pack.manifest.id, manifest.id);
     assert.equal(registry.listPacks().length, 1);
@@ -114,7 +115,6 @@ test('integration: Archive → Validator → Registry → Loader', async () => {
     assert.equal(asset.packVersion, '1.0.0');
     assert.equal(registry.listAssets({ category: 'mountains' }).length, 1);
 
-    const loader = new AssetLoader(registry);
     const loaded = loader.load(manifest.id, 'MNT-001');
     assert.equal(loaded.mimeType, 'image/png');
     assert.equal(loaded.blob.size, png.byteLength);
@@ -123,15 +123,21 @@ test('integration: Archive → Validator → Registry → Loader', async () => {
     assert.equal(response.status, 200);
     assert.deepEqual(new Uint8Array(await response.arrayBuffer()), png);
 
+    const revokedUrls = [];
+    const originalRevoke = URL.revokeObjectURL;
+    URL.revokeObjectURL = url => revokedUrls.push(url);
     assert.equal(service.setPackEnabled(manifest.id, false), false);
+    assert.ok(revokedUrls.includes(loaded.url));
     assert.equal(registry.getAsset(manifest.id, 'MNT-001'), null);
     assert.throws(() => loader.load(manifest.id, 'MNT-001'), /missing or its Pack is disabled/);
     service.setPackEnabled(manifest.id, true);
     assert.ok(loader.load(manifest.id, 'MNT-001'));
 
-    loader.invalidatePack(manifest.id);
-    assert.equal(loader.cache.size, 0);
+    const reloaded = loader.load(manifest.id, 'MNT-001');
     assert.equal(service.uninstallPack(manifest.id), true);
+    assert.ok(revokedUrls.includes(reloaded.url));
+    URL.revokeObjectURL = originalRevoke;
+    assert.equal(loader.cache.size, 0);
     assert.equal(registry.getPack(manifest.id), null);
     assert.equal(registry.listAssets().length, 0);
     loader.clear();
