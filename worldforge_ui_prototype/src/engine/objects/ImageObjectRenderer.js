@@ -102,34 +102,60 @@ export class ImageObjectRenderer {
         this.onInvalidate();
     }
 
+    ensureImage(object) {
+        if (!this.assetLoader) return Promise.reject(new Error('Image rendering requires an AssetLoader.'));
+        const { packId, assetId } = object.assetRef;
+        const key = `${packId}::${object.assetRef.packVersion || 'latest'}::${assetId}`;
+        const cached = this.images.get(key);
+        if (cached) return cached.promise;
+        const entry = { status: 'loading', image: null, promise: null };
+        entry.promise = new Promise((resolve, reject) => {
+            try {
+                const loaded = this.assetLoader.load(packId, assetId);
+                const image = this.createImage();
+                entry.image = image;
+                image.onload = () => {
+                    entry.status = 'ready';
+                    this.onInvalidate();
+                    resolve(image);
+                };
+                image.onerror = () => {
+                    entry.status = 'error';
+                    const error = new Error(`Unable to decode image asset "${packId}::${assetId}".`);
+                    this.onError(error);
+                    this.onInvalidate();
+                    reject(error);
+                };
+                image.src = loaded.url;
+                if (image.complete && image.naturalWidth > 0) {
+                    entry.status = 'ready';
+                    resolve(image);
+                }
+            } catch (error) {
+                entry.status = 'error';
+                this.onError(error);
+                reject(error);
+            }
+        });
+        // Keep a rejection handler attached for normal interactive rendering.
+        entry.promise.catch(() => {});
+        this.images.set(key, entry);
+        return entry.promise;
+    }
+
     getImage(object) {
         if (!this.assetLoader) return null;
         const { packId, assetId } = object.assetRef;
         const key = `${packId}::${object.assetRef.packVersion || 'latest'}::${assetId}`;
         const cached = this.images.get(key);
         if (cached) return cached.status === 'ready' ? cached.image : null;
-        const entry = { status: 'loading', image: null };
-        this.images.set(key, entry);
-        try {
-            const loaded = this.assetLoader.load(packId, assetId);
-            const image = this.createImage();
-            entry.image = image;
-            image.onload = () => {
-                entry.status = 'ready';
-                this.onInvalidate();
-            };
-            image.onerror = () => {
-                entry.status = 'error';
-                this.onError(new Error(`Unable to decode image asset "${packId}::${assetId}".`));
-                this.onInvalidate();
-            };
-            image.src = loaded.url;
-            if (image.complete && image.naturalWidth > 0) entry.status = 'ready';
-        } catch (error) {
-            entry.status = 'error';
-            this.onError(error);
-        }
-        return entry.status === 'ready' ? entry.image : null;
+        this.ensureImage(object).catch(() => {});
+        return null;
+    }
+
+    async preload(objects) {
+        const images = objects.filter(object => object.type === 'image');
+        await Promise.all(images.map(object => this.ensureImage(object)));
     }
 
     draw(context, object) {
