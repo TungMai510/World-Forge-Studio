@@ -982,3 +982,6 @@ Nếu Pack đang được cài trong phiên browser cũ, cần gỡ Pack cũ r�
 - **Automated tested:** test đã thực sự chạy trên checkout tương ứng.
 - **Browser verified:** người dùng đã thao tác thực tế và xác nhận.
 - Không suy diễn trạng thái CI từ kết quả local; không đánh dấu phase hoàn tất chỉ vì commit đã được tạo.
+
+
+**Export integration detail:** patterned Border paths are included in Canvas-based PNG/JPG/PDF asset preloading. SVG export embeds the pattern PNG as a data URI and emits repeated image tiles along the path. A focused SVG regression test has been added; local execution and browser export QA remain pending.
