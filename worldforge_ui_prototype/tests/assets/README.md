@@ -109,3 +109,18 @@ Browser QA:
 4. Drag from one map point to another; confirm the resulting rectangle follows the drag dimensions.
 5. Repeat with Castle Icon and Stone Border Pattern if they are offered by generic capability filtering; verify unsupported assets are not offered.
 6. Confirm no asset selection and hidden/locked active layers prevent placement.
+
+
+## Phase 3D.2 — Edit selected Image Objects
+
+After placing an image, switch to Select Tool and click the placed image. In the Properties panel verify:
+
+- Width and Height can be edited independently.
+- Rotation accepts positive and negative degree values.
+- Opacity slider updates its percentage label and the selected image transparency.
+- Fit can be changed between contain, cover and fill.
+- Click **Cập nhật** to commit the changes; verify Undo/Redo restores and reapplies the complete edit.
+- Select a non-image object and confirm the Image Object controls are hidden.
+- On a locked layer, image property inputs are disabled.
+
+The Place Asset toolbar settings still define defaults for the next placement; the Properties panel edits the already-created and currently selected image object.
