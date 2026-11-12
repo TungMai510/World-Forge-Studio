@@ -1,5 +1,6 @@
 import { ViewportTransform } from './ViewportTransform.js';
 import { CanvasLayerRenderer } from './layers/CanvasLayerRenderer.js';
+import { ImageObjectRenderer, normalizeImageObject } from './objects/ImageObjectRenderer.js';
 import { createDefaultLayers, LayerManager } from './layers/LayerManager.js';
 import { HistoryManager } from './HistoryManager.js';
 import { ToolManager } from './tools/ToolManager.js';
@@ -41,7 +42,11 @@ export class MapCanvasEngine {
         this.frameId = null;
         this.initialFitPending = true;
         this.eventController = new AbortController();
-        this.renderers = new Map([['canvas', new CanvasLayerRenderer()]]);
+        this.imageRenderer = new ImageObjectRenderer({
+            onInvalidate: () => this.scheduleRender(),
+            onError: error => this.onError(error)
+        });
+        this.renderers = new Map([['canvas', new CanvasLayerRenderer({ imageRenderer: this.imageRenderer })]]);
         this.history = new HistoryManager({ onChange: onHistoryChange });
         this.layerManager = this.createLayerManager(this.map.layers, this.map.groups);
         this.toolManager = new ToolManager(this, { onToolChange });
@@ -157,6 +162,12 @@ export class MapCanvasEngine {
             throw new Error('Map objects must have an ID.');
         }
         if (!['rect', 'circle', 'path'].includes(object.type)) {
+            if (object.type === 'image') {
+                if (object.schemaVersion !== undefined && object.schemaVersion !== 1) {
+                    throw new Error('Unsupported image object schema version.');
+                }
+                return normalizeImageObject(object);
+            }
             if (['ellipse', 'text', 'icon', 'terrain'].includes(object.type)) {
                 return this.validateExtendedObject(object);
             }
@@ -216,6 +227,13 @@ export class MapCanvasEngine {
 
     isValidSize(value) {
         return Number.isInteger(value) && value >= MIN_MAP_SIZE && value <= MAX_MAP_SIZE;
+    }
+
+    setAssetLoader(assetLoader) {
+        if (!assetLoader || typeof assetLoader.load !== 'function') {
+            throw new Error('MapCanvasEngine requires a valid AssetLoader.');
+        }
+        this.imageRenderer.setAssetLoader(assetLoader);
     }
 
     registerLayerRenderer(type, renderer) {
@@ -787,6 +805,7 @@ export class MapCanvasEngine {
         this.toolManager.cancel();
         this.resizeObserver.disconnect();
         this.eventController.abort();
+        this.imageRenderer.clear();
         if (this.frameId !== null) cancelAnimationFrame(this.frameId);
     }
 }
