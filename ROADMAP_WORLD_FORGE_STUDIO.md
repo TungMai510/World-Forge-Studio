@@ -66,6 +66,62 @@ Tài liệu thiết kế chi tiết và hợp đồng đề xuất: [`TOOL_ASSET
 
 ---
 
+
+## Quyết định ưu tiên triển khai mới — Asset Pack Studio trước Tool Enhancement (12/11/2026)
+
+Quyết định này **thay thế thứ tự triển khai cũ** ở những mục lộ trình phía dưới nếu có mâu thuẫn. Các đặc tả kỹ thuật của Tool Enhancement vẫn được giữ lại, nhưng chưa phải thứ tự công việc tiếp theo.
+
+### Nguyên tắc
+
+WorldForge Studio sẽ ưu tiên hoàn thiện chuỗi Asset System end-to-end trước khi đầu tư nâng cấp sâu các công cụ vẽ. Lý do: Asset Pack Studio cần một nền tảng lưu trữ, quản lý Pack, metadata, validation và luồng sử dụng thống nhất; khi nền tảng này ổn định, các Tool có thể dùng chung hệ thống thay vì phải sửa lại khi kiến trúc Asset thay đổi.
+
+Không yêu cầu hoàn thiện mọi Tool trước Asset Pack Studio. Chỉ duy trì và kiểm thử các thao tác cốt lõi đang có để bảo đảm Asset Pack có thể được nhập, duyệt, áp dụng, render, chỉnh sửa và lưu trong dự án.
+
+### Thứ tự triển khai được chốt
+
+| Ưu tiên | Giai đoạn | Trọng tâm | Điều kiện đầu ra |
+|---:|---|---|---|
+| 1 | Hoàn tất Phase 3D | Xác minh Place Asset, chỉnh sửa Image Object đã chọn, Undo/Redo và SVG/tool icons | Automated tests và browser QA sau các cập nhật UI gần nhất |
+| 2 | Phase 4 — Persistence/Archive | Lưu project cùng asset references và embedded snapshots; mở lại đúng khi Pack bị gỡ/cập nhật | Round-trip save/load/import/export không mất asset |
+| 3 | Phase 5 — Asset Pack Management | Cài đặt, gỡ, bật/tắt, cập nhật, kiểm tra phiên bản và trạng thái Pack | Vòng đời Pack an toàn, có rollback và không phá project |
+| 4 | Phase 6 — WorldForge Asset Studio | Tạo Pack, nhập ảnh hàng loạt, sửa metadata, preview, validate và xuất .wfpack | Pack tạo từ Studio có thể import lại vào Asset Library và dùng trên bản đồ |
+| 5 | Phase 7 — Tích hợp và ổn định Asset System | Kiểm thử end-to-end, offline, tài liệu, tương thích và quy trình phát hành | Luồng Create → Export → Import → Use → Save Project → Reopen được xác minh |
+| 6 | Phase 3E — Advanced Selection | Multi-selection, marquee, thao tác hàng loạt và atomic history | Hoàn thiện trên nền dữ liệu/object/persistence ổn định |
+| 7 | Phase 3F — Brush Enhancement | Smoothing, size/opacity/hardness, presets | Không hồi quy vector stroke và export |
+| 8 | Phase 3G — River Enhancement | Curve/node/tangent, width profile, tributaries, texture | Semantic river chỉnh sửa được và export nhất quán |
+| 9 | Phase 3H — Landmass Enhancement | Vertex editing, coastline smoothing/procedural generation | Hình học ổn định, có seed và bảo toàn polygon |
+| 10 | Phase 3I — Typography | Local fonts, Vietnamese glyphs, label presets và text styling | Hoạt động offline, bounds và export nhất quán |
+
+### Phạm vi Tool cần giữ trước Asset Pack Studio
+
+- Giữ Select, Icon, Terrain, Lake, Border và Place Asset ở trạng thái sử dụng được; không cần hoàn thành multi-select hoặc các tính năng nâng cao trước.
+- Duy trì vector/procedural fallback để người dùng vẫn tạo bản đồ khi không cài Pack.
+- Chỉ sửa lỗi hoặc bổ sung phần Tool trực tiếp cần thiết cho luồng Asset Pack, renderer, selection cơ bản, layer guards, export và persistence.
+- Brush/River/Landmass/Text nâng cao được hoãn; không xóa đặc tả Phase 3E–3I đã thống nhất.
+
+### Điều kiện nghiệm thu Asset Pack Studio
+
+1. Tạo Asset Pack mới và khai báo Pack ID/version/metadata.
+2. Thêm một hoặc nhiều ảnh từ máy tính; hỗ trợ quy trình nhập hàng loạt ở mức phù hợp.
+3. Chỉnh sửa metadata từng asset: ID, tên, category, tags, usages/capabilities, mô tả, default size và license/attribution.
+4. Xem trước asset và kiểm tra đường dẫn/tệp tương ứng.
+5. Validate schema, file, kích thước, capability và các giới hạn an toàn; hiển thị lỗi có thể xử lý.
+6. Xuất .wfpack theo đặc tả; không cho Pack thực thi mã tùy ý.
+7. Import Pack vừa xuất vào Asset Library, kiểm tra asset xuất hiện đúng và dùng được trong Tool tương thích.
+8. Lưu Project đang sử dụng asset, gỡ Pack nguồn, sau đó mở lại Project mà asset vẫn hiển thị nhờ embedded snapshot/fallback.
+9. Sửa Pack đã có và xuất phiên bản mới mà không làm hỏng tham chiếu của Project cũ.
+
+### Ranh giới giữa Phase 5 và Phase 6
+
+Phase 5 là **runtime Pack Management** trong WorldForge Studio (cài đặt, gỡ, bật/tắt, cập nhật, trạng thái và tương thích). Phase 6 là **authoring workflow** trong Asset Studio (tạo/sửa/validate/export Pack). Hai phần dùng chung validator, schema và Pack service; không tạo hai định dạng hoặc hai quy tắc metadata riêng.
+
+### Cập nhật trạng thái
+
+- Phase 3C.1–3C.4 đã được người dùng xác nhận hoàn tất.
+- Phase 3D đã có các chức năng đặt asset và chỉnh sửa thuộc tính Image Object được chọn; tuy nhiên, bộ kiểm thử 76/76 được chạy trước khi bổ sung UI chỉnh sửa đối tượng đã chọn, nên cần chạy lại npm test và browser QA cho bản cập nhật đó trước khi đóng Phase 3D.
+- 11 SVG tool icons đã được thêm vào assets/tool-icons/ và toolbar đã được cập nhật; browser QA tải SVG và trạng thái active vẫn cần xác nhận.
+- Phase 4–7 là ưu tiên kế tiếp; Phase 3E–3I chuyển sang backlog sau khi chuỗi Asset System end-to-end ổn định.
+
 ## 1. Tầm nhìn sản phẩm đã thống nhất
 
 ### Cập nhật tiến độ Phase 3C — 12/11/2026
