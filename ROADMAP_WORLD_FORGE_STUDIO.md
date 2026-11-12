@@ -1009,3 +1009,54 @@ Nếu Pack đang được cài trong phiên browser cũ, cần gỡ Pack cũ r�
 - Các thông số trên Place Asset toolbar tiếp tục là mặc định cho lần đặt asset tiếp theo, tách biệt với thuộc tính của ảnh đã tạo.
 
 Người dùng báo cáo bộ kiểm thử Phase 3D.2 đạt **76/76 PASS** trước khi phát hiện thiếu luồng chỉnh sửa thuộc tính sau khi tạo. Bản cập nhật UI này đã được commit; cần pull và browser QA các trường Width/Height/Rotation/Opacity/Fit trước khi xác nhận hoàn tất.
+
+
+---
+
+# Current Roadmap Addendum — Tool Enhancement Program (12/11/2026)
+
+> Đây là kế hoạch điều chỉnh mới nhất cho nhóm công cụ chỉnh sửa bản đồ. Các ghi chú lịch sử ở phía trên được giữ nguyên để bảo toàn tiến trình; khi có khác biệt về trạng thái, sử dụng bảng snapshot trong phần này.
+
+## Trạng thái Phase 3D
+
+- **3D.1 Generic Place Asset:** implementation và automated tests đã được commit; cần xác nhận lại trên checkout local/browser theo checklist.
+- **3D.2 Selected Image Object properties:** UI Width/Height/Rotation/Opacity/Fit đã được commit. Kết quả 76/76 PASS là trước bản sửa UI; cần chạy lại `npm test` và browser QA sau bản sửa. Chưa đánh dấu hoàn tất.
+
+## Lộ trình điều chỉnh tiếp theo
+
+| Phase | Hạng mục | Phạm vi chính | Phụ thuộc / tiêu chí chuyển phase |
+|---|---|---|---|
+| 3E | Advanced Selection System | Marquee selection, multi-select, group move, duplicate/delete nhiều object, history/layer guard | Hoàn tất kiểm thử selection và thao tác hàng loạt; là nền tảng dùng chung cho các tool khác |
+| 3E.1 | Marquee Selection | Kéo trái→phải chọn object nằm hoàn toàn trong khung; phải→trái chọn object giao khung; Shift thêm; Ctrl/Cmd-click bật/tắt | Tọa độ màn hình/world chính xác ở mọi zoom/pan; không chọn object trên layer ẩn |
+| 3E.2 | Multi-object operations | Primary selection, move cùng nhau, duplicate/delete nhiều object, một thao tác = một history transaction | Giữ nguyên khoảng cách tương đối và metadata; layer khóa/ẩn không bị sửa |
+| 3E.3 | Multi-transform & group model | Bounding box chung, resize/rotate nhóm nếu geometry hỗ trợ; persistent Group/Ungroup tách khỏi temporary selection | Chỉ bật transform khi mọi object hợp lệ; group không phá semantic object |
+| 3E.4 | Selection UX hardening | Escape, click nền để bỏ chọn, keyboard shortcuts, selection overlay, undo/redo và accessibility | Browser QA cho chuột, bàn phím, zoom/pan và layer guards |
+| 3F | Brush Tool Enhancement | Smooth vector stroke, size, opacity, hardness, presets; textured brush sau khi có deterministic stamping | Giữ vector path làm dữ liệu gốc; texture/stamp phải có seed và grouped history |
+| 3G | River Tool Enhancement | Bézier/curve path, chỉnh node/tangent, width profile từ nguồn đến hạ lưu, nhánh/sông phụ, style/texture | Dùng chung Path/Vertex Editor; nhánh là các segment liên kết bằng riverSystemId/parentSegmentId |
+| 3H | Landmass Tool Enhancement | Vertex editing, smooth coastline, seeded coastline noise, island generation, styling; merge/split là phần sau | Giữ geometry gốc + seed/parameters; merge/split chỉ làm khi có giải pháp polygon boolean đáng tin cậy |
+| 3I | Typography System | Font family local, hỗ trợ tiếng Việt, size/weight/style/spacing/alignment/color/outline/shadow, label presets | Font offline, license rõ ràng, fallback; Canvas và SVG export phải nhất quán |
+
+### Nguyên tắc thiết kế chung
+
+1. **Selection trước, geometry sau:** Phase 3E cung cấp API selection và history ổn định trước khi thêm chỉnh sửa sâu cho Brush/River/Landmass.
+2. **Không phá tương thích:** tool vector/procedural hiện có tiếp tục hoạt động khi không cài Asset Pack.
+3. **Một thao tác hàng loạt = một history transaction:** move/duplicate/delete nhiều object phải Undo/Redo như một hành động nguyên tử.
+4. **Không biến multi-select thành persistent group:** selection tạm thời và Group/Ungroup lưu trong project là hai khái niệm riêng.
+5. **Geometry có thể chỉnh sửa:** River/Landmass lưu path/points gốc; smoothing/noise là tham số có thể tái tạo, không chỉ raster hóa kết quả.
+6. **Local-first typography:** không phụ thuộc Google Fonts/CDN lúc runtime; ưu tiên font được đóng gói cùng app, có license và glyph tiếng Việt.
+7. **Asset Pack an toàn:** chỉ chứa dữ liệu/ảnh/font được phép; không thực thi JavaScript từ Pack.
+8. **Export parity:** mọi thuộc tính mới phải có quy tắc render và export được mô tả, có test.
+
+### Kiến trúc chức năng mục tiêu
+
+- **Selection & Editing:** Select, marquee, multi-selection, transform, group, history.
+- **Drawing:** Brush, Eraser, Landmass, River, Lake, Border.
+- **Object:** Icon, Text, Place Asset.
+- **Asset:** Asset Library, Pack Manager, Asset Studio.
+- **Shared geometry:** Path/Vertex Editor dùng chung cho River, Landmass và các path tool khi phù hợp.
+
+### Điều kiện bắt đầu triển khai
+
+Trước Phase 3E, cần xác minh Phase 3D.2 trên checkout mới nhất. Khi bắt đầu 3E, kiểm tra kỹ MapCanvasEngine hiện chỉ có selection đơn qua `selectedObjectId`; thiết kế `selectedObjectIds` cùng primary selection nhưng duy trì API đơn hiện tại như compatibility wrapper. Không thêm group resize/rotate trong lát cắt đầu tiên nếu chưa có phép biến đổi geometry đúng cho mọi object type.
+
+**Tài liệu đặc tả chi tiết:** `WORLD_FORGE_TOOL_ENHANCEMENT_SPECIFICATION.md`.
