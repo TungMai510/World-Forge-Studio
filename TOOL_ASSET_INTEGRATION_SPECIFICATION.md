@@ -334,3 +334,19 @@ The integration is not complete until all applicable checks pass:
 The repository currently contains Asset Pack validation/registry/loader, Image Object rendering, PlaceAssetTool and the legacy vector tools. The shared Tool Binding API, contextual Asset Library, and asset-backed workflows for Icon, Terrain/Mountain, Lake and Border are **not yet implemented**.
 
 This specification records the agreed direction. The next code change should begin with Phase 3A and its contract tests, not with another isolated UI feature.
+
+## 13. Phase 3A implementation update — 12/11/2026
+
+The first Tool–Asset contract implementation has been committed:
+
+- Added `src/assets/tool-asset-capabilities.js` with a finite Core capability vocabulary, query normalization, required/all-of and any-of matching, and `ToolAssetBinding`.
+- Added per-tool binding declarations to `ToolManager`: Icon requires `icon`; Terrain requires `stamp`; Lake requires `texture-fill`; Border requires `pattern-stroke`; generic Place Asset accepts `stamp` or `decoration`.
+- Legacy Pack assets without `usages` are eligible only through the explicitly opted-in generic Place Asset binding. Specialized tools do not infer compatibility from categories or receive legacy fallback.
+- Added optional `usages` metadata to the v1.0 Pack validator and specification. It is descriptive data only; unknown capability strings are preserved but ignored by Core.
+- Added `BaseTool.setAssetSelection` as the common selection contract and a PlaceAssetTool adapter that applies the resolved reference and Pack default dimensions.
+- Exposed Asset Registry injection through `MapCanvasEngine.setAssetRegistry`; UIController now supplies the same registry used by AssetPackService and AssetLoader to ToolManager.
+- The existing Pack import flow now queries the generic tool binding and routes the chosen asset through `selectAssetForTool`, rather than bypassing the binding with direct tool options.
+
+**Current boundary:** this establishes the runtime contract and connects the existing generic Place Asset flow. Icon, Terrain, Lake and Border still do not consume asset selections to create their semantic map objects; that work belongs to Phase 3C. The contextual Shared Asset Library belongs to Phase 3B.
+
+**Verification:** new automated tests cover capability validation/matching, optional metadata compatibility, per-tool filtering, stale Pack versions, disabled Packs, selection routing and generic fallback. These tests have been committed but have **not yet been run by the user on the latest checkout**. Phase 3A remains In Progress pending local test execution and review.
