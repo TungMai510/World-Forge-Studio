@@ -12,6 +12,7 @@ const loader = new AssetLoader(registry);
 let selectedObjectId = null;
 let imageLayerVisible = true;
 let engine;
+const controls = ['image-width','image-height','image-rotation','image-opacity','image-fit','apply-image','toggle-layer','layer-opacity'];
 
 engine = new MapCanvasEngine($('map-canvas'), {
     onSelectionChange: selection => {
@@ -25,7 +26,6 @@ engine.setActiveLayer('layer-decorations');
 engine.setAssetLoader(loader);
 const packService = new AssetPackService({ registry, loader });
 const exportService = new MapExportService(new CanvasLayerRenderer({ imageRenderer: engine.imageRenderer }));
-const controls = ['image-width','image-height','image-rotation','image-opacity','image-fit','apply-image','toggle-layer','layer-opacity'];
 function syncControls() {
     const active = Boolean(selectedObjectId && engine.findObject(selectedObjectId)?.type === 'image');
     controls.forEach(id => { $(id).disabled = !active; });
