@@ -48,6 +48,7 @@ test('capability vocabulary is stable and queries are normalized', () => {
         acceptedTypes: ['image']
     }), {
         requiredCapabilities: ['stamp'],
+        anyCapabilities: [],
         categories: ['terrain'],
         tags: ['mountain'],
         acceptedTypes: ['image']
@@ -71,7 +72,8 @@ test('unknown asset usages are ignored and never execute or grant capabilities',
 });
 
 test('legacy Pack v1 assets are generic-only and are not inferred from category names', () => {
-    assert.deepEqual(getAssetCapabilities(assets[4]), ['stamp', 'decoration']);
+    assert.deepEqual(getAssetCapabilities(assets[4], { allowLegacyGeneric: true }), ['stamp', 'decoration']);
+    assert.deepEqual(getAssetCapabilities(assets[4]), []);
     assert.equal(assetMatchesQuery(assets[4], { requiredCapabilities: ['stamp'] }), true);
     assert.equal(assetMatchesQuery(assets[4], { requiredCapabilities: ['icon'] }), false);
     assert.equal(assetMatchesQuery(assets[4], { requiredCapabilities: ['texture-fill'] }), false);
@@ -83,7 +85,7 @@ test('ToolAssetBinding filters by capability, optional metadata and search', () 
         toolId: 'terrain',
         query: { requiredCapabilities: ['stamp'], tags: [] }
     });
-    assert.deepEqual(binding.listAssets().map(asset => asset.id), ['ICON-1', 'MNT-1', 'OLD-1']);
+    assert.deepEqual(binding.listAssets().map(asset => asset.id), ['ICON-1', 'MNT-1']);
     assert.deepEqual(binding.listAssets({ query: 'mountain' }).map(asset => asset.id), ['MNT-1']);
     assert.deepEqual(binding.listAssets({ packId: 'com.example.other' }), []);
 });
@@ -104,7 +106,7 @@ test('ToolManager exposes per-tool bindings without coupling tools to Pack parsi
     const registry = createRegistry();
     const manager = new ToolManager(createEngine(), { assetRegistry: registry });
     assert.deepEqual(manager.listAssetsForTool('icon').map(asset => asset.id), ['ICON-1']);
-    assert.deepEqual(manager.listAssetsForTool('terrain').map(asset => asset.id), ['ICON-1', 'MNT-1', 'OLD-1']);
+    assert.deepEqual(manager.listAssetsForTool('terrain').map(asset => asset.id), ['ICON-1', 'MNT-1']);
     assert.deepEqual(manager.listAssetsForTool('lake').map(asset => asset.id), ['LAKE-1']);
     assert.deepEqual(manager.listAssetsForTool('border').map(asset => asset.id), ['BORDER-1']);
     assert.deepEqual(manager.listAssetsForTool('place-asset').map(asset => asset.id), ['ICON-1', 'MNT-1', 'OLD-1', 'DECOR-1']);
