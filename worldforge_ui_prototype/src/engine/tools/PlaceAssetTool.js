@@ -86,6 +86,7 @@ export class PlaceAssetTool extends BaseTool {
             startScreen: screen ? { ...screen } : null,
             dragged: false
         };
+        this.engine.scheduleRender?.();
         return true;
     }
 
@@ -139,6 +140,7 @@ export class PlaceAssetTool extends BaseTool {
             opacity: this.options.opacity,
             fit: this.options.fit
         }, 'Place asset');
+        this.engine.scheduleRender?.();
     }
 
     getBoundsForPlacement(placement, world) {
