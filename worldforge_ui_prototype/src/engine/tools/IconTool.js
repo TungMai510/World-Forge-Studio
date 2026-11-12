@@ -22,7 +22,8 @@ export class IconTool extends BaseTool {
             y: world.y,
             icon: this.options.icon,
             size: this.options.size,
-            color: this.options.color
+            color: this.options.color,
+            ...(this.assetSelection ? { assetRef: { ...this.assetSelection.assetRef } } : {})
         }, 'Map icon');
         return false;
     }
