@@ -261,7 +261,7 @@ export class UIController {
         const definition = TOOL_DEFINITIONS.find(item => item.id === toolId);
         const binding = this.canvasEngine.toolManager.getAssetBinding(toolId);
         const tool = this.canvasEngine.toolManager.getTool(toolId);
-        const canSelect = Boolean(binding && ['place-asset', 'icon', 'terrain', 'lake'].includes(toolId) && typeof tool.setAssetSelection === 'function');
+        const canSelect = Boolean(binding && ['place-asset', 'icon', 'terrain', 'lake', 'border'].includes(toolId) && typeof tool.setAssetSelection === 'function');
         const packs = this.assetRegistry.listPacks();
         const packFilter = document.getElementById('asset-library-pack-filter');
         const previousPack = this.assetLibraryState.packId;
@@ -400,6 +400,8 @@ export class UIController {
                 this.notify(`Đã chọn biểu tượng "${resolved.asset.name}". Click trên bản đồ để đặt icon.`);
             } else if (toolId === 'lake') {
                 this.notify(`Đã chọn texture mặt nước "${resolved.asset.name}". Kéo trên bản đồ để tạo hồ.`);
+            } else if (toolId === 'border') {
+                this.notify(`Đã chọn họa tiết đường biên "${resolved.asset.name}". Vẽ đường biên trên bản đồ để áp dụng.`);
             } else if (toolId === 'terrain') {
                 this.notify(`Đã chọn địa hình "${resolved.asset.name}". Click trên bản đồ để đặt dấu địa hình.`);
             } else if (toolId === 'place-asset') {
