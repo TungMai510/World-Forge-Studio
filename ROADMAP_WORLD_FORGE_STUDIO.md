@@ -738,3 +738,15 @@ Sau khi người dùng xác nhận toàn bộ 37/37 kiểm thử hiện tại đ
 - Bổ sung test cho Image Object metadata, Path geometry, không mutate nguồn và layer guard.
 
 **Lưu ý về trạng thái:** Delete đã có sẵn trong MapCanvasEngine qua `deleteObjects()` và phím Delete/Backspace; Undo/Redo dùng HistoryManager hiện hữu. Các thao tác duplicate mới được thêm mã nguồn và test, chưa có kết quả chạy từ checkout local. Chưa có nút Duplicate/Delete riêng trên toolbar hoặc context menu. Cần chạy `npm test` và kiểm tra browser trước khi đánh dấu các phần này đã verified.
+
+
+### Phase 3 — Duplicate/Delete toolbar actions (12/11/2026)
+
+Đã bổ sung các nút thao tác nhanh trong cụm điều khiển bản đồ:
+
+- **Duplicate** gọi `MapCanvasEngine.duplicateObject()`, giữ nguyên metadata/geometry theo logic engine và chọn bản sao sau khi tạo.
+- **Delete** gọi luồng xóa đối tượng hiện có.
+- Hai nút tự vô hiệu hóa khi không có đối tượng được chọn hoặc layer chứa đối tượng đang ẩn/khóa.
+- Giữ nguyên các phím tắt hiện có: `Ctrl+D` / `Cmd+D` để nhân bản; `Delete` / `Backspace` để xóa.
+
+**Trạng thái:** mã giao diện đã được commit; kiểm tra nội dung repository xác nhận markup, event binding, handler và layer guard đều hiện diện. Chưa chạy npm test hoặc browser QA sau thay đổi giao diện. Cần xác minh thủ công: chọn một image → Duplicate → di chuyển bản sao → Undo → Redo → Delete → Undo; thử lại trên layer khóa/ẩn để xác nhận nút bị vô hiệu hóa và engine vẫn từ chối thao tác trái phép.
