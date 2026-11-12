@@ -51,12 +51,13 @@ Paths are relative to the archive root. Absolute paths, drive paths, backslashes
     "thumbnail": "thumbnails/MNT-001.webp",
     "mimeType": "image/png",
     "tags": ["mountain", "nature"],
+    "usages": ["stamp", "scatter"],
     "defaultSize": { "width": 180, "height": 140 }
   }]
 }
 ```
 
-Required fields: schemaVersion, id, name, version, author, description, license, compatibility.minWorldForgeVersion, categories and assets. Each asset requires id, name, category, type=image and a file under assets/. Thumbnail, MIME type, tags and default dimensions are optional.
+Required fields: schemaVersion, id, name, version, author, description, license, compatibility.minWorldForgeVersion, categories and assets. Each asset requires id, name, category, type=image and a file under assets/. Thumbnail, MIME type, tags, usages and default dimensions are optional. The optional `usages` field is a list of up to 20 unique capability strings. Older Packs may omit it; assets without `usages` remain eligible only for generic stamp/decoration placement. Specialized tools must never infer capability from category names. Known Core capabilities are `stamp`, `icon`, `scatter`, `texture-fill`, `pattern-stroke` and `decoration`. Unknown usage strings are preserved as metadata but ignored by Core versions that do not recognize them.
 
 ## 4. Identity
 
