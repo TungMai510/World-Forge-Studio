@@ -65,6 +65,14 @@ export function createFixturePng(width, height, style = 'mountain') {
                     y >= height * 0.68 && y <= height * 0.9);
                 if (tree) color = [48, 105, 66, 255];
                 if (trunk) color = [105, 76, 48, 255];
+            } else if (style === 'border') {
+                const motifX = x % 12;
+                const centerBand = y >= height * 0.3 && y <= height * 0.7;
+                const diamondWidth = Math.max(1, Math.floor((height * 0.34) - Math.abs(y - height / 2) * 0.7));
+                const diamond = Math.abs(motifX - 6) <= diamondWidth;
+                color = centerBand ? [102, 75, 55, 255] : [0, 0, 0, 0];
+                if (diamond) color = [224, 190, 128, 255];
+                if ((y === 2 || y === height - 3) && motifX >= 2 && motifX <= 9) color = [154, 119, 79, 255];
             } else if (style === 'water') {
                 const wave = Math.sin(x * 0.42 + Math.sin(y * 0.24) * 1.8) * 2.2;
                 const line = Math.abs((y % 12) - 6 + wave) < 1.7;
