@@ -707,3 +707,21 @@ Chỉ bắt đầu thiết kế Cloud Sync sau khi Project Persistence/Archive, 
 **Giới hạn đã biết:** đây là luồng giao diện tối thiểu để kiểm chứng Place Asset end-to-end, chưa phải Asset Library UI. Danh sách asset hiện chọn bằng prompt; chưa có thumbnail/grid/search/filter, Pack Manager, hoặc lưu trạng thái cài Pack qua lần khởi động. Nếu hủy hộp chọn asset, Pack đã import vẫn nằm trong Registry của phiên hiện tại.
 
 **Chưa xác minh:** các thay đổi giao diện vừa commit chưa được chạy trên trình duyệt và chưa có kết quả `npm test` sau hai commit UI. Cần pull, chạy test tự động, sau đó thử import Pack → chọn asset → click/drag đặt ảnh trên Canvas. Phase 3 vẫn In Progress.
+
+
+### Phase 3 — Image selection, move, resize and rotate (12/11/2026)
+
+Đã mở rộng SelectTool để thao tác trực tiếp với Image Object trên Canvas:
+
+- Khi Image Object được chọn, SelectTool vẽ khung chọn theo đúng góc xoay của ảnh.
+- Hiển thị các điểm điều khiển ở bốn góc và một tay nắm xoay bên ngoài cạnh trên.
+- Kéo ảnh để di chuyển (tái sử dụng cơ chế move và edit group hiện có).
+- Kéo tay nắm góc dưới bên phải để resize theo hai chiều, giữ tâm ảnh cố định và giới hạn kích thước tối thiểu 8 world units.
+- Kéo tay nắm xoay để thay đổi rotation; phép tính tính đến tâm ảnh và góc xoay hiện tại.
+- Resize/rotate/move sử dụng History edit group để tạo một thao tác Undo/Redo thay vì ghi một lịch sử cho từng pointer move.
+- Từ chối resize/rotate trên layer bị khóa hoặc ẩn.
+- Thêm `tests/assets/select-image-tool.test.js` với các kiểm thử move, resize, rotate, layer guard và cancel rollback.
+
+**Giới hạn hiện tại:** các handle resize hiện tập trung ở góc dưới bên phải; chưa có aspect-ratio lock, resize từ từng cạnh/góc, snapping hoặc UI nhập kích thước. Duplicate/Delete vẫn là bước tiếp theo, chưa được bổ sung trong thay đổi này.
+
+**Trạng thái xác minh:** code và regression tests đã được commit lên GitHub, nhưng chưa chạy trên checkout Node/browser của người dùng. Cần pull và chạy `npm test`; sau đó kiểm thử thao tác trên Canvas. Phase 3 vẫn In Progress.
