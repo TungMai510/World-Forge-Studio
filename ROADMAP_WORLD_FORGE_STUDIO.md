@@ -6,6 +6,63 @@
 > **Phạm vi mã nguồn:** `worldforge_ui_prototype/`  
 > **Mục tiêu tài liệu:** thống nhất định hướng sản phẩm, ghi nhận những gì có bằng chứng trong repository và chia nhỏ lộ trình phát triển tiếp theo.
 
+
+> **Quyết định kiến trúc mới — 12/11/2026:** Asset Pack phải trở thành nguồn tài nguyên dùng chung cho Tool System. Các mục Phase 3–4 bên dưới được diễn giải lại theo tài liệu `TOOL_ASSET_INTEGRATION_SPECIFICATION.md`; PlaceAssetTool vẫn được giữ như công cụ đặt asset tổng quát, không phải con đường duy nhất để dùng asset.
+
+## Cập nhật định hướng: hợp nhất Tool System và Asset System (12/11/2026)
+
+### Vấn đề được xác định
+
+Prototype hiện có hai luồng chưa kết nối đầy đủ:
+
+- Tool System tạo các đối tượng bản đồ bằng hình học/vector (Landmass, Terrain/Mountain, River, Lake, Border, Icon, Brush...).
+- Asset System nạp tài nguyên từ `.wfpack` và PlaceAssetTool đặt chúng dưới dạng Image Object độc lập.
+
+Vì vậy, người dùng có thể vẽ núi/hồ/biên giới bằng công cụ cũ hoặc đặt một ảnh riêng lẻ, nhưng chưa thể chọn tài nguyên trong Asset Pack ngay trong ngữ cảnh của công cụ tương ứng. Đây là khoảng trống kiến trúc, không chỉ là thiếu giao diện Asset Library.
+
+### Quyết định sản phẩm
+
+**Asset Pack là nguồn tài nguyên chung của Map Editor; Tool là nơi người dùng chọn cách sử dụng tài nguyên đó.** Người dùng không phải rời công cụ chuyên biệt để chuyển sang Place Asset chỉ vì muốn dùng hình ảnh/texture/icon từ Pack.
+
+- Giữ các công cụ hiện có và khả năng tạo hình học không cần Pack.
+- Giữ PlaceAssetTool cho thao tác đặt ảnh tự do/generic stamp.
+- Tích hợp Asset Library theo ngữ cảnh vào các công cụ phù hợp: Icon, Terrain/Mountain, Lake, Border; sau đó mở rộng River, Landmass và Brush.
+- Một asset có thể hỗ trợ nhiều cách dùng; category/tên asset không được dùng thay cho capability.
+- Không hardcode danh mục cụ thể của một Pack trong Core. Core cung cấp capability/usage chung; Pack khai báo metadata; Tool quyết định cách hiển thị và áp dụng.
+- Không biến mọi asset thành Image Object. Công cụ tạo semantic map object tương ứng (ví dụ terrain, lake, border path) và gắn asset reference khi cách dùng yêu cầu.
+
+### Mô hình kiến trúc bắt buộc
+
+Tách rõ bốn khái niệm:
+
+1. **Asset:** nội dung gốc và metadata trong Pack.
+2. **Asset Usage/Capability:** các cách dùng được hỗ trợ, ví dụ `stamp`, `icon`, `scatter`, `texture-fill`, `pattern-stroke`.
+3. **Tool Binding/Adapter:** cầu nối giữa Asset Library và một Tool; khai báo capability/filter, chuyển lựa chọn thành options của Tool và tạo semantic object.
+4. **Map Object:** đối tượng thực tế trên bản đồ, có hình học/transform và assetRef khi cần.
+
+Luồng chuẩn: Pack → Validator/Registry → Asset Library → Tool Binding → Tool → Semantic Map Object → Renderer/Export/Persistence.
+
+### Lộ trình được điều chỉnh
+
+- **Phase 1 — Asset Foundation:** giữ nguyên; bổ sung metadata capability ở schema tương thích, không phá Pack v1.
+- **Phase 2 — Image Object & Renderer:** giữ nguyên; xem đây là nền tảng cho stamp/decor, không phải renderer duy nhất cho mọi asset-backed object.
+- **Phase 3A — Tool–Asset Integration Contract:** thiết kế capability metadata, Tool binding API, asset selection state và semantic object references; viết test contract trước khi sửa UI.
+- **Phase 3B — Shared Asset Library:** xây thư viện thumbnail/search/filter và panel theo ngữ cảnh; có thể dùng chung một component, nhưng filter/capability do Tool cung cấp.
+- **Phase 3C — Specialized Tool Integration:** ưu tiên Icon → Terrain/Mountain → Lake → Border; giữ chế độ procedural/vector hiện có và bổ sung chế độ asset-backed tương ứng.
+- **Phase 3D — Generic Placement & Advanced Use:** hoàn thiện PlaceAssetTool cho stamp tự do; sau đó mới thêm scatter/brush/texture-fill/pattern-stroke theo từng capability có kiểm thử.
+- **Phase 4 — Persistence & Archive:** lưu semantic object + assetRef, snapshot/embed tài nguyên đang dùng và bảo đảm mở lại dự án khi Pack bị gỡ.
+- **Phase 5 — Pack Management UI; Phase 6 — Asset Studio; Phase 7 — Community ecosystem.** Các phase sau dịch số so với lộ trình cũ và chỉ bắt đầu khi tích hợp công cụ cốt lõi ổn định.
+
+### Trạng thái triển khai tại thời điểm quyết định
+
+- Đã có Asset Foundation, Image Object/Renderer và PlaceAssetTool trong mã nguồn.
+- ToolManager hiện đăng ký cả các tool vector cũ và PlaceAssetTool; Asset Pack selection hiện chủ yếu phục vụ PlaceAssetTool.
+- Chưa có Shared Asset Library hoàn chỉnh và chưa có Tool Binding/Adapter dùng chung.
+- Chưa có tích hợp asset-backed thực sự cho Icon, Terrain/Mountain, Lake hoặc Border.
+- Vì vậy, đây là **quyết định kiến trúc và lộ trình mới**, chưa phải tính năng đã được triển khai. Không đánh dấu Phase 3 hoàn thành cho đến khi có test và browser QA cho từng tool tích hợp.
+
+Tài liệu thiết kế chi tiết và hợp đồng đề xuất: [`TOOL_ASSET_INTEGRATION_SPECIFICATION.md`](TOOL_ASSET_INTEGRATION_SPECIFICATION.md).
+
 ---
 
 ## 1. Tầm nhìn sản phẩm đã thống nhất
