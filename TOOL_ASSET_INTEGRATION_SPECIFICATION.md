@@ -7,6 +7,35 @@
 
 ---
 
+
+## Quyết định thứ tự triển khai — ưu tiên Asset Pack Studio (12/11/2026)
+
+Quyết định sản phẩm mới nhất: **không cần hoàn thiện các Tool nâng cao trước khi tích hợp Asset Pack Studio**. Ưu tiên chuỗi Asset System end-to-end theo thứ tự:
+
+1. Hoàn tất kiểm thử Phase 3D hiện tại (đặt asset, chỉnh sửa Image Object đã chọn, Undo/Redo và toolbar SVG icons).
+2. Phase 4 — Persistence/Archive: project lưu được asset reference cùng embedded snapshot/fallback; round-trip save/load và export/import không phụ thuộc Pack nguồn còn được cài.
+3. Phase 5 — Asset Pack Management: cài/gỡ/bật/tắt/cập nhật Pack, version compatibility, trạng thái và rollback.
+4. Phase 6 — WorldForge Asset Studio: tạo Pack, batch import, metadata editor, preview, validator và .wfpack exporter.
+5. Phase 7 — end-to-end QA, offline verification, tài liệu và ổn định hệ sinh thái Asset.
+6. Sau khi chuỗi Create → Export → Import → Use → Save Project → Reopen đạt nghiệm thu, mới triển khai lần lượt Phase 3E–3I (Advanced Selection, Brush, River, Landmass, Typography).
+
+Trong giai đoạn ưu tiên Asset Studio, chỉ duy trì Tool hiện có ở mức đủ ổn định để thử nghiệm asset selection, semantic object creation, rendering, editing cơ bản, layer guards, export và persistence. Không trì hoãn Asset Studio để làm multi-selection, brush nâng cao, river Bézier, coastline editor hoặc typography nâng cao. Các đặc tả 3E–3I vẫn có hiệu lực về thiết kế, nhưng trạng thái là **deferred backlog**, không phải phase kế tiếp.
+
+### Phân định Phase 5 và Phase 6
+
+- **Phase 5 — Pack Management:** quản lý vòng đời Pack đã cài trong ứng dụng bản đồ.
+- **Phase 6 — Asset Studio:** công cụ authoring để tạo/sửa/validate/đóng gói Pack.
+- Hai phase phải dùng chung manifest schema, validator, registry và pack service; không tạo hai pipeline metadata hoặc định dạng Pack khác nhau.
+
+### Acceptance gate cho Asset Pack Studio
+
+- Tạo Pack mới, nhập một hoặc nhiều ảnh, chỉnh sửa metadata, category, tags, usages/capabilities, default size, license/attribution.
+- Preview và validate Pack; lỗi được báo rõ trước khi export.
+- Xuất .wfpack, import trở lại Asset Library và sử dụng được trong Tool phù hợp.
+- Lưu project đang dùng asset, gỡ Pack nguồn, mở lại project mà asset vẫn được khôi phục từ embedded snapshot.
+- Có thể sửa và xuất phiên bản Pack mới mà không phá project cũ.
+
+
 ## 1. Purpose
 
 ## Phase 3C implementation log
