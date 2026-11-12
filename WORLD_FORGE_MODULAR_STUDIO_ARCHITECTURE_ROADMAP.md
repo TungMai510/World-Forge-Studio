@@ -104,6 +104,43 @@ Responsibilities:
 
 The Core should define contracts; domain-specific rules should remain in their owning modules.
 
+
+## 3.4 WorldForge AI Layer and AI Gateway
+
+AI is a shared optional capability across Studios, not a replacement for Studio workflows and not a mandatory runtime dependency. The application must remain fully usable with AI disabled.
+
+Conceptual flow:
+
+    STUDIOS / WORLD ASSISTANT
+              |
+       WORLDFORGE AI LAYER
+              |
+          AI GATEWAY
+       /      |       \\
+  Text Model Image Model Local Model
+       \\      |       /
+        MODEL ADAPTERS
+              |
+     STRUCTURED RESULT CONTRACTS
+              |
+      PREVIEW / VALIDATE / APPROVE
+              |
+        WORLD DATA CORE APIs
+
+Responsibilities:
+- Shared task orchestration and context assembly from World Data Core APIs.
+- Provider/model adapters; provider routing by task; no hard dependency on one model.
+- User-owned API key configuration or compatible local-model adapters; optional service-owned billing may be considered later but is not assumed.
+- Usage/cost limits, retry/error handling, privacy controls and provider disclosure.
+- Structured output contracts, validation, provenance and generation history.
+- A permission-scoped tool/action interface for future agent workflows; no arbitrary code execution or unrestricted filesystem/data access.
+
+Three levels of AI interaction are planned: Suggestion, Assisted Creation, and Agent. Agent operations must show a plan and proposed changes, validate them, request approval, then commit through normal Core services so History/Undo/Redo and auditability remain available.
+
+AI-generated images entering Asset Studio must use the same import, normalization, metadata, license/provenance and Asset Pack validation pipeline as manually imported files. AI must not invent or certify distribution rights.
+
+AI is a future architecture capability only. It does not change the active Asset System implementation sequence or authorize AI integration during the current Phase 3D–7 work.
+
 ### 3.3 Studio module boundaries
 
 Each Studio should have:
