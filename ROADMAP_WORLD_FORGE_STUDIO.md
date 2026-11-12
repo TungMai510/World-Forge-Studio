@@ -853,3 +853,18 @@ Implemented in the current `main` branch:
 - Added a pure filtering model and automated tests for query/category behavior and disabled assets.
 
 **Still pending:** run `npm run assets:fixture` and `npm test`; browser QA for import, preview, filters, tool switching, selecting/placing, disabling and uninstalling Packs. Phase 3B is not complete until these checks pass. Persistence across reloads is intentionally deferred to later persistence/Pack Manager phases. Specialized Icon/Terrain/Lake/Border object creation remains Phase 3C.
+
+
+### Phase 3C.1 — Icon Tool (đã kiểm thử)
+
+- Icon Tool nhận asset có capability `icon`, lưu `assetRef` vào semantic Icon Object và render qua ImageObjectRenderer.
+- Giữ nguyên icon vector làm fallback khi chưa chọn asset.
+- Shared Asset Library cho phép áp dụng asset vào Icon Tool.
+- Fixture Classic Fantasy có thêm Castle Icon (`ICO-001`). Người dùng đã xác nhận hoàn tất kiểm thử giao diện sau khi tạo lại Pack.
+
+### Phase 3C.2 — Terrain/Mountain (đang triển khai)
+
+- Giữ nguyên chế độ vẽ polygon vùng địa hình khi chưa chọn asset.
+- Khi chọn asset capability `stamp`, click Canvas sẽ đặt Image Object ở tâm con trỏ, lấy kích thước mặc định từ metadata Pack và giữ namespaced `assetRef`.
+- Mở quyền áp dụng asset trong Shared Asset Library cho Terrain Tool.
+- Đã bổ sung kiểm thử unit cho fallback polygon, tạo terrain stamp và ủy quyền render; cần chạy `npm test` và browser QA trên checkout local trước khi xác nhận hoàn tất.
