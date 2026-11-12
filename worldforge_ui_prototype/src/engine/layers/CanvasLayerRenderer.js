@@ -229,6 +229,77 @@ export class CanvasLayerRenderer {
             if (object.feature === 'terrain') this.drawTerrainPattern(context, object);
         }
         context.stroke();
+        if (object.feature === 'border' && object.patternAssetRef) {
+            this.drawPatternStroke(context, object);
+        }
+    }
+
+    drawPatternStroke(context, object) {
+        if (!this.imageRenderer) return false;
+        const image = this.imageRenderer.getImage({
+            type: 'image',
+            assetRef: object.patternAssetRef,
+            x: 0,
+            y: 0,
+            width: 1,
+            height: 1
+        });
+        if (!image) return false;
+
+        const scale = Number.isFinite(object.patternScale) && object.patternScale > 0
+            ? object.patternScale
+            : 1;
+        const tileWidth = Math.max(1, (object.patternSize?.width || image.naturalWidth || image.width || 48) * scale);
+        const tileHeight = Math.max(1, (object.patternSize?.height || image.naturalHeight || image.height || 16) * scale);
+        const subpaths = [];
+        let current = [];
+        for (const command of object.commands || []) {
+            if (command.type === 'moveTo') {
+                if (current.length > 1) subpaths.push(current);
+                current = [{ x: command.x, y: command.y }];
+            } else if (command.type === 'lineTo' && current.length) {
+                current.push({ x: command.x, y: command.y });
+            }
+        }
+        if (current.length > 1) subpaths.push(current);
+
+        let drawn = 0;
+        for (const points of subpaths) {
+            const segments = [];
+            let totalLength = 0;
+            for (let index = 1; index < points.length; index += 1) {
+                const start = points[index - 1];
+                const end = points[index];
+                const length = Math.hypot(end.x - start.x, end.y - start.y);
+                if (length <= 0) continue;
+                segments.push({ start, end, length, startDistance: totalLength });
+                totalLength += length;
+            }
+            if (!segments.length) continue;
+
+            const tileCount = Math.max(1, Math.round(totalLength / tileWidth));
+            const spacing = totalLength / tileCount;
+            for (let index = 0; index < tileCount; index += 1) {
+                const distance = spacing * (index + 0.5);
+                let segment = segments[0];
+                for (const candidate of segments) {
+                    if (candidate.startDistance <= distance) segment = candidate;
+                    else break;
+                }
+                const localDistance = Math.min(segment.length, Math.max(0, distance - segment.startDistance));
+                const ratio = localDistance / segment.length;
+                const x = segment.start.x + (segment.end.x - segment.start.x) * ratio;
+                const y = segment.start.y + (segment.end.y - segment.start.y) * ratio;
+                const angle = Math.atan2(segment.end.y - segment.start.y, segment.end.x - segment.start.x);
+                context.save();
+                context.translate(x, y);
+                context.rotate(angle);
+                context.drawImage(image, -tileWidth / 2, -tileHeight / 2, tileWidth, tileHeight);
+                context.restore();
+                drawn += 1;
+            }
+        }
+        return drawn > 0;
     }
 
     drawTerrainPattern(context, object) {
@@ -303,9 +374,18 @@ export class CanvasLayerRenderer {
             if (!points.length) return null;
             const xs = points.map(point => point.x);
             const ys = points.map(point => point.y);
-            const minX = Math.min(...xs);
-            const minY = Math.min(...ys);
-            return { x: minX, y: minY, width: Math.max(...xs) - minX, height: Math.max(...ys) - minY };
+            const padding = object.feature === 'border' && object.patternAssetRef
+                ? Math.max(object.patternSize?.width || 48, object.patternSize?.height || 16) *
+                    (Number.isFinite(object.patternScale) && object.patternScale > 0 ? object.patternScale : 1) / 2
+                : 0;
+            const minX = Math.min(...xs) - padding;
+            const minY = Math.min(...ys) - padding;
+            return {
+                x: minX,
+                y: minY,
+                width: Math.max(...xs) - Math.min(...xs) + padding * 2,
+                height: Math.max(...ys) - Math.min(...ys) + padding * 2
+            };
         }
         return null;
     }
