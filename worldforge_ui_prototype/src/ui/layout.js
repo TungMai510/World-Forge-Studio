@@ -195,6 +195,11 @@ export class UIController {
             document.getElementById('delete-layer-group-button').disabled = !enabled;
         });
         document.getElementById('bottom-panel-toggle').addEventListener('click', () => this.toggleBottomPanel());
+        document.getElementById('place-asset-button').addEventListener('click', () => {
+            this.canvasEngine.setTool('place-asset');
+            document.getElementById('asset-pack-file').click();
+        });
+        document.getElementById('asset-pack-file').addEventListener('change', event => this.handleAssetPackFile(event));
         document.querySelectorAll('[data-tool]').forEach(button => {
             button.addEventListener('click', () => this.canvasEngine.setTool(button.dataset.tool));
         });
@@ -215,6 +220,39 @@ export class UIController {
                 if (this.currentProject) this.saveCurrentProject();
             }
         });
+    }
+
+    async handleAssetPackFile(event) {
+        const input = event.currentTarget;
+        const file = input.files?.[0];
+        if (!file) return;
+        try {
+            const pack = this.assetPackService.installPack(await file.arrayBuffer());
+            const assets = this.assetRegistry.listAssets({ packId: pack.manifest.id });
+            if (!assets.length) throw new Error('Asset Pack không có tài nguyên khả dụng.');
+            const choices = assets.map((asset, index) =>
+                `${index + 1}. ${asset.name} [${asset.category}]`
+            ).join('\\n');
+            const answer = window.prompt(
+                `Đã nạp Pack "${pack.manifest.name}". Nhập số thứ tự asset cần đặt:\\n${choices}`,
+                '1'
+            );
+            if (answer === null) return;
+            const index = Number(answer) - 1;
+            if (!Number.isInteger(index) || index < 0 || index >= assets.length) {
+                throw new Error('Lựa chọn asset không hợp lệ.');
+            }
+            const asset = assets[index];
+            this.canvasEngine.toolManager.setOptions('place-asset', {
+                assetRef: { packId: asset.packId, assetId: asset.id, packVersion: asset.packVersion }
+            });
+            this.canvasEngine.setTool('place-asset');
+            this.notify(`Đã chọn "${asset.name}". Click hoặc kéo trên bản đồ để đặt asset.`);
+        } catch (error) {
+            this.notify(`Không thể nạp/chọn Asset Pack: ${error.message}`, true);
+        } finally {
+            input.value = '';
+        }
     }
 
     async renderProjectLists() {
