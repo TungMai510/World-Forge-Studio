@@ -270,9 +270,11 @@ export class UIController {
         ).join('');
         if (packs.some(pack => pack.id === previousPack)) packFilter.value = previousPack;
         else this.assetLibraryState.packId = '';
-        const compatibleAssets = this.canvasEngine.toolManager.listAssetsForTool(toolId, {
-            packId: this.assetLibraryState.packId || null
-        });
+        const compatibleAssets = binding
+            ? this.canvasEngine.toolManager.listAssetsForTool(toolId, {
+                packId: this.assetLibraryState.packId || null
+            })
+            : this.assetRegistry.listAssets({ packId: this.assetLibraryState.packId || null });
         const assets = filterAssetLibraryAssets(compatibleAssets, {
             category: this.assetLibraryState.category,
             query: this.assetLibraryState.query
@@ -291,7 +293,7 @@ export class UIController {
             ? 'Các tài nguyên bên dưới tương thích và có thể chọn cho công cụ hiện tại.'
             : binding
                 ? 'Đã lọc theo khả năng của công cụ. Chức năng áp dụng asset cho công cụ này sẽ được hoàn thiện ở Phase 3C.'
-                : 'Công cụ hiện tại chưa khai báo khả năng sử dụng Asset Pack.';
+                : 'Đang hiển thị toàn bộ tài nguyên đã bật. Hãy chọn một công cụ có hỗ trợ Asset Pack để áp dụng.';
         document.getElementById('asset-library-select').disabled = !canSelect || !this.assetLibraryState.selectedKey;
         document.getElementById('asset-library-count').textContent = `${assets.length} tài nguyên phù hợp`;
         const list = document.getElementById('asset-library-list');
