@@ -417,7 +417,11 @@ export class CanvasLayerRenderer {
             return object.points.some(mark => Math.hypot(point.x - mark.x, point.y - mark.y) <= object.size / 2 + tolerance);
         }
         if (object.type === 'path') {
-            return this.pathHitTest(object, point, tolerance);
+            const patternTolerance = object.feature === 'border' && object.patternAssetRef
+                ? (object.patternSize?.height || 16) *
+                    (Number.isFinite(object.patternScale) && object.patternScale > 0 ? object.patternScale : 1) / 2
+                : 0;
+            return this.pathHitTest(object, point, tolerance + patternTolerance);
         }
         return false;
     }
