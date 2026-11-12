@@ -521,3 +521,40 @@ Mỗi lần rà soát, kiểm tra:
 WorldForge cung cấp công cụ để người dùng sáng tạo thế giới; Official Asset Pack chỉ là bộ tài nguyên khởi đầu. Hệ thống phải cho phép cộng đồng tự tạo, chia sẻ và quản lý Asset Pack mà không cần sửa mã nguồn Core.
 
 Tập trung xây một luồng asset đáng tin cậy trước, sau đó mới mở rộng số lượng tài nguyên và hệ sinh thái.
+
+
+---
+
+## 11. Cập nhật triển khai Phase 1 — Asset Foundation (12/11/2026)
+
+Đã bắt đầu triển khai trực tiếp trên nhánh `main` với các module nền tảng sau:
+
+| File | Trách nhiệm |
+|---|---|
+| `src/assets/asset-pack-validator.js` | Kiểm tra manifest, schema, SemVer, tương thích Core, category, asset metadata, đường dẫn, chữ ký định dạng ảnh và giới hạn kích thước |
+| `src/assets/asset-registry.js` | Đăng ký/gỡ Pack, bật/tắt Pack, tra cứu asset bằng khóa namespace |
+| `src/assets/asset-loader.js` | Tạo Blob URL, cache giới hạn số lượng, thu hồi URL khi cache eviction/invalidate/clear |
+| `src/assets/asset-pack-service.js` | Đọc archive bằng archive service hiện có, parse manifest, validate trước khi đăng ký Pack |
+| `ASSET_PACK_SPECIFICATION.md` | Đặc tả định dạng `.wfpack` v1 và manifest |
+
+### Quyết định kỹ thuật Phase 1
+
+- Canonical asset key: `<pack-id>::<asset-id>`, tránh xung đột ID giữa các Pack.
+- Pack ID theo reverse-domain; asset ID chỉ cần duy nhất trong phạm vi Pack.
+- Phase 1 chỉ hỗ trợ PNG, JPEG, WebP và GIF; SVG tạm hoãn để tránh rủi ro SVG không được sanitize.
+- Archive sử dụng ZIP STORE không nén vì archive reader hiện tại chỉ hỗ trợ phương thức này.
+- Giới hạn ban đầu: archive 100 MB, tối đa 2.000 entry, manifest 1 MB, mỗi ảnh tối đa 15 MB.
+- Pack không được chứa hoặc thực thi script; validator chỉ cho phép manifest, ảnh trong `assets/`, thumbnail trong `thumbnails/`, `preview.png` và `LICENSE.txt`.
+- Registry và loader hiện chạy trong bộ nhớ; chưa có IndexedDB persistence, UI quản lý Pack, image renderer hay Place Asset Tool.
+
+### Trạng thái xác minh
+
+Các file đã được ghi lên GitHub và đọc lại để kiểm tra nội dung. **Chưa có kết quả chạy unit test, browser test hoặc import .wfpack end-to-end**; không xem Phase 1 là hoàn tất cho đến khi có fixture Pack thực tế và test tự động.
+
+### Việc cần làm tiếp theo trong Phase 1
+
+1. Tạo bộ fixture Pack tối thiểu với 2–3 ảnh có chữ ký định dạng hợp lệ.
+2. Bổ sung unit tests cho manifest hợp lệ/không hợp lệ, path traversal, duplicate entry, file giả định dạng, giới hạn kích thước và Pack ID collision.
+3. Kiểm thử tạo archive → inspect → install → registry lookup → AssetLoader Blob URL → disable/uninstall.
+4. Kiểm thử cache URL revoke và trường hợp ảnh lỗi.
+5. Chỉ sau khi các test trên pass mới chuyển sang Phase 2: Image Object + Renderer.
