@@ -10,7 +10,7 @@ npm run test:assets
 npm test
 ```
 
-The fixture generator creates `tests/assets/fixtures/classic-fantasy.wfpack` using the application's ZIP writer. The Pack contains two generated, valid PNG images with different dimensions and aspect ratios (96×64 mountain and 64×96 forest). These are technical QA illustrations, not production art. The sample manifest uses CC0-1.0 for the generated fixtures.
+The fixture generator creates `tests/assets/fixtures/classic-fantasy.wfpack` using the application's ZIP writer. The Pack contains three generated, valid PNG images: a 96×64 mountain stamp, a 64×96 forest image, and a 64×64 castle icon (`ICO-001`) explicitly declared with `usages: [\`icon\`]`. The icon uses a transparent background and a simple castle emblem. These are technical QA illustrations, not production art. The sample manifest uses CC0-1.0 for the generated fixtures.
 
 The test suite verifies ZIP round-trip, manifest validation, path traversal rejection, unsupported archive content rejection, image signature checking, minimum Core compatibility, Pack registration and namespace identity, duplicate installation rejection, enabled/disabled behavior, Blob URL loading, cache eviction/revocation, image object schema, geometry/hit testing, renderer fit behavior, lifecycle invalidation, and SVG image embedding.
 
@@ -60,7 +60,7 @@ Open `http://localhost:8000`, open a map project, then verify:
 4. Filter by Pack and category; combine the filters and confirm only matching assets remain.
 5. Select an asset card and confirm its image and metadata appear in the preview.
 6. Switch to **Place Asset**, reopen the library and confirm the list is filtered to assets compatible with generic placement. Select one and place it on the map.
-7. Switch to Terrain, Lake, Border and Icon. Confirm the candidate list follows each tool's declared capability query. The apply button is intentionally unavailable for these tools until Phase 3C semantic integration.
+7. Switch to Icon Tool. Confirm only the castle icon (`ICO-001`) is listed, select it, and apply it. Click on the map and confirm the castle emblem renders as an icon object. The apply button remains unavailable for Terrain, Lake and Border until their respective Phase 3C integrations are implemented.
 8. Disable the imported Pack. Confirm its assets disappear from results and any active selection from that Pack is cleared.
 9. Re-enable the Pack and confirm its assets return. Uninstall it and confirm the Pack and assets disappear.
 10. Reopen the library and confirm no duplicate element IDs, uncaught console errors or broken previews.
