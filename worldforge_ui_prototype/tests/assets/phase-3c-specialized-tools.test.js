@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { IconTool } from '../../src/engine/tools/IconTool.js';
 import { TerrainTool } from '../../src/engine/tools/TerrainTool.js';
+import { LakeTool } from '../../src/engine/tools/LakeTool.js';
 import { CanvasLayerRenderer } from '../../src/engine/layers/CanvasLayerRenderer.js';
 
 function createEngine() {
@@ -102,4 +103,58 @@ test('TerrainTool places a centered image stamp with the selected asset referenc
     const object = { type: 'image', assetRef: { packId: 'com.worldforge.classic-fantasy', assetId: 'MNT-001' }, x: 10, y: 20, width: 180, height: 120 };
     renderer.drawObject({}, object);
     assert.deepEqual(calls, [object]);
+});
+
+
+test('LakeTool keeps the solid-color ellipse workflow without a texture selection', () => {
+    const engine = createEngine();
+    const tool = new LakeTool(engine, { color: '#3b82f6' });
+    tool.pointerDown({ world: { x: 10, y: 20 } });
+    tool.pointerUp({ world: { x: 110, y: 80 } });
+    assert.equal(engine.objects.length, 1);
+    assert.equal(engine.objects[0].type, 'ellipse');
+    assert.equal(engine.objects[0].feature, 'lake');
+    assert.equal(engine.objects[0].fill, '#3b82f6');
+    assert.equal(Object.hasOwn(engine.objects[0], 'textureAssetRef'), false);
+});
+
+test('LakeTool stores the selected texture Asset Pack reference on the lake object', () => {
+    const engine = createEngine();
+    const tool = new LakeTool(engine, { color: '#3b82f6' });
+    const assetRef = { packId: 'com.example.water', assetId: 'WATER-01', packVersion: '1.2.0' };
+    tool.setAssetSelection({
+        asset: { id: 'WATER-01', packId: assetRef.packId },
+        assetRef
+    });
+    tool.pointerDown({ world: { x: 10, y: 20 } });
+    tool.pointerUp({ world: { x: 110, y: 80 } });
+    assert.equal(engine.objects.length, 1);
+    assert.deepEqual(engine.objects[0].textureAssetRef, assetRef);
+    assert.deepEqual(
+        { x: engine.objects[0].x, y: engine.objects[0].y, radiusX: engine.objects[0].radiusX, radiusY: engine.objects[0].radiusY },
+        { x: 60, y: 50, radiusX: 50, radiusY: 30 }
+    );
+});
+
+test('CanvasLayerRenderer fills a lake ellipse with its repeated texture image', () => {
+    const calls = [];
+    const image = { naturalWidth: 32, naturalHeight: 32 };
+    const renderer = new CanvasLayerRenderer({
+        imageRenderer: { getImage: object => {
+            calls.push(object);
+            return image;
+        } }
+    });
+    const context = {
+        save() {}, restore() {}, beginPath() {}, ellipse() {}, clip() {}, stroke() {},
+        createPattern: (source, repetition) => ({ source, repetition }),
+        fillRect: (...args) => calls.push(args)
+    };
+    renderer.drawObject(context, {
+        type: 'ellipse', x: 50, y: 40, radiusX: 30, radiusY: 20,
+        fill: '#3b82f6', stroke: '#1e6091',
+        textureAssetRef: { packId: 'com.example.water', assetId: 'WATER-01' }
+    });
+    assert.equal(calls[0].assetRef.assetId, 'WATER-01');
+    assert.deepEqual(calls[1], [20, 20, 60, 40]);
 });
