@@ -227,7 +227,7 @@ export class UIController {
         document.querySelectorAll('[data-tool]').forEach(button => {
             button.addEventListener('click', () => this.canvasEngine.setTool(button.dataset.tool));
         });
-        for (const id of ['tool-color', 'tool-size', 'tool-terrain', 'tool-icon', 'tool-text']) {
+        for (const id of ['tool-color', 'tool-size', 'tool-terrain', 'tool-icon', 'tool-text', 'place-asset-width', 'place-asset-height', 'place-asset-rotation', 'place-asset-opacity', 'place-asset-fit']) {
             document.getElementById(id).addEventListener('input', () => this.updateActiveToolOptions());
             document.getElementById(id).addEventListener('change', () => this.updateActiveToolOptions());
         }
@@ -2038,8 +2038,8 @@ export class UIController {
         optionsPanel.classList.toggle('hidden', activeId === 'select');
         optionsPanel.classList.toggle('flex', activeId !== 'select');
         document.getElementById('active-tool-name').textContent = `${definition.label} (${definition.shortcut})`;
-        document.getElementById('tool-color-control').classList.toggle('hidden', ['eraser', 'select'].includes(activeId));
-        document.getElementById('tool-size-control').classList.toggle('hidden', activeId === 'select');
+        document.getElementById('tool-color-control').classList.toggle('hidden', ['eraser', 'select', 'place-asset'].includes(activeId));
+        document.getElementById('tool-size-control').classList.toggle('hidden', ['select', 'place-asset'].includes(activeId));
         document.getElementById('tool-terrain-control').classList.toggle('hidden', activeId !== 'terrain');
         document.getElementById('tool-icon-control').classList.toggle('hidden', activeId !== 'icon');
         document.getElementById('tool-text-control').classList.toggle('hidden', activeId !== 'text');
