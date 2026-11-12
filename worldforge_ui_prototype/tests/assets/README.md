@@ -87,4 +87,4 @@ Open `http://localhost:8000`, open a map, import `tests/assets/fixtures/classic-
 3. Draw a diagonal border and a multi-segment border. Confirm each tile rotates to follow the local path direction.
 4. Select a patterned border and verify its selection bounds include the artwork extending beyond the centerline.
 5. With no pattern selected, draw another border and confirm the original dashed vector border is unchanged.
-6. Export PNG, JPG, SVG and PDF; confirm the patterned border is present in each supported export path and check the console for errors.
+6. Export PNG, JPG, SVG and PDF; confirm the patterned border is present in every format and check the console for errors. SVG embeds the pattern image as a data URI; Canvas-based PNG/JPG/PDF export preloads the pattern asset before rendering.
