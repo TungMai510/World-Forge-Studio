@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WorldForge Phase 2 — Image Renderer QA</title>
+<style>
+:root{font-family:system-ui,sans-serif;color:#252525;background:#f4f1e9}*{box-sizing:border-box}body{margin:0;padding:20px}
+h1{font-size:22px;margin:0 0 6px}.note{color:#665f53;margin:0 0 16px;font-size:14px}
+.panel{display:flex;flex-wrap:wrap;gap:10px;align-items:end;padding:12px;background:#fff;border:1px solid #d8d0c2;border-radius:8px;margin-bottom:12px}
+label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:#514b42}
+input,select,button{font:inherit;padding:7px;border:1px solid #c8bead;border-radius:5px;background:#fff}
+button{cursor:pointer;background:#eee7d9}button:disabled,input:disabled,select:disabled{opacity:.5;cursor:not-allowed}
+#status{padding:9px 12px;background:#eee7d9;border-radius:6px;margin:10px 0;font-size:13px;white-space:pre-wrap}
+.stage{height:min(68vh,760px);min-height:380px;background:#d8d0c2;border:1px solid #b7aa95;border-radius:8px;overflow:hidden}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+.small{font-size:12px;color:#6b6256;margin-top:10px}
+</style>
+</head>
+<body>
+<h1>WorldForge Studio — Phase 2 Browser QA</h1>
+<p class="note">Temporary test harness. It does not add controls to the production UI or modify project data.</p>
+<section class="panel">
+<label>1. Select a .wfpack file<input id="pack-file" type="file" accept=".wfpack,.zip"></label>
+<label>Asset<select id="asset-select" disabled><option value="">Install a Pack first</option></select></label>
+<button id="add-image" disabled>Add image to map</button>
+<button id="add-another" disabled>Add another copy</button>
+</section>
+<section class="panel">
+<label>Width (world units)<input id="image-width" type="number" min="1" max="8192" value="240" disabled></label>
+<label>Height (world units)<input id="image-height" type="number" min="1" max="8192" value="180" disabled></label>
+<label>Rotation (°)<input id="image-rotation" type="number" min="-36000" max="36000" value="0" disabled></label>
+<label>Opacity<input id="image-opacity" type="number" min="0" max="1" step="0.05" value="1" disabled></label>
+<label>Fit<select id="image-fit" disabled><option value="contain">contain</option><option value="cover">cover</option><option value="fill">fill</option></select></label>
+<button id="apply-image" disabled>Apply to selected</button>
+<button id="toggle-layer" disabled>Hide image layer</button>
+<button id="layer-opacity" disabled>Set layer opacity 50%</button>
+</section>
+<section class="panel">
+<button id="zoom-in">Zoom in</button><button id="zoom-out">Zoom out</button><button id="fit-map">Fit map</button>
+<button data-export="png" disabled>Export PNG</button>
+<button data-export="jpg" disabled>Export JPG</button>
+<button data-export="svg" disabled>Export SVG</button>
+<button data-export="pdf" disabled>Export PDF</button>
+</section>
+<div id="status" role="status">Ready. Choose the generated classic-fantasy.wfpack fixture to begin.</div>
+<div class="stage"><canvas id="map-canvas" aria-label="Phase 2 image renderer test map"></canvas></div>
+<p class="small">Interaction checks: wheel = zoom; hold Space and drag = pan; click an image = select; drag a selected image = move. The selected image can be resized, rotated and adjusted above.</p>
+<script type="module" src="./image-renderer-browser.js"></script>
+</body>
+</html>
