@@ -26,7 +26,15 @@ export class BorderTool extends BrushTool {
             fill: 'transparent',
             stroke: this.options.color,
             strokeWidth: this.options.size,
-            dash: [12, 8]
+            dash: [12, 8],
+            ...(this.assetSelection ? {
+                patternAssetRef: { ...this.assetSelection.assetRef },
+                patternSize: {
+                    width: this.assetSelection.asset.defaultSize?.width || 48,
+                    height: this.assetSelection.asset.defaultSize?.height || 16
+                },
+                patternScale: 1
+            } : {})
         }, 'Border');
         this.points = null;
     }
