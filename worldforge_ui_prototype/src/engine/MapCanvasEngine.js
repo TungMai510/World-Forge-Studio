@@ -805,7 +805,7 @@ export class MapCanvasEngine {
         this.toolManager.cancel();
         this.resizeObserver.disconnect();
         this.eventController.abort();
-        this.imageRenderer.clear();
+        this.imageRenderer.destroy();
         if (this.frameId !== null) cancelAnimationFrame(this.frameId);
     }
 }
