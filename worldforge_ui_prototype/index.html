@@ -488,6 +488,30 @@
                         Kích thước
                         <input id="selection-size" type="number" min="1" max="512" class="mt-1 w-full rounded border border-wfs-border bg-wfs-bg px-2 py-1.5 text-white">
                     </label>
+                    <div id="selection-image-controls" class="hidden space-y-3 rounded border border-wfs-border p-3">
+                        <p class="text-xs font-semibold text-white">Image Object</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <label class="text-xs text-wfs-muted">Width
+                                <input id="selection-image-width" type="number" min="1" max="8192" class="mt-1 w-full rounded border border-wfs-border bg-wfs-bg px-2 py-1.5 text-white">
+                            </label>
+                            <label class="text-xs text-wfs-muted">Height
+                                <input id="selection-image-height" type="number" min="1" max="8192" class="mt-1 w-full rounded border border-wfs-border bg-wfs-bg px-2 py-1.5 text-white">
+                            </label>
+                        </div>
+                        <label class="block text-xs text-wfs-muted">Rotation (°)
+                            <input id="selection-image-rotation" type="number" min="-36000" max="36000" step="1" class="mt-1 w-full rounded border border-wfs-border bg-wfs-bg px-2 py-1.5 text-white">
+                        </label>
+                        <label class="block text-xs text-wfs-muted">Opacity <span id="selection-image-opacity-value" class="float-right">100%</span>
+                            <input id="selection-image-opacity" type="range" min="0" max="1" step="0.05" class="mt-2 w-full accent-blue-500">
+                        </label>
+                        <label class="block text-xs text-wfs-muted">Fit
+                            <select id="selection-image-fit" class="mt-1 w-full rounded border border-wfs-border bg-wfs-bg px-2 py-1.5 text-white">
+                                <option value="contain">Contain</option>
+                                <option value="cover">Cover</option>
+                                <option value="fill">Fill</option>
+                            </select>
+                        </label>
+                    </div>
                     <div class="flex gap-2">
                         <button type="submit" class="flex-1 rounded bg-wfs-primary px-3 py-2 text-xs text-white">Cập nhật</button>
                         <button type="button" id="delete-selection" class="rounded border border-red-900 px-3 py-2 text-xs text-red-300">Xóa</button>
