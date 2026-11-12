@@ -54,6 +54,21 @@ export class CanvasLayerRenderer {
     }
 
     drawIcon(context, object) {
+        if (object.assetRef && this.imageRenderer) {
+            const size = object.size || 24;
+            this.imageRenderer.draw(context, {
+                type: 'image',
+                assetRef: object.assetRef,
+                x: object.x - size / 2,
+                y: object.y - size / 2,
+                width: size,
+                height: size,
+                rotation: 0,
+                opacity: 1,
+                fit: 'contain'
+            });
+            return;
+        }
         const size = object.size || 24;
         const half = size / 2;
         context.save();
