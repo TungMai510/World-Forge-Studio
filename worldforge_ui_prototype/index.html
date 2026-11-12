@@ -338,6 +338,7 @@
                 <button id="open-geography-database" class="hover:text-white">Database</button>
                 <button id="open-civilization-database" class="hover:text-white">Civilization</button>
                 <button id="open-history-database" class="hover:text-white">History</button>
+                <button id="open-asset-library" class="hover:text-white">Asset Library</button>
             </nav>
         </div>
         <div class="flex items-center gap-4">
@@ -497,6 +498,47 @@
 
     </main>
     </div>
+
+    <dialog id="asset-library-dialog" class="max-h-[92vh] w-[min(96vw,1180px)] overflow-hidden rounded-lg border border-wfs-border bg-wfs-panel p-0 shadow-2xl">
+        <div class="flex max-h-[92vh] flex-col">
+            <header class="flex items-start justify-between gap-4 border-b border-wfs-border p-5">
+                <div>
+                    <h2 class="text-lg font-semibold text-white">Shared Asset Library</h2>
+                    <p class="mt-1 text-xs text-wfs-muted">Một thư viện chung cho các công cụ bản đồ. Danh sách được lọc theo khả năng của công cụ đang chọn.</p>
+                    <p id="asset-library-active-tool" class="mt-2 text-xs font-medium text-blue-300"></p>
+                </div>
+                <button id="asset-library-close" class="rounded px-2 py-1 text-wfs-muted hover:bg-wfs-hover" aria-label="Đóng">✕</button>
+            </header>
+            <div class="flex flex-wrap items-center gap-2 border-b border-wfs-border p-4">
+                <input id="asset-library-search" type="search" placeholder="Tìm tên, ID, Pack hoặc tag..." class="min-w-48 flex-1 rounded border border-wfs-border bg-wfs-bg px-3 py-2 text-xs text-white">
+                <select id="asset-library-pack-filter" class="min-w-40 rounded border border-wfs-border bg-wfs-bg px-3 py-2 text-xs text-white"><option value="">Tất cả Asset Pack</option></select>
+                <select id="asset-library-category-filter" class="min-w-36 rounded border border-wfs-border bg-wfs-bg px-3 py-2 text-xs text-white"><option value="">Tất cả danh mục</option></select>
+                <button id="asset-library-import" class="rounded bg-wfs-primary px-3 py-2 text-xs font-medium text-white hover:bg-blue-600">+ Nhập .wfpack</button>
+                <input id="asset-pack-file" type="file" accept=".wfpack" class="hidden">
+            </div>
+            <p id="asset-library-compatibility" class="border-b border-wfs-border px-4 py-2 text-[11px] text-wfs-muted"></p>
+            <div class="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(0,1fr)_280px]">
+                <section class="flex min-h-0 flex-col border-b border-wfs-border p-4 lg:border-b-0 lg:border-r">
+                    <div class="mb-2 flex items-center justify-between">
+                        <h3 class="text-xs font-semibold uppercase tracking-wide text-wfs-muted">Tài nguyên</h3>
+                        <span id="asset-library-count" class="text-[11px] text-wfs-muted"></span>
+                    </div>
+                    <div id="asset-library-list" class="grid min-h-32 flex-1 auto-rows-max grid-cols-2 content-start gap-3 overflow-y-auto pr-1 sm:grid-cols-3 xl:grid-cols-4"></div>
+                </section>
+                <aside class="flex min-h-0 flex-col gap-4 overflow-y-auto p-4">
+                    <section>
+                        <h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-wfs-muted">Xem trước</h3>
+                        <div id="asset-library-preview" class="text-xs text-wfs-muted"><div class="flex h-48 items-center justify-center rounded border border-dashed border-wfs-border">Chọn một tài nguyên để xem trước</div></div>
+                        <button id="asset-library-select" disabled class="mt-3 w-full rounded bg-wfs-primary px-3 py-2 text-xs font-medium text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-40">Chọn cho công cụ hiện tại</button>
+                    </section>
+                    <section class="border-t border-wfs-border pt-3">
+                        <h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-wfs-muted">Asset Packs đã nhập</h3>
+                        <div id="asset-library-pack-list" class="max-h-52 overflow-y-auto"></div>
+                    </section>
+                </aside>
+            </div>
+        </div>
+    </dialog>
 
     <script type="module" src="src/app.js"></script>
 </body>
