@@ -72,6 +72,11 @@ export function validateAssetPackManifest(manifest, { worldForgeVersion='1.0.0',
             if (!IMAGE_TYPES[asset.thumbnail.split('.').pop().toLowerCase()]) throw new Error('Thumbnail format must be PNG, JPEG, WebP or GIF.');
         }
         if (asset.tags!==undefined && (!Array.isArray(asset.tags) || asset.tags.length>30 || asset.tags.some(tag=>typeof tag!=='string'||tag.length>40))) throw new Error(`Asset "${asset.id}" has invalid tags.`);
+        if (asset.usages!==undefined && (!Array.isArray(asset.usages) || asset.usages.length>20 ||
+            asset.usages.some(usage=>typeof usage!=='string'||!usage.trim()||usage.length>40) ||
+            new Set(asset.usages).size!==asset.usages.length)) {
+            throw new Error(`Asset "${asset.id}" has invalid usages; expected up to 20 unique non-empty strings.`);
+        }
         if (asset.defaultSize!==undefined && (!isObject(asset.defaultSize) || !Number.isFinite(asset.defaultSize.width) || asset.defaultSize.width<=0 || asset.defaultSize.width>8192 || !Number.isFinite(asset.defaultSize.height) || asset.defaultSize.height<=0 || asset.defaultSize.height>8192)) throw new Error(`Asset "${asset.id}" has invalid default dimensions.`);
     }
     if (files) {
@@ -101,7 +106,7 @@ export function validateAssetPackManifest(manifest, { worldForgeVersion='1.0.0',
             }
         }
     }
-    return {...manifest,name:manifest.name.trim(),author:manifest.author.trim(),description:manifest.description.trim(),license:manifest.license.trim(),categories:[...manifest.categories],assets:manifest.assets.map(asset=>({...asset,name:asset.name.trim(),tags:Array.isArray(asset.tags)?[...asset.tags]:[]}))};
+    return {...manifest,name:manifest.name.trim(),author:manifest.author.trim(),description:manifest.description.trim(),license:manifest.license.trim(),categories:[...manifest.categories],assets:manifest.assets.map(asset=>({...asset,name:asset.name.trim(),tags:Array.isArray(asset.tags)?[...asset.tags]:[],...(asset.usages===undefined?{}:{usages:[...asset.usages]})}))};
 }
 export const ASSET_PACK_LIMITS=Object.freeze({manifestBytes:MAX_MANIFEST_BYTES,packBytes:MAX_PACK_BYTES,entries:MAX_PACK_ENTRIES,assetBytes:MAX_ASSET_BYTES});
 export {MAX_MANIFEST_BYTES};
