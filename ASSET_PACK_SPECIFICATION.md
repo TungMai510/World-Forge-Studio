@@ -90,3 +90,14 @@ Pack version follows Semantic Versioning. schemaVersion is independent of Pack v
 ## 8. Licensing
 
 Pack authors must hold distribution rights for every included asset. The manifest license field is required; include LICENSE.txt and attribution notices where required. Importing an asset does not grant WorldForge or other users rights beyond the declared license.
+
+## 9. AI-generated asset compatibility (future capability)
+
+AI-generated images are treated as externally generated input, not as a privileged asset type. When AI creation is introduced, every generated file must pass through the same Asset Studio import and Pack validation pipeline as a manually supplied file.
+
+- The Pack schema remains provider/model agnostic; no provider-specific executable payloads or runtime dependencies are permitted.
+- Asset provenance may be recorded through optional, forward-compatible metadata or an accompanying provenance record (for example generation source, creation timestamp, model/provider when disclosed, and user-supplied attribution). A future schema revision must define exact fields and privacy implications before standardizing them.
+- Required license and attribution fields remain mandatory. An AI model's output does not automatically establish that the user has distribution rights or that a license is valid.
+- Generated files must satisfy the same path, file-signature, format, size, entry-count and capability validation rules as all other Pack content.
+- AI must not bypass the validator, write directly into an installed Pack, or silently overwrite an existing asset. The user reviews and approves replacements and metadata changes.
+- This section records a future compatibility requirement only; it does not add AI support to Pack v1.0 or change the current Asset System implementation priority.
