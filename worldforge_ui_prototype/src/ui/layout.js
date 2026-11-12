@@ -2049,6 +2049,16 @@ export class UIController {
         document.getElementById('tool-terrain').value = tool.options.terrain;
         document.getElementById('tool-icon').value = tool.options.icon;
         document.getElementById('tool-text').value = tool.options.text;
+        const placeAssetOptions = document.getElementById('place-asset-options');
+        placeAssetOptions.classList.toggle('hidden', activeId !== 'place-asset');
+        placeAssetOptions.classList.toggle('flex', activeId === 'place-asset');
+        if (activeId === 'place-asset') {
+            document.getElementById('place-asset-width').value = tool.options.defaultSize.width;
+            document.getElementById('place-asset-height').value = tool.options.defaultSize.height;
+            document.getElementById('place-asset-rotation').value = tool.options.rotation;
+            document.getElementById('place-asset-opacity').value = tool.options.opacity;
+            document.getElementById('place-asset-fit').value = tool.options.fit;
+        }
         document.getElementById('tool-size').min = activeId === 'text' ? '6' : activeId === 'icon' ? '8' : '1';
         document.getElementById('tool-size').max = activeId === 'icon' ? '256' : '512';
     }
@@ -2062,6 +2072,25 @@ export class UIController {
             icon: document.getElementById('tool-icon').value,
             text: document.getElementById('tool-text').value
         };
+        if (id === 'place-asset') {
+            const width = Number(document.getElementById('place-asset-width').value);
+            const height = Number(document.getElementById('place-asset-height').value);
+            const rotation = Number(document.getElementById('place-asset-rotation').value);
+            const opacity = Number(document.getElementById('place-asset-opacity').value);
+            if (![width, height, rotation, opacity].every(Number.isFinite) ||
+                width < 1 || height < 1 || width > 8192 || height > 8192 ||
+                Math.abs(rotation) > 36000 || opacity < 0 || opacity > 1) return;
+            options.defaultSize = { width, height };
+            options.rotation = rotation;
+            options.opacity = opacity;
+            options.fit = document.getElementById('place-asset-fit').value;
+            try {
+                this.canvasEngine.setToolOptions(id, options);
+            } catch (error) {
+                this.notify(`Không thể cập nhật thuộc tính đặt asset: ${error.message}`, true);
+            }
+            return;
+        }
         if (!Number.isFinite(options.size) || options.size <= 0) return;
         const sizeInput = document.getElementById('tool-size');
         if (options.size < Number(sizeInput.min) || options.size > Number(sizeInput.max)) return;
