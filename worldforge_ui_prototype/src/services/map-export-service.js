@@ -47,7 +47,49 @@ function svgObject(object, imageHref = null) {
     }
     if (object.type === 'path') {
         const dash = Array.isArray(object.dash) ? ` stroke-dasharray="${object.dash.join(' ')}"` : '';
-        return `<path d="${pathData(object.commands)}" fill="${object.closed ? fill : 'none'}" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linecap="${escapeXml(object.lineCap || 'butt')}" stroke-linejoin="${escapeXml(object.lineJoin || 'miter')}"${dash}/>`;
+        const basePath = `<path d="${pathData(object.commands)}" fill="${object.closed ? fill : 'none'}" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linecap="${escapeXml(object.lineCap || 'butt')}" stroke-linejoin="${escapeXml(object.lineJoin || 'miter')}"${dash}/>`;
+        if (!object.patternAssetRef || !imageHref) return basePath;
+        const scale = Number.isFinite(object.patternScale) && object.patternScale > 0 ? object.patternScale : 1;
+        const tileWidth = Math.max(1, (object.patternSize?.width || 48) * scale);
+        const tileHeight = Math.max(1, (object.patternSize?.height || 16) * scale);
+        const subpaths = [];
+        let current = [];
+        for (const command of object.commands || []) {
+            if (command.type === 'moveTo') {
+                if (current.length > 1) subpaths.push(current);
+                current = [{ x: command.x, y: command.y }];
+            } else if (command.type === 'lineTo' && current.length) current.push({ x: command.x, y: command.y });
+        }
+        if (current.length > 1) subpaths.push(current);
+        const images = [];
+        for (const points of subpaths) {
+            const segments = [];
+            let totalLength = 0;
+            for (let index = 1; index < points.length; index += 1) {
+                const start = points[index - 1], end = points[index];
+                const length = Math.hypot(end.x - start.x, end.y - start.y);
+                if (length <= 0) continue;
+                segments.push({ start, end, length, startDistance: totalLength });
+                totalLength += length;
+            }
+            if (!segments.length) continue;
+            const tileCount = Math.max(1, Math.round(totalLength / tileWidth));
+            const spacing = totalLength / tileCount;
+            for (let index = 0; index < tileCount; index += 1) {
+                const distance = spacing * (index + 0.5);
+                let segment = segments[0];
+                for (const candidate of segments) {
+                    if (candidate.startDistance <= distance) segment = candidate;
+                    else break;
+                }
+                const ratio = Math.min(1, Math.max(0, distance - segment.startDistance)) / segment.length;
+                const x = segment.start.x + (segment.end.x - segment.start.x) * ratio;
+                const y = segment.start.y + (segment.end.y - segment.start.y) * ratio;
+                const angle = Math.atan2(segment.end.y - segment.start.y, segment.end.x - segment.start.x) * 180 / Math.PI;
+                images.push(`<image x="${-tileWidth / 2}" y="${-tileHeight / 2}" width="${tileWidth}" height="${tileHeight}" href="${escapeXml(imageHref)}" preserveAspectRatio="none" transform="translate(${x} ${y}) rotate(${angle})"/>`);
+            }
+        }
+        return basePath + images.join('');
     }
     if (object.type === 'text') {
         return `<text x="${object.x}" y="${object.y}" fill="${escapeXml(object.color || object.fill || '#1f2937')}" font-size="${object.fontSize}" font-family="${escapeXml(object.fontFamily || 'sans-serif')}">${escapeXml(object.text)}</text>`;
@@ -152,12 +194,18 @@ export class MapExportService {
 
     async exportMap(map, options) {
         const config = this.validateOptions(map, options);
-        const imageObjects = config.map.layers
+        const assetBackedObjects = config.map.layers
             .filter(layer => layer.visible && config.layerIds.has(layer.id))
-            .flatMap(layer => layer.objects.filter(object => object.type === 'image'));
-        if (imageObjects.length) {
+            .flatMap(layer => layer.objects.flatMap(object => {
+                if (object.type === 'image') return [object];
+                if (object.type === 'path' && object.patternAssetRef) {
+                    return [{ type: 'image', assetRef: object.patternAssetRef, x: 0, y: 0, width: 1, height: 1 }];
+                }
+                return [];
+            }));
+        if (assetBackedObjects.length) {
             if (!this.renderer.imageRenderer) throw new Error('Image export is unavailable because no AssetLoader is connected to the map renderer.');
-            await this.renderer.imageRenderer.preload(imageObjects);
+            await this.renderer.imageRenderer.preload(assetBackedObjects);
         }
         if (config.format === 'svg') return new Blob([await this.renderSvg(config)], { type: 'image/svg+xml;charset=utf-8' });
         const canvas = this.renderCanvas(config, config.format === 'jpg' || config.format === 'pdf');
@@ -215,8 +263,12 @@ export class MapExportService {
         const layers = (await Promise.all(config.map.layers.filter(layer => layer.visible && config.layerIds.has(layer.id) &&
             !(config.transparent && layer.role === 'background')).map(async layer => {
             const objects = (await Promise.all(layer.objects.map(async object => {
-                if (object.type !== 'image') return svgObject(object);
-                const loaded = this.renderer.imageRenderer.assetLoader.load(object.assetRef.packId, object.assetRef.assetId);
+                const assetRef = object.type === 'image'
+                    ? object.assetRef
+                    : object.type === 'path' ? object.patternAssetRef : null;
+                if (!assetRef) return svgObject(object);
+                if (!this.renderer.imageRenderer?.assetLoader) throw new Error('SVG asset export requires an AssetLoader.');
+                const loaded = this.renderer.imageRenderer.assetLoader.load(assetRef.packId, assetRef.assetId);
                 const bytes = new Uint8Array(await loaded.blob.arrayBuffer());
                 let binary = '';
                 for (let offset = 0; offset < bytes.length; offset += 0x8000) {
