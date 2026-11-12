@@ -606,3 +606,38 @@ The generated `.wfpack` is a disposable QA artifact. The repository ignores `wor
 ### Phase 2 verification status
 
 Implemented code and automated tests are being added. Browser rendering, manual pan/zoom verification, and full user-facing Pack installation remain unverified until tested in the running app. Automated tests now cover image object validation, rotated bounds/hit-testing, asynchronous loading, and SVG data-URL embedding. Do not mark Phase 2 complete yet.
+
+
+### Phase 2 hardening update — 12/11/2026
+
+A focused code review identified a lifecycle gap: the AssetLoader revoked Blob URLs on Pack disable/uninstall, but the ImageObjectRenderer could retain already-decoded `HTMLImageElement` instances. This could leave an image visible from a disabled Pack until another renderer/cache event. The renderer also needed explicit handling for a Pack invalidation during an in-flight image decode and a redraw when an image was already decoded synchronously from cache.
+
+Changes committed:
+- AssetLoader now exposes a lightweight `subscribe()` event API and emits Pack invalidation / full-cache-clear events.
+- ImageObjectRenderer subscribes to loader lifecycle events, clears decoded images for invalidated Packs, rejects stale in-flight preloads, and avoids stale load callbacks repopulating the cache.
+- Immediate image decode now schedules a redraw.
+- Image objects with an explicit `assetRef.packVersion` are checked against the actual loaded Pack version.
+- MapCanvasEngine.destroy() now disposes the renderer subscription.
+- Added regression tests for Pack disable/re-enable, in-flight invalidation, immediate decode redraw, and Pack-version mismatch.
+- Added a development-only browser QA page at `tests/assets/image-renderer-browser.html`, using the real Pack parser/registry/loader, MapCanvasEngine, ImageObjectRenderer and MapExportService.
+- Documented the manual browser QA workflow in `tests/assets/README.md`.
+
+### Current Phase 2 status
+
+**Implemented:** image object schema, renderer, async loading, rotation-aware hit testing/bounds, map export integration, cache lifecycle hardening, manual browser QA harness.
+
+**Automated tests:** previous local evidence was 20/20 passing before the latest lifecycle hardening. The newly added regression tests have been committed but must be run locally after pulling the latest `main`. Do not carry forward the old 20/20 result as proof that the new tests pass.
+
+**Manual verification:** pending. The browser harness must be run against the generated `classic-fantasy.wfpack`; verify actual image decode, selection/movement, pan/zoom, resize/rotation/opacity/fit, layer visibility/opacity, and PNG/JPG/SVG/PDF exports. Record browser and OS details with results.
+
+Run from `worldforge_ui_prototype/`:
+
+```powershell
+npm run assets:fixture
+npm test
+py -m http.server 8000
+```
+
+Then open `http://localhost:8000/tests/assets/image-renderer-browser.html` and follow the checklist in `tests/assets/README.md`.
+
+Phase 2 remains **in progress** until the updated Node test suite passes and the browser checklist is completed. The harness is QA-only and is not part of the production UI.
