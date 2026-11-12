@@ -88,6 +88,7 @@ test('image renderer: loads an AssetLoader URL and redraws after image load', as
         createImage: () => new FakeImage(),
         onInvalidate: () => { invalidations += 1; }
     });
+    const initialInvalidations = invalidations;
     const context = {
         save() {}, restore() {}, translate() {}, rotate() {},
         drawImage() { drawCalls += 1; },
@@ -103,7 +104,7 @@ test('image renderer: loads an AssetLoader URL and redraws after image load', as
     renderer.draw(context, validImage);
     assert.equal(cached.status, 'ready');
     assert.equal(drawCalls, 1);
-    assert.equal(invalidations, 1);
+    assert.equal(invalidations, initialInvalidations + 1);
 });
 
 
