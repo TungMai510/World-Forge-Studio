@@ -815,3 +815,19 @@ Sau khi người dùng xác nhận toàn bộ 37/37 kiểm thử hiện tại đ
 - Giữ nguyên các phím tắt hiện có: `Ctrl+D` / `Cmd+D` để nhân bản; `Delete` / `Backspace` để xóa.
 
 **Trạng thái:** mã giao diện đã được commit; kiểm tra nội dung repository xác nhận markup, event binding, handler và layer guard đều hiện diện. Chưa chạy npm test hoặc browser QA sau thay đổi giao diện. Cần xác minh thủ công: chọn một image → Duplicate → di chuyển bản sao → Undo → Redo → Delete → Undo; thử lại trên layer khóa/ẩn để xác nhận nút bị vô hiệu hóa và engine vẫn từ chối thao tác trái phép.
+
+## Phase 3A — Tool–Asset Integration Contract: implementation update (12/11/2026)
+
+Committed the first reusable runtime contract:
+
+- Added capability query/matching and ToolAssetBinding.
+- Registered capability queries for Icon, Terrain, Lake, Border and generic Place Asset in ToolManager.
+- Added shared BaseTool asset-selection contract; PlaceAssetTool applies selected Pack reference and default size.
+- Wired UIController's existing AssetRegistry into MapCanvasEngine/ToolManager.
+- Routed the current generic Pack import/selection flow through ToolManager binding APIs.
+- Extended the Pack v1.0 validator/specification with optional `usages` metadata. Existing Packs without it remain valid and generic-placement-only.
+- Added tests for usage validation, capability matching, specialized filtering, generic fallback, disabled Pack/version mismatch and selection routing.
+
+**Not yet verified locally:** run `npm run assets:fixture` and `npm test` from `worldforge_ui_prototype`. No test pass is claimed for this commit set yet.
+
+**Remaining in Phase 3A:** inspect and approve the contract against all current tool/object schemas; decide whether the proposed usage names need refinement; run automated tests and fix regressions. Phase 3B UI and Phase 3C semantic tool integrations have not started.
