@@ -39,6 +39,7 @@ export class UIController {
             registry: this.assetRegistry,
             loader: this.assetLoader
         });
+        this.assetLibraryState = { packId: '', category: '', query: '', selectedKey: null };
         this.canvasEngine = new MapCanvasEngine(document.getElementById('map-canvas'), {
             onSelectionChange: selection => this.renderSelection(selection),
             onPointerMove: point => this.renderCoordinates(point),
@@ -198,9 +199,29 @@ export class UIController {
         document.getElementById('bottom-panel-toggle').addEventListener('click', () => this.toggleBottomPanel());
         document.getElementById('place-asset-button').addEventListener('click', () => {
             this.canvasEngine.setTool('place-asset');
-            document.getElementById('asset-pack-file').click();
+            this.openAssetLibrary();
         });
+        document.getElementById('open-asset-library').addEventListener('click', () => this.openAssetLibrary());
         document.getElementById('asset-pack-file').addEventListener('change', event => this.handleAssetPackFile(event));
+        document.getElementById('asset-library-search').addEventListener('input', event => {
+            this.assetLibraryState.query = event.target.value;
+            this.renderAssetLibrary();
+        });
+        document.getElementById('asset-library-pack-filter').addEventListener('change', event => {
+            this.assetLibraryState.packId = event.target.value;
+            this.assetLibraryState.selectedKey = null;
+            this.renderAssetLibrary();
+        });
+        document.getElementById('asset-library-category-filter').addEventListener('change', event => {
+            this.assetLibraryState.category = event.target.value;
+            this.assetLibraryState.selectedKey = null;
+            this.renderAssetLibrary();
+        });
+        document.getElementById('asset-library-import').addEventListener('click', () => document.getElementById('asset-pack-file').click());
+        document.getElementById('asset-library-close').addEventListener('click', () => document.getElementById('asset-library-dialog').close());
+        document.getElementById('asset-library-list').addEventListener('click', event => this.handleAssetLibraryListClick(event));
+        document.getElementById('asset-library-pack-list').addEventListener('click', event => this.handleAssetPackAction(event));
+        document.getElementById('asset-library-select').addEventListener('click', () => this.applyAssetLibrarySelection());
         document.querySelectorAll('[data-tool]').forEach(button => {
             button.addEventListener('click', () => this.canvasEngine.setTool(button.dataset.tool));
         });
@@ -225,40 +246,176 @@ export class UIController {
         });
     }
 
+    openAssetLibrary() {
+        const dialog = document.getElementById('asset-library-dialog');
+        this.assetLibraryState.selectedKey = null;
+        document.getElementById('asset-library-search').value = this.assetLibraryState.query;
+        this.renderAssetLibrary();
+        if (!dialog.open) dialog.showModal();
+    }
+
+    renderAssetLibrary() {
+        const toolId = this.canvasEngine.toolManager.activeToolId;
+        const definition = TOOL_DEFINITIONS.find(item => item.id === toolId);
+        const binding = this.canvasEngine.toolManager.getAssetBinding(toolId);
+        const tool = this.canvasEngine.toolManager.getTool(toolId);
+        const canSelect = Boolean(binding && tool && typeof tool.setAssetSelection === 'function');
+        const packs = this.assetRegistry.listPacks();
+        const packFilter = document.getElementById('asset-library-pack-filter');
+        const previousPack = this.assetLibraryState.packId;
+        packFilter.innerHTML = '<option value="">Tất cả Asset Pack</option>' + packs.map(pack =>
+            `<option value="${this.escapeHtml(pack.id)}">${this.escapeHtml(pack.name)} (${pack.assetCount})</option>`
+        ).join('');
+        if (packs.some(pack => pack.id === previousPack)) packFilter.value = previousPack;
+        else this.assetLibraryState.packId = '';
+        const assets = this.canvasEngine.toolManager.listAssetsForTool(toolId, {
+            packId: this.assetLibraryState.packId || null,
+            query: this.assetLibraryState.query
+        }).filter(asset => !this.assetLibraryState.category || asset.category === this.assetLibraryState.category);
+        const categories = [...new Set(this.canvasEngine.toolManager.listAssetsForTool(toolId, {
+            packId: this.assetLibraryState.packId || null
+        }).map(asset => asset.category))].sort();
+        const categoryFilter = document.getElementById('asset-library-category-filter');
+        const previousCategory = this.assetLibraryState.category;
+        categoryFilter.innerHTML = '<option value="">Tất cả danh mục</option>' + categories.map(category =>
+            `<option value="${this.escapeHtml(category)}">${this.escapeHtml(category)}</option>`
+        ).join('');
+        if (categories.includes(previousCategory)) categoryFilter.value = previousCategory;
+        else this.assetLibraryState.category = '';
+        document.getElementById('asset-library-active-tool').textContent =
+            `Công cụ hiện tại: ${definition?.label || toolId}`;
+        document.getElementById('asset-library-compatibility').textContent = canSelect
+            ? 'Các tài nguyên bên dưới tương thích và có thể chọn cho công cụ hiện tại.'
+            : binding
+                ? 'Đã lọc theo khả năng của công cụ. Chức năng áp dụng asset cho công cụ này sẽ được hoàn thiện ở Phase 3C.'
+                : 'Công cụ hiện tại chưa khai báo khả năng sử dụng Asset Pack.';
+        document.getElementById('asset-library-select').disabled = !canSelect || !this.assetLibraryState.selectedKey;
+        document.getElementById('asset-library-count').textContent = `${assets.length} tài nguyên phù hợp`;
+        const list = document.getElementById('asset-library-list');
+        list.innerHTML = assets.map(asset => {
+            const key = `${asset.packId}::${asset.id}`;
+            let thumbnail = '';
+            try {
+                const loaded = this.assetLoader.load(asset.packId, asset.id);
+                thumbnail = `<img src="${loaded.url}" alt="" loading="lazy" class="h-24 w-full object-contain">`;
+            } catch {}
+            return `<button type="button" data-asset-key="${this.escapeHtml(key)}"
+                class="min-w-0 rounded border p-2 text-left transition ${this.assetLibraryState.selectedKey === key ? 'border-wfs-primary bg-blue-950/40' : 'border-wfs-border bg-wfs-bg hover:border-gray-500'}">
+                <div class="flex h-24 items-center justify-center overflow-hidden rounded bg-black/20">${thumbnail || '<span class="text-xs text-wfs-muted">No preview</span>'}</div>
+                <div class="mt-2 truncate text-xs font-medium text-white">${this.escapeHtml(asset.name)}</div>
+                <div class="mt-1 truncate text-[10px] text-wfs-muted">${this.escapeHtml(asset.category)} · ${this.escapeHtml(asset.packName)}</div>
+            </button>`;
+        }).join('') || '<div class="col-span-full rounded border border-dashed border-wfs-border p-8 text-center text-xs text-wfs-muted">Không có tài nguyên phù hợp. Hãy đổi bộ lọc hoặc nhập Asset Pack khác.</div>';
+        const selected = this.assetLibraryState.selectedKey
+            ? this.assetRegistry.getAsset(...this.assetLibraryState.selectedKey.split('::'))
+            : null;
+        const preview = document.getElementById('asset-library-preview');
+        if (selected) {
+            try {
+                const loaded = this.assetLoader.load(selected.packId, selected.id);
+                preview.innerHTML = `<div class="flex h-48 items-center justify-center rounded bg-black/20 p-3"><img src="${loaded.url}" alt="" class="max-h-full max-w-full object-contain"></div>
+                    <h3 class="mt-3 font-semibold text-white">${this.escapeHtml(selected.name)}</h3>
+                    <p class="mt-1 text-xs text-wfs-muted">${this.escapeHtml(selected.packName)} · ${this.escapeHtml(selected.category)}</p>
+                    <p class="mt-2 text-xs text-wfs-muted">${this.escapeHtml(selected.description || 'Không có mô tả.')}</p>
+                    <p class="mt-2 break-all text-[10px] text-wfs-muted">${this.escapeHtml(selected.packId)}::${this.escapeHtml(selected.id)}</p>`;
+            } catch (error) {
+                preview.textContent = `Không thể xem trước: ${error.message}`;
+            }
+        } else {
+            preview.innerHTML = '<div class="flex h-48 items-center justify-center rounded border border-dashed border-wfs-border text-xs text-wfs-muted">Chọn một tài nguyên để xem trước</div>';
+        }
+        document.getElementById('asset-library-select').disabled = !canSelect || !selected;
+        this.renderAssetPackList(packs);
+    }
+
+    renderAssetPackList(packs = this.assetRegistry.listPacks()) {
+        const host = document.getElementById('asset-library-pack-list');
+        host.innerHTML = packs.map(pack => `<div class="flex items-center justify-between gap-2 border-b border-wfs-border py-2 last:border-0">
+            <div class="min-w-0"><div class="truncate text-xs font-medium text-white">${this.escapeHtml(pack.name)}</div>
+            <div class="truncate text-[10px] text-wfs-muted">${this.escapeHtml(pack.version)} · ${pack.assetCount} assets · ${pack.enabled ? 'Đang bật' : 'Đang tắt'}</div></div>
+            <div class="flex shrink-0 gap-1">
+                <button type="button" data-pack-action="toggle" data-pack-id="${this.escapeHtml(pack.id)}" class="rounded border border-wfs-border px-2 py-1 text-[10px] hover:bg-wfs-hover">${pack.enabled ? 'Tắt' : 'Bật'}</button>
+                <button type="button" data-pack-action="remove" data-pack-id="${this.escapeHtml(pack.id)}" class="rounded border border-red-900 px-2 py-1 text-[10px] text-red-300 hover:bg-red-950">Gỡ</button>
+            </div>
+        </div>`).join('') || '<p class="py-3 text-xs text-wfs-muted">Chưa có Asset Pack nào được nhập.</p>';
+    }
+
+    handleAssetLibraryListClick(event) {
+        const button = event.target.closest('button[data-asset-key]');
+        if (!button) return;
+        this.assetLibraryState.selectedKey = button.dataset.assetKey;
+        this.renderAssetLibrary();
+    }
+
+    handleAssetPackAction(event) {
+        const button = event.target.closest('button[data-pack-action]');
+        if (!button) return;
+        const { packAction, packId } = { packAction: button.dataset.packAction, packId: button.dataset.packId };
+        try {
+            if (packAction === 'toggle') {
+                const pack = this.assetRegistry.getPack(packId);
+                if (!pack) return;
+                this.assetPackService.setPackEnabled(packId, !pack.enabled);
+                if (pack.enabled) this.clearToolAssetSelections(packId);
+                this.notify(`Đã ${pack.enabled ? 'tắt' : 'bật'} Asset Pack "${pack.manifest.name}".`);
+            } else if (packAction === 'remove') {
+                const pack = this.assetRegistry.getPack(packId);
+                if (!pack) return;
+                if (!window.confirm(`Gỡ Asset Pack "${pack.manifest.name}" khỏi phiên làm việc hiện tại?`)) return;
+                this.assetPackService.uninstallPack(packId);
+                this.clearToolAssetSelections(packId);
+                if (this.assetLibraryState.packId === packId) this.assetLibraryState.packId = '';
+                this.notify(`Đã gỡ Asset Pack "${pack.manifest.name}".`);
+            }
+            this.assetLibraryState.selectedKey = null;
+            this.renderAssetLibrary();
+        } catch (error) {
+            this.notify(`Không thể quản lý Asset Pack: ${error.message}`, true);
+        }
+    }
+
+    clearToolAssetSelections(packId) {
+        for (const definition of TOOL_DEFINITIONS) {
+            const tool = this.canvasEngine.toolManager.getTool(definition.id);
+            if (tool?.assetSelection?.asset?.packId === packId) tool.clearAssetSelection?.();
+        }
+    }
+
+    applyAssetLibrarySelection() {
+        const key = this.assetLibraryState.selectedKey;
+        if (!key) return;
+        const [packId, assetId] = key.split('::');
+        try {
+            const resolved = this.canvasEngine.toolManager.selectAssetForActiveTool({
+                packId, assetId
+            });
+            const toolId = this.canvasEngine.toolManager.activeToolId;
+            if (toolId !== 'place-asset') {
+                this.notify('Asset đã được gắn với công cụ. Hành vi tạo đối tượng chuyên biệt sẽ được hoàn thiện ở Phase 3C.');
+            } else {
+                this.notify(`Đã chọn "${resolved.asset.name}". Click hoặc kéo trên bản đồ để đặt asset.`);
+            }
+            document.getElementById('asset-library-dialog').close();
+        } catch (error) {
+            this.notify(`Không thể chọn asset: ${error.message}`, true);
+        }
+    }
+
     async handleAssetPackFile(event) {
         const input = event.currentTarget;
         const file = input.files?.[0];
         if (!file) return;
         try {
             const pack = this.assetPackService.installPack(await file.arrayBuffer());
-            const assets = this.canvasEngine.toolManager.listAssetsForTool('place-asset', {
-                packId: pack.manifest.id
-            });
-            if (!assets.length) {
-                throw new Error('Asset Pack không có tài nguyên tương thích với công cụ đặt asset tổng quát.');
-            }
-            const choices = assets.map((asset, index) =>
-                `${index + 1}. ${asset.name} [${asset.category}]`
-            ).join('\\n');
-            const answer = window.prompt(
-                `Đã nạp Pack "${pack.manifest.name}". Nhập số thứ tự asset cần đặt:\\n${choices}`,
-                '1'
-            );
-            if (answer === null) return;
-            const index = Number(answer) - 1;
-            if (!Number.isInteger(index) || index < 0 || index >= assets.length) {
-                throw new Error('Lựa chọn asset không hợp lệ.');
-            }
-            const asset = assets[index];
-            this.canvasEngine.toolManager.selectAssetForTool('place-asset', {
-                packId: asset.packId,
-                assetId: asset.id,
-                packVersion: asset.packVersion
-            });
-            this.canvasEngine.setTool('place-asset');
-            this.notify(`Đã chọn "${asset.name}". Click hoặc kéo trên bản đồ để đặt asset.`);
+            this.assetLibraryState.packId = pack.manifest.id;
+            this.assetLibraryState.category = '';
+            this.assetLibraryState.query = '';
+            this.assetLibraryState.selectedKey = null;
+            document.getElementById('asset-library-search').value = '';
+            this.renderAssetLibrary();
+            this.notify(`Đã nhập Asset Pack "${pack.manifest.name}" với ${pack.manifest.assets.length} tài nguyên.`);
         } catch (error) {
-            this.notify(`Không thể nạp/chọn Asset Pack: ${error.message}`, true);
+            this.notify(`Không thể nhập Asset Pack: ${error.message}`, true);
         } finally {
             input.value = '';
         }
