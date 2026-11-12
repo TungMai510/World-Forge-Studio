@@ -122,6 +122,78 @@ Phase 5 là **runtime Pack Management** trong WorldForge Studio (cài đặt, g�
 - 11 SVG tool icons đã được thêm vào assets/tool-icons/ và toolbar đã được cập nhật; browser QA tải SVG và trạng thái active vẫn cần xác nhận.
 - Phase 4–7 là ưu tiên kế tiếp; Phase 3E–3I chuyển sang backlog sau khi chuỗi Asset System end-to-end ổn định.
 
+## Định hướng kiến trúc bổ sung — WorldForge AI Layer (12/11/2026)
+
+WorldForge Studio được định hướng là một ứng dụng worldbuilding **hoạt động đầy đủ khi không có AI**, đồng thời có thể mở rộng năng lực sáng tạo và tự động hóa thông qua một lớp AI dùng chung. AI không thay thế các Studio và không được trở thành điều kiện bắt buộc để mở, chỉnh sửa, lưu hoặc xuất dự án.
+
+### Nguyên tắc đã thống nhất
+
+- Xây dựng **WorldForge AI Layer** dùng chung cho các Studio thay vì để từng Studio tích hợp trực tiếp và riêng lẻ với từng nhà cung cấp model.
+- **AI Gateway** là lớp trung gian quản lý Model Adapter, định tuyến nhiệm vụ, cấu hình nhà cung cấp, API key, giới hạn sử dụng, theo dõi chi phí, retry/error handling và chuẩn hóa kết quả.
+- Hỗ trợ nhiều nhà cung cấp và model; không khóa kiến trúc vào một model duy nhất.
+- Giữ định hướng local-first: người dùng có thể không bật AI, tự cung cấp API key, hoặc dùng model local khi có adapter tương thích. Không mặc định mọi người dùng phải mua lượt AI từ WorldForge.
+- AI đọc ngữ cảnh thế giới thông qua API/contract được cấp quyền của World Data Core; chỉ lấy dữ liệu cần thiết cho tác vụ.
+- Kết quả AI mặc định là bản nháp/đề xuất. Các thay đổi vào dữ liệu chuẩn của thế giới phải có bước xem trước, xác nhận và có thể hoàn tác.
+- Ghi nhận lịch sử tạo nội dung và nguồn gốc nội dung; không tự động ghi đè dữ liệu gốc hoặc xóa nội dung do người dùng tạo.
+- Nội dung hình ảnh do AI sinh phải đi qua cùng pipeline kiểm tra, chuẩn hóa, metadata, license/provenance và Asset Pack Validator như nội dung nhập thủ công.
+
+### Phạm vi năng lực dự kiến
+
+| Studio / hệ thống | Hỗ trợ AI dự kiến |
+|---|---|
+| Map Studio | Gợi ý địa hình, bố cục, địa danh; tạo hình tham khảo bản đồ; đề xuất đối tượng nhưng không tự ý sửa geometry chuẩn |
+| Asset Studio | Sinh icon, texture, vật thể, biến thể hình ảnh; tạo metadata; phân loại, kiểm tra và đóng gói .wfpack |
+| Character Studio | Hồ sơ, tiểu sử, ngoại hình, tính cách, quan hệ, trang phục và hình minh họa nhân vật |
+| Civilization Studio | Gợi ý quốc gia, văn hóa, phong tục, thể chế, tổ chức và quan hệ |
+| History & Timeline Studio | Đề xuất sự kiện, nguyên nhân, hệ quả, dòng thời gian và các mốc liên quan |
+| Power System Studio | Đề xuất nguồn sức mạnh, nhánh tiến triển, năng lực, giới hạn và quy tắc tương tác |
+| Story Studio | Hỗ trợ ý tưởng, dàn ý, cảnh, hội thoại và kiểm tra tính nhất quán với dữ liệu thế giới |
+| World Assistant | Trợ lý hội thoại có ngữ cảnh, có thể đề xuất chuỗi thao tác xuyên nhiều Studio nhưng phải trình bày kế hoạch và xin duyệt trước khi ghi dữ liệu |
+
+### Ba cấp độ can thiệp
+
+1. **AI Suggestion:** chỉ đưa ra gợi ý; người dùng tự quyết định và thao tác.
+2. **AI Assisted Creation:** tạo bản nháp hoặc tài sản nháp; người dùng chỉnh sửa và duyệt.
+3. **AI Agent:** thực hiện chuỗi bước có giới hạn qua các API được cấp quyền; hiển thị kế hoạch, tác động và bản xem trước trước khi commit.
+
+Không cấp cho AI quyền chạy mã tùy ý, truy cập filesystem ngoài phạm vi được cho phép, hoặc ghi trực tiếp vào kho dữ liệu mà bỏ qua validation/History.
+
+### Các điều kiện kiến trúc cần chuẩn bị
+
+- World Data Core có API đọc theo ngữ cảnh, truy vấn entity/relationship và xác thực tham chiếu ổn định.
+- Có schema/contract cho kết quả AI có cấu trúc; không chỉ dựa vào văn bản tự do.
+- Có lớp kiểm tra dữ liệu (schema validation, relationship validation, asset validation) trước khi nhập kết quả.
+- Có AI Generation History lưu tác vụ, model/provider, thời điểm, prompt hoặc tham chiếu prompt theo chính sách riêng tư, tham số cần thiết, kết quả, trạng thái duyệt và provenance.
+- Có cơ chế Preview → Validate → Approve → Commit, tích hợp History/Undo/Redo và rollback.
+- Có cấu hình quyền riêng tư, dữ liệu được gửi ra nhà cung cấp, giới hạn ngữ cảnh, quản lý API key an toàn và cảnh báo chi phí.
+- Có thể tắt AI hoàn toàn mà không ảnh hưởng các workflow cốt lõi.
+- Model Adapter phải tách khỏi UI và domain logic để thay model/nhà cung cấp không làm thay đổi schema dự án.
+
+### AI Asset Pack workflow
+
+1. Người dùng mô tả Pack hoặc nhóm asset cần tạo.
+2. AI đề xuất danh sách asset, phong cách, kích thước và metadata dự kiến.
+3. Tạo từng ảnh hoặc biến thể qua Image Model Adapter.
+4. Người dùng chọn, chỉnh sửa hoặc yêu cầu tạo lại.
+5. Pipeline chuẩn hóa định dạng/kích thước/thumbnail và kiểm tra file.
+6. AI có thể đề xuất metadata; người dùng xác nhận category, usages, tags, license và attribution.
+7. Asset Pack Validator kiểm tra manifest, đường dẫn, dung lượng, chữ ký file, capability và giới hạn bảo mật.
+8. Asset Studio đóng gói .wfpack; người dùng import thử và kiểm tra trong Asset Library/Map Studio.
+
+AI không được tự tuyên bố quyền sở hữu hoặc license hợp lệ cho hình ảnh. License, nguồn gốc, quyền phân phối và trách nhiệm xác nhận phải được thể hiện rõ; không xuất Pack nếu thiếu thông tin bắt buộc theo chính sách Pack.
+
+### Phạm vi không làm ngay
+
+- Chưa tích hợp model AI trong các Phase Asset System hiện tại.
+- Chưa yêu cầu tài khoản AI, backend cloud hoặc marketplace.
+- Chưa cho AI tự động sửa canonical world data không cần xác nhận.
+- Chưa cam kết một nhà cung cấp, model, giá hoặc chất lượng đầu ra cụ thể.
+- Chưa thay đổi thứ tự triển khai hiện tại: hoàn tất Phase 3D verification → Phase 4 Persistence/Archive → Phase 5 Pack Management → Phase 6 Asset Studio → Phase 7 end-to-end/offline/stability QA. AI Layer là định hướng kiến trúc dài hạn, không phải lý do trì hoãn hoặc đảo thứ tự công việc đang được duyệt.
+
+Tài liệu đặc tả riêng: `WORLD_FORGE_AI_ARCHITECTURE_SPECIFICATION.md`.
+
+---
+
 ## 1. Tầm nhìn sản phẩm đã thống nhất
 
 ### Cập nhật tiến độ Phase 3C — 12/11/2026
