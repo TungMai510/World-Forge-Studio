@@ -139,3 +139,77 @@ test('map export: embeds image assets in standalone SVG output', async () => {
     assert.match(svg, /<image /);
     assert.match(svg, /href="data:image\/png;base64,/);
 });
+
+
+test('image renderer: invalidates decoded images when an Asset Pack is disabled or removed', async () => {
+    const listeners = new Set();
+    let available = true;
+    let loads = 0;
+    class CompleteImage {
+        constructor() { this.complete = true; this.naturalWidth = 64; this.naturalHeight = 64; }
+        set src(value) { this.source = value; }
+    }
+    const assetLoader = {
+        load() {
+            loads += 1;
+            if (!available) throw new Error('Asset Pack is disabled.');
+            return { url: `blob:image-${loads}` };
+        },
+        subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
+        emit(event) { for (const listener of listeners) listener(event); }
+    };
+    const renderer = new ImageObjectRenderer({ assetLoader, createImage: () => new CompleteImage() });
+    await renderer.ensureImage(validImage);
+    assert.equal(renderer.images.size, 1);
+    assert.ok(renderer.getImage(validImage));
+
+    available = false;
+    assetLoader.emit({ type: 'pack-invalidated', packId: validImage.assetRef.packId });
+    assert.equal(renderer.images.size, 0);
+    assert.equal(renderer.getImage(validImage), null);
+    assert.equal(renderer.images.size, 1);
+    assert.equal([...renderer.images.values()][0].status, 'error');
+
+    available = true;
+    assetLoader.emit({ type: 'pack-invalidated', packId: validImage.assetRef.packId });
+    assert.equal(renderer.images.size, 0);
+    renderer.getImage(validImage);
+    assert.equal([...renderer.images.values()][0].status, 'ready');
+    assert.equal(loads, 3);
+});
+
+test('image renderer: invalidating a pending image rejects preload and prevents stale cache resurrection', async () => {
+    const listeners = new Set();
+    class PendingImage {
+        constructor() { this.complete = false; this.naturalWidth = 32; this.naturalHeight = 32; }
+        set src(value) { this.source = value; }
+    }
+    const assetLoader = {
+        load: () => ({ url: 'blob:pending' }),
+        subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
+        emit(event) { for (const listener of listeners) listener(event); }
+    };
+    const renderer = new ImageObjectRenderer({ assetLoader, createImage: () => new PendingImage() });
+    const preload = renderer.preload([validImage]);
+    const entry = [...renderer.images.values()][0];
+    assetLoader.emit({ type: 'pack-invalidated', packId: validImage.assetRef.packId });
+    await assert.rejects(preload, /invalidated while loading/);
+    entry.image.onload();
+    assert.equal(renderer.images.size, 0);
+});
+
+test('image renderer: immediately decoded images trigger a redraw notification', async () => {
+    let invalidations = 0;
+    class CompleteImage {
+        constructor() { this.complete = true; this.naturalWidth = 100; this.naturalHeight = 80; }
+        set src(value) { this.source = value; }
+    }
+    const renderer = new ImageObjectRenderer({
+        assetLoader: { load: () => ({ url: 'blob:already-loaded' }) },
+        createImage: () => new CompleteImage(),
+        onInvalidate: () => { invalidations += 1; }
+    });
+    await renderer.ensureImage(validImage);
+    assert.equal(invalidations, 1);
+    assert.ok(renderer.getImage(validImage));
+});
