@@ -2009,6 +2009,21 @@ export class UIController {
         const isSized = ['path', 'ellipse', 'icon', 'terrain', 'text'].includes(selection.type);
         document.getElementById('selection-text-control').classList.toggle('hidden', !isText);
         document.getElementById('selection-size-control').classList.toggle('hidden', !isSized);
+        const isImage = selection.type === 'image';
+        document.getElementById('selection-image-controls').classList.toggle('hidden', !isImage);
+        for (const id of ['selection-image-width', 'selection-image-height', 'selection-image-rotation',
+            'selection-image-opacity', 'selection-image-fit']) {
+            document.getElementById(id).disabled = !canEditSelection;
+        }
+        if (isImage) {
+            document.getElementById('selection-image-width').value = selection.width;
+            document.getElementById('selection-image-height').value = selection.height;
+            document.getElementById('selection-image-rotation').value = selection.rotation || 0;
+            document.getElementById('selection-image-opacity').value = selection.opacity ?? 1;
+            document.getElementById('selection-image-opacity-value').textContent =
+                `${Math.round((selection.opacity ?? 1) * 100)}%`;
+            document.getElementById('selection-image-fit').value = selection.fit || 'contain';
+        }
         if (isText) document.getElementById('selection-text').value = selection.text;
         if (isSized) {
             document.getElementById('selection-size').value =
@@ -2107,11 +2122,28 @@ export class UIController {
         if (!this.canvasEngine.selectedObjectId) return;
         const selected = this.canvasEngine.findObject(this.canvasEngine.selectedObjectId);
         if (!selected) return;
-        const color = document.getElementById('selection-color').value;
-        const changes = selected.type === 'text' ? { color } :
-            selected.type === 'icon' ? { color } :
-                selected.type === 'terrain' ? { color } :
-                    selected.fill === 'transparent' ? { stroke: color } : { fill: color, stroke: color };
+        let changes;
+        if (selected.type === 'image') {
+            const width = Number(document.getElementById('selection-image-width').value);
+            const height = Number(document.getElementById('selection-image-height').value);
+            const rotation = Number(document.getElementById('selection-image-rotation').value);
+            const opacity = Number(document.getElementById('selection-image-opacity').value);
+            const fit = document.getElementById('selection-image-fit').value;
+            if (![width, height, rotation, opacity].every(Number.isFinite) ||
+                width < 1 || height < 1 || width > 8192 || height > 8192 ||
+                Math.abs(rotation) > 36000 || opacity < 0 || opacity > 1 ||
+                !['contain', 'cover', 'fill'].includes(fit)) {
+                this.notify('Thông số Image Object không hợp lệ.', true);
+                return;
+            }
+            changes = { width, height, rotation, opacity, fit };
+        } else {
+            const color = document.getElementById('selection-color').value;
+            changes = selected.type === 'text' ? { color } :
+                selected.type === 'icon' ? { color } :
+                    selected.type === 'terrain' ? { color } :
+                        selected.fill === 'transparent' ? { stroke: color } : { fill: color, stroke: color };
+        }
         if (selected.type === 'text') changes.text = document.getElementById('selection-text').value;
         const sizeControl = document.getElementById('selection-size-control');
         if (!sizeControl.classList.contains('hidden')) {
