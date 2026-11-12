@@ -206,6 +206,7 @@ export class UIController {
         document.getElementById('asset-pack-file').addEventListener('change', event => this.handleAssetPackFile(event));
         document.getElementById('asset-library-search').addEventListener('input', event => {
             this.assetLibraryState.query = event.target.value;
+            this.assetLibraryState.selectedKey = null;
             this.renderAssetLibrary();
         });
         document.getElementById('asset-library-pack-filter').addEventListener('change', event => {
@@ -260,7 +261,7 @@ export class UIController {
         const definition = TOOL_DEFINITIONS.find(item => item.id === toolId);
         const binding = this.canvasEngine.toolManager.getAssetBinding(toolId);
         const tool = this.canvasEngine.toolManager.getTool(toolId);
-        const canSelect = Boolean(binding && tool && typeof tool.setAssetSelection === 'function');
+        const canSelect = Boolean(binding && toolId === 'place-asset' && typeof tool.setAssetSelection === 'function');
         const packs = this.assetRegistry.listPacks();
         const packFilter = document.getElementById('asset-library-pack-filter');
         const previousPack = this.assetLibraryState.packId;
