@@ -9,27 +9,36 @@ import { BorderTool } from './BorderTool.js';
 import { TextTool } from './TextTool.js';
 import { IconTool } from './IconTool.js';
 import { PlaceAssetTool } from './PlaceAssetTool.js';
+import { ToolAssetBinding } from '../../assets/tool-asset-capabilities.js';
 
 export const TOOL_DEFINITIONS = [
     { id: 'select', label: 'Select', shortcut: 'V', Tool: SelectTool },
     { id: 'brush', label: 'Brush', shortcut: 'B', Tool: BrushTool },
     { id: 'eraser', label: 'Eraser', shortcut: 'E', Tool: EraserTool },
     { id: 'landmass', label: 'Landmass', shortcut: 'L', Tool: LandmassTool },
-    { id: 'terrain', label: 'Terrain', shortcut: 'T', Tool: TerrainTool },
+    { id: 'terrain', label: 'Terrain', shortcut: 'T', Tool: TerrainTool,
+        assetQuery: { requiredCapabilities: ['stamp'], acceptedTypes: ['image'] } },
     { id: 'river', label: 'River', shortcut: 'R', Tool: RiverTool },
-    { id: 'lake', label: 'Lake', shortcut: 'A', Tool: LakeTool },
-    { id: 'border', label: 'Border', shortcut: 'D', Tool: BorderTool },
+    { id: 'lake', label: 'Lake', shortcut: 'A', Tool: LakeTool,
+        assetQuery: { requiredCapabilities: ['texture-fill'], acceptedTypes: ['image'] } },
+    { id: 'border', label: 'Border', shortcut: 'D', Tool: BorderTool,
+        assetQuery: { requiredCapabilities: ['pattern-stroke'], acceptedTypes: ['image'] } },
     { id: 'text', label: 'Text', shortcut: 'X', Tool: TextTool },
-    { id: 'icon', label: 'Icon', shortcut: 'I', Tool: IconTool },
-    { id: 'place-asset', label: 'Place Asset', shortcut: 'P', Tool: PlaceAssetTool }
+    { id: 'icon', label: 'Icon', shortcut: 'I', Tool: IconTool,
+        assetQuery: { requiredCapabilities: ['icon'], acceptedTypes: ['image'] } },
+    { id: 'place-asset', label: 'Place Asset', shortcut: 'P', Tool: PlaceAssetTool,
+        assetQuery: { requiredCapabilities: ['stamp'], acceptedTypes: ['image'] }, allowLegacyGeneric: true }
 ];
 
 export class ToolManager {
-    constructor(engine, { onToolChange = () => {} } = {}) {
+    constructor(engine, { onToolChange = () => {}, assetRegistry = null } = {}) {
         this.engine = engine;
         this.onToolChange = onToolChange;
         this.tools = new Map(TOOL_DEFINITIONS.map(({ id, Tool }) => [id, new Tool(engine)]));
+        this.assetRegistry = null;
+        this.assetBindings = new Map();
         this.activeToolId = 'select';
+        if (assetRegistry) this.setAssetRegistry(assetRegistry);
     }
 
     getActiveTool() {
@@ -38,6 +47,51 @@ export class ToolManager {
 
     getTool(id) {
         return this.tools.get(id) || null;
+    }
+
+    setAssetRegistry(registry) {
+        if (!registry || typeof registry.listAssets !== 'function' || typeof registry.getAsset !== 'function') {
+            throw new Error('ToolManager requires a valid AssetRegistry.');
+        }
+        this.assetRegistry = registry;
+        this.assetBindings.clear();
+        for (const definition of TOOL_DEFINITIONS) {
+            if (!definition.assetQuery) continue;
+            this.assetBindings.set(definition.id, new ToolAssetBinding({
+                registry,
+                toolId: definition.id,
+                query: definition.assetQuery,
+                allowLegacyGeneric: definition.allowLegacyGeneric === true
+            }));
+        }
+        return this.assetBindings.size;
+    }
+
+    getAssetBinding(toolId = this.activeToolId) {
+        return this.assetBindings.get(toolId) || null;
+    }
+
+    listAssetsForTool(toolId = this.activeToolId, options = {}) {
+        const binding = this.getAssetBinding(toolId);
+        if (!binding) return [];
+        return binding.listAssets(options);
+    }
+
+    selectAssetForTool(toolId, assetRef) {
+        const binding = this.getAssetBinding(toolId);
+        const tool = this.getTool(toolId);
+        if (!binding || !tool) throw new Error(`Tool "${toolId}" does not accept Asset Pack resources.`);
+        const resolved = binding.resolveAssetRef(assetRef);
+        if (typeof tool.setAssetSelection !== 'function') {
+            throw new Error(`Tool "${toolId}" does not implement the asset selection contract yet.`);
+        }
+        tool.setAssetSelection(resolved);
+        this.engine.scheduleRender?.();
+        return resolved;
+    }
+
+    selectAssetForActiveTool(assetRef) {
+        return this.selectAssetForTool(this.activeToolId, assetRef);
     }
 
     selectTool(id) {
