@@ -261,7 +261,7 @@ export class UIController {
         const definition = TOOL_DEFINITIONS.find(item => item.id === toolId);
         const binding = this.canvasEngine.toolManager.getAssetBinding(toolId);
         const tool = this.canvasEngine.toolManager.getTool(toolId);
-        const canSelect = Boolean(binding && ['place-asset', 'icon'].includes(toolId) && typeof tool.setAssetSelection === 'function');
+        const canSelect = Boolean(binding && ['place-asset', 'icon', 'terrain'].includes(toolId) && typeof tool.setAssetSelection === 'function');
         const packs = this.assetRegistry.listPacks();
         const packFilter = document.getElementById('asset-library-pack-filter');
         const previousPack = this.assetLibraryState.packId;
@@ -398,6 +398,8 @@ export class UIController {
             const toolId = this.canvasEngine.toolManager.activeToolId;
             if (toolId === 'icon') {
                 this.notify(`Đã chọn biểu tượng "${resolved.asset.name}". Click trên bản đồ để đặt icon.`);
+            } else if (toolId === 'terrain') {
+                this.notify(`Đã chọn địa hình "${resolved.asset.name}". Click trên bản đồ để đặt dấu địa hình.`);
             } else if (toolId === 'place-asset') {
                 this.notify(`Đã chọn "${resolved.asset.name}". Click hoặc kéo trên bản đồ để đặt asset.`);
             } else {
