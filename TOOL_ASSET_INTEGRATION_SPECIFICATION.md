@@ -432,3 +432,8 @@ The generic Place Asset workflow now supports two placement gestures:
 The Place Asset toolbar exposes default width and height, rotation, opacity, and image fit (`contain`, `cover`, `fill`). These settings are copied onto the created semantic image object along with its namespaced `assetRef`. Placement is rejected if no asset is selected or the active layer is hidden/locked.
 
 Automated tests cover click placement, drag bounds, transform metadata and invalid state/options. The test file is committed; local `npm test` and manual browser QA remain pending. See `worldforge_ui_prototype/tests/assets/README.md`.
+
+
+## Phase 3D.2 — Selected Image Object property editing
+
+The Place Asset toolbar configures defaults for newly placed assets. Editing an existing image is handled separately in the Properties panel after selecting it with Select Tool. The panel exposes width, height, rotation, opacity and fit; submitting updates the selected object through the engine's normal object-edit/history path. This keeps creation defaults separate from per-object properties.
