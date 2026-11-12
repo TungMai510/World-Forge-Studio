@@ -50,6 +50,7 @@ export class UIController {
             onError: error => this.notify(`Lỗi Canvas: ${error.message}`, true)
         });
         this.canvasEngine.setAssetLoader(this.assetLoader);
+        this.canvasEngine.setAssetRegistry(this.assetRegistry);
         this.mapExportService = new MapExportService(
             new CanvasLayerRenderer({ imageRenderer: this.canvasEngine.imageRenderer })
         );
@@ -230,8 +231,12 @@ export class UIController {
         if (!file) return;
         try {
             const pack = this.assetPackService.installPack(await file.arrayBuffer());
-            const assets = this.assetRegistry.listAssets({ packId: pack.manifest.id });
-            if (!assets.length) throw new Error('Asset Pack không có tài nguyên khả dụng.');
+            const assets = this.canvasEngine.toolManager.listAssetsForTool('place-asset', {
+                packId: pack.manifest.id
+            });
+            if (!assets.length) {
+                throw new Error('Asset Pack không có tài nguyên tương thích với công cụ đặt asset tổng quát.');
+            }
             const choices = assets.map((asset, index) =>
                 `${index + 1}. ${asset.name} [${asset.category}]`
             ).join('\\n');
@@ -245,8 +250,10 @@ export class UIController {
                 throw new Error('Lựa chọn asset không hợp lệ.');
             }
             const asset = assets[index];
-            this.canvasEngine.toolManager.setOptions('place-asset', {
-                assetRef: { packId: asset.packId, assetId: asset.id, packVersion: asset.packVersion }
+            this.canvasEngine.toolManager.selectAssetForTool('place-asset', {
+                packId: asset.packId,
+                assetId: asset.id,
+                packVersion: asset.packVersion
             });
             this.canvasEngine.setTool('place-asset');
             this.notify(`Đã chọn "${asset.name}". Click hoặc kéo trên bản đồ để đặt asset.`);
