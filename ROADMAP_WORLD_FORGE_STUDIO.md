@@ -578,3 +578,30 @@ npm test
 ```
 
 **Trạng thái:** Mã kiểm thử và CI đã được commit lên GitHub. Chưa xác nhận kết quả chạy thực tế từ môi trường này; cần kiểm tra GitHub Actions sau khi workflow hoàn tất hoặc chạy các lệnh trên máy local. Fixture là ảnh kỹ thuật 1×1, không phải bộ art chính thức. Validator hiện kiểm tra chữ ký file chứ chưa giải mã đầy đủ pixel/dimension; cần hardening trước khi phân phối Pack rộng rãi.
+
+
+## Phase 1 QA result and Phase 2 start — 12/11/2026
+
+### Phase 1 local QA evidence
+
+The project owner ran the commands from `worldforge_ui_prototype/`:
+
+- `npm run assets:fixture`: generated `tests/assets/fixtures/classic-fantasy.wfpack` (1,703 bytes).
+- `npm run test:assets`: 12 passed, 0 failed.
+- `npm test`: 12 passed, 0 failed.
+
+This verifies the current Node test suite on the owner's local environment. It does not yet prove browser rendering, complete image decoding, project persistence, or production readiness.
+
+The generated `.wfpack` is a disposable QA artifact. The repository ignores `worldforge_ui_prototype/tests/assets/fixtures/*.wfpack`; tests can regenerate it with `npm run assets:fixture`.
+
+### Phase 2 implementation started
+
+- Added versioned image-object schema v1 with Pack/asset reference, world-space position, dimensions, rotation, opacity, and fit mode (`contain`, `cover`, `fill`).
+- Added a dedicated `ImageObjectRenderer` object renderer. The existing `CanvasLayerRenderer` delegates image drawing and image hit-testing to it; no image-specific layer renderer is introduced.
+- Added asynchronous image loading through the existing AssetLoader URL and redraw notification after image load.
+- Added rotation-aware hit testing and rotated axis-aligned selection bounds.
+- Added `MapCanvasEngine.setAssetLoader(assetLoader)` as the integration point. The app bootstrap must supply the active AssetLoader before image objects can display.
+
+### Phase 2 verification status
+
+Implemented code and automated tests are being added. Browser rendering, image export, missing/disabled Pack UX, and manual pan/zoom verification remain unverified until tested in the running app. Do not mark Phase 2 complete yet.
