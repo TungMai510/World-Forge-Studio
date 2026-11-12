@@ -36,7 +36,37 @@ export class CanvasLayerRenderer {
         } else if (object.type === 'ellipse') {
             context.beginPath();
             context.ellipse(object.x, object.y, object.radiusX, object.radiusY, 0, 0, Math.PI * 2);
-            if (object.fill !== 'transparent') context.fill();
+            if (object.fill !== 'transparent') {
+                const textureImage = object.textureAssetRef && this.imageRenderer
+                    ? this.imageRenderer.getImage({
+                        type: 'image',
+                        assetRef: object.textureAssetRef,
+                        x: object.x - object.radiusX,
+                        y: object.y - object.radiusY,
+                        width: object.radiusX * 2,
+                        height: object.radiusY * 2
+                    })
+                    : null;
+                if (textureImage && typeof context.createPattern === 'function') {
+                    context.save();
+                    context.clip();
+                    const pattern = context.createPattern(textureImage, 'repeat');
+                    if (pattern) {
+                        context.fillStyle = pattern;
+                        context.fillRect(
+                            object.x - object.radiusX,
+                            object.y - object.radiusY,
+                            object.radiusX * 2,
+                            object.radiusY * 2
+                        );
+                    } else {
+                        context.fill();
+                    }
+                    context.restore();
+                } else {
+                    context.fill();
+                }
+            }
             context.stroke();
         } else if (object.type === 'text') {
             context.fillStyle = object.color || object.fill || '#1f2937';
