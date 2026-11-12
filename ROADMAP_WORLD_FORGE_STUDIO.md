@@ -831,3 +831,18 @@ Committed the first reusable runtime contract:
 **Not yet verified locally:** run `npm run assets:fixture` and `npm test` from `worldforge_ui_prototype`. No test pass is claimed for this commit set yet.
 
 **Remaining in Phase 3A:** inspect and approve the contract against all current tool/object schemas; decide whether the proposed usage names need refinement; run automated tests and fix regressions. Phase 3B UI and Phase 3C semantic tool integrations have not started.
+
+
+### Phase 3B — Shared Asset Library (implementation started, 12/11/2026)
+
+Implemented in the current `main` branch:
+
+- Shared Asset Library dialog accessible from the editor navigation and Place Asset tool.
+- Visual asset grid with image preview, metadata, search, category filter and Pack filter.
+- Results are sourced from the active tool's ToolAssetBinding rather than a global unfiltered list.
+- In-session Asset Pack import, enable/disable and uninstall controls.
+- Pack disable/uninstall invalidates cached URLs and clears selected tool assets from that Pack.
+- Replaced the temporary numeric prompt selection workflow.
+- Added a pure filtering model and automated tests for query/category behavior and disabled assets.
+
+**Still pending:** run `npm run assets:fixture` and `npm test`; browser QA for import, preview, filters, tool switching, selecting/placing, disabling and uninstalling Packs. Phase 3B is not complete until these checks pass. Persistence across reloads is intentionally deferred to later persistence/Pack Manager phases. Specialized Icon/Terrain/Lake/Border object creation remains Phase 3C.
