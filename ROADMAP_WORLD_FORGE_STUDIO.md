@@ -725,3 +725,16 @@ Chỉ bắt đầu thiết kế Cloud Sync sau khi Project Persistence/Archive, 
 **Giới hạn hiện tại:** các handle resize hiện tập trung ở góc dưới bên phải; chưa có aspect-ratio lock, resize từ từng cạnh/góc, snapping hoặc UI nhập kích thước. Duplicate/Delete vẫn là bước tiếp theo, chưa được bổ sung trong thay đổi này.
 
 **Trạng thái xác minh:** code và regression tests đã được commit lên GitHub, nhưng chưa chạy trên checkout Node/browser của người dùng. Cần pull và chạy `npm test`; sau đó kiểm thử thao tác trên Canvas. Phase 3 vẫn In Progress.
+
+
+### Phase 3 — Duplicate command and Image Object history (12/11/2026)
+
+Sau khi người dùng xác nhận toàn bộ 37/37 kiểm thử hiện tại đã PASS, tiếp tục bổ sung thao tác nhân bản đối tượng:
+
+- Thêm `MapCanvasEngine.duplicateObject()`: tạo ID mới, sao chép metadata đầy đủ và dịch chuyển bản sao theo offset mặc định 16 world units.
+- Hỗ trợ dịch chuyển đúng hình học của Path (commands) và Terrain (points), ngoài các object có tọa độ x/y.
+- Từ chối nhân bản khi Layer nguồn bị khóa hoặc ẩn; kiểm tra offset hợp lệ.
+- Thêm phím tắt `Ctrl+D` / `Cmd+D` để nhân bản object đang chọn.
+- Bổ sung test cho Image Object metadata, Path geometry, không mutate nguồn và layer guard.
+
+**Lưu ý về trạng thái:** Delete đã có sẵn trong MapCanvasEngine qua `deleteObjects()` và phím Delete/Backspace; Undo/Redo dùng HistoryManager hiện hữu. Các thao tác duplicate mới được thêm mã nguồn và test, chưa có kết quả chạy từ checkout local. Chưa có nút Duplicate/Delete riêng trên toolbar hoặc context menu. Cần chạy `npm test` và kiểm tra browser trước khi đánh dấu các phần này đã verified.
