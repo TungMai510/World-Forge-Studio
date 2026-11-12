@@ -8,14 +8,13 @@ import { validateAssetPackManifest } from '../../src/assets/asset-pack-validator
 import { AssetRegistry } from '../../src/assets/asset-registry.js';
 import { AssetLoader } from '../../src/assets/asset-loader.js';
 import { AssetPackService } from '../../src/assets/asset-pack-service.js';
+import { createFixturePng } from './fixture-png.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fixtureDir = resolve(here, 'fixtures');
 const fixturePath = resolve(fixtureDir, 'classic-fantasy.wfpack');
-const png = Uint8Array.from(Buffer.from(
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/pWQAAAAASUVORK5CYII=',
-    'base64'
-));
+const png = createFixturePng(96, 64, 'mountain');
+const forestPng = createFixturePng(64, 96, 'forest');
 const manifest = {
     schemaVersion: '1.0',
     id: 'com.worldforge.classic-fantasy',
@@ -37,7 +36,7 @@ function createSampleArchive(overrides = {}) {
     const files = {
         'pack.json': JSON.stringify(packManifest, null, 2),
         'assets/mountains/mountain.png': png,
-        'assets/forests/forest.png': png,
+        'assets/forests/forest.png': forestPng,
         'LICENSE.txt': 'CC0-1.0 — sample QA assets.'
     };
     return createZipArchive(files);
@@ -56,6 +55,7 @@ test('archive: read generated ZIP and recover manifest and image bytes', () => {
     const files = readZipArchive(fixtureBytes);
     assert.ok(files.has('pack.json'));
     assert.deepEqual(files.get('assets/mountains/mountain.png'), png);
+    assert.deepEqual(files.get('assets/forests/forest.png'), forestPng);
     assert.equal(JSON.parse(new TextDecoder().decode(files.get('pack.json'))).id, manifest.id);
 });
 
