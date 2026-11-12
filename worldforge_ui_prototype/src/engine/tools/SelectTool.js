@@ -36,7 +36,7 @@ export class SelectTool extends BaseTool {
             const handles = imageHandles(selected, this.engine.getZoom());
             const tolerance = 10 / this.engine.getZoom();
             if (distance(world, handles.rotate) <= tolerance) {
-                this.startImageEdit(selected, 'rotate');
+                if (!this.startImageEdit(selected, 'rotate')) return false;
                 this.startAngle = Math.atan2(
                     world.y - (selected.y + selected.height / 2),
                     world.x - (selected.x + selected.width / 2)
@@ -44,8 +44,7 @@ export class SelectTool extends BaseTool {
                 return true;
             }
             if (distance(world, handles.resize) <= tolerance) {
-                this.startImageEdit(selected, 'resize');
-                return true;
+                return this.startImageEdit(selected, 'resize');
             }
         }
 
@@ -69,6 +68,7 @@ export class SelectTool extends BaseTool {
         this.editMode = mode;
         this.startObject = { ...object };
         this.previousWorld = null;
+        return true;
     }
 
     pointerMove({ world }) {
