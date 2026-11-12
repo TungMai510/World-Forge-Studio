@@ -8,6 +8,26 @@ export class BaseTool {
     constructor(engine, options = {}) {
         this.engine = engine;
         this.options = { color: '#334155', size: 8, terrain: 'forest', icon: 'city', text: 'Label', ...options };
+        this.assetSelection = null;
+    }
+
+    setAssetSelection(selection) {
+        if (!selection || typeof selection !== 'object' || !selection.asset ||
+            !selection.assetRef || typeof selection.assetRef.packId !== 'string' ||
+            typeof selection.assetRef.assetId !== 'string') {
+            throw new Error('Tool asset selection must contain a resolved asset and assetRef.');
+        }
+        this.assetSelection = {
+            asset: selection.asset,
+            assetRef: { ...selection.assetRef }
+        };
+        this.engine.scheduleRender?.();
+        return this.assetSelection;
+    }
+
+    clearAssetSelection() {
+        this.assetSelection = null;
+        this.engine.scheduleRender?.();
     }
 
     setOptions(options) {
