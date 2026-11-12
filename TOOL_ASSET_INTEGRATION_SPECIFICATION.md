@@ -1,6 +1,6 @@
 # WorldForge Studio — Tool–Asset Integration Specification
 
-**Status:** Active implementation specification — Phase 3C.1–3C.3 verified; Phase 3C.4 implementation added, browser QA pending  
+**Status:** Active implementation specification — Phase 3C.1–3C.4 verified; next: Phase 3D  
 **Date:** 12/11/2026  
 **Applies to:** WorldForge Core, Map Editor, Tool System, Asset Runtime and Asset Packs  
 **Related:** ASSET_PACK_SPECIFICATION.md, ROADMAP_WORLD_FORGE_STUDIO.md
@@ -403,7 +403,7 @@ The first shared Asset Library UI is now implemented in the editor:
 - Unit coverage and browser verification are pending on the owner’s local checkout.
 
 
-## 14. Phase 3C.4 implementation update — Border Tool pattern-stroke
+## 14. Phase 3C.4 — Border Tool pattern-stroke (completed)
 
 - Border Tool now accepts assets declared with `pattern-stroke` through the existing ToolAssetBinding. The original dashed vector workflow remains unchanged when no pattern is selected.
 - A patterned border remains a semantic `type: 'path', feature: 'border'` object. It stores `patternAssetRef`, source `patternSize` and `patternScale`; it is not flattened into unrelated image objects.
@@ -413,11 +413,11 @@ The first shared Asset Library UI is now implemented in the editor:
 - Asset Library selection is enabled for Border Tool and displays a context-specific instruction after selection.
 - Automated coverage added for vector fallback, semantic reference metadata, repeated/rotated rendering and expanded bounds.
 
-**Verification status:** implementation and test changes are committed. GitHub Actions run #102 completed successfully, including both Asset Foundation tests and all prototype tests. The updated checkout still needs fixture regeneration (`npm run assets:fixture`) and manual browser QA using `tests/assets/README.md`. Do not mark Phase 3C.4 complete until browser interaction and export checks are confirmed.
+**Verification status: completed.** The user confirmed that Phase 3C.4 testing is complete. GitHub Actions run #102 completed successfully, including both Asset Foundation tests and all prototype tests. Browser QA and user-facing export checks are confirmed by the user.
 
 
 ### Export compatibility note for Phase 3C.4
 
 - Canvas-based PNG/JPG/PDF export preloads border pattern references before rendering.
 - SVG export embeds the pattern image as a data URI and emits repeated, tangent-rotated SVG image tiles along the semantic path.
-- Export coverage includes a focused SVG regression test. Browser verification must still confirm all four user-facing formats.
+- Export coverage includes a focused SVG regression test. Browser QA for the user-facing export formats has been confirmed complete by the user.
