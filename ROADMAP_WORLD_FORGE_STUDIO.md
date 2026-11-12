@@ -46,11 +46,11 @@ WorldForge không nên trở thành phần mềm phụ thuộc vào một thư v
 Tại thời điểm rà soát:
 
 - Repository công khai, nhánh mặc định `main`.
-- API commit trả về **một commit**: `57e3ea548d3bda05bc9ff6d51ff0e04d961ef1ea` — `first commit`.
-- Chưa thấy Pull Request nào trong truy vấn danh sách PR.
-- Không thấy `package.json` trong cây repository được truy xuất.
-- Có tài liệu `worldforge_studio_documentation.md`, prototype ZIP, tài liệu DOCX và bộ file QA Import/Export ngày 11/11/2026.
-- Vì repository hiện chỉ có một commit, chưa thể lập so sánh thay đổi giữa nhiều kỳ commit. Các file QA là bằng chứng có artifact kiểm thử, nhưng không tự chứng minh toàn bộ quy trình đã được chạy tự động hoặc đã pass.
+- Repository công khai, nhánh `main`, có lịch sử commit cập nhật liên tục.
+- Prototype có `worldforge_ui_prototype/package.json`, dùng Node.js 20+ và Node built-in test runner.
+- Đã có GitHub Actions workflow cho test WorldForge.
+- Tại lần cập nhật này, các thay đổi Phase 2 mới nhất đã được đẩy lên `main`; test mới cần được chạy lại trên checkout mới nhất trước khi xác nhận pass.
+- Các kết quả test do người dùng chạy tại máy cục bộ được ghi nhận riêng, không suy diễn thành CI pass nếu chưa có kết quả workflow tương ứng.
 
 ### 2.2. Cấu trúc mã nguồn đang có
 
@@ -65,7 +65,10 @@ Trong `worldforge_ui_prototype/` đã thấy:
 - `src/engine/layers/CanvasLayerRenderer.js`
 - `src/engine/layers/LayerManager.js`
 - `src/engine/tools/` với Select, Brush, Eraser, Landmass, Terrain, River, Lake, Border, Text, Icon và ToolManager.
+- `src/engine/objects/ImageObjectRenderer.js` cho image object schema, bounds, hit testing, decode cache và drawing.
+- `src/assets/` với Asset Pack validator, registry, loader và pack service.
 - `src/services/` với archive-service, project-service, geography-service, civilization-service, history-service và map-export-service.
+- `tests/assets/` với Node tests, fixture generator và browser QA harness.
 - `src/ui/layout.js`
 
 **Nhận xét kiến trúc:** một số phần nghiệp vụ đã được tách module, nhưng UI chính vẫn tập trung trong `layout.js` có kích thước lớn. Cần ưu tiên tách dần theo tính năng khi sửa, tránh một lần tái cấu trúc lớn gây hồi quy.
@@ -77,9 +80,9 @@ Trong `worldforge_ui_prototype/` đã thấy:
 | Project Manager | IndexedDB lưu projects và recentProjects; CRUD dự án | Có mã nguồn |
 | Project schema | `SCHEMA_VERSION = 2`, có migration từ schema 1 | Có mã nguồn |
 | Map Engine | World map, layers/groups, viewport, render loop, selection/hit-test, object CRUD | Có mã nguồn |
-| Map object types | Có rect, circle, path, ellipse, text, icon, terrain; chưa thấy image object | Có mã nguồn |
-| Renderer extension | Engine có registry renderer theo layer renderer; mặc định Canvas renderer | Có mã nguồn |
-| Tool system | ToolManager đăng ký các công cụ bản đồ hiện có; chưa có PlaceAssetTool | Có mã nguồn |
+| Map object types | Có rect, circle, path, ellipse, text, icon, terrain và image schema v1 | Có mã nguồn + unit tests |
+| Renderer extension | Canvas renderer tích hợp ImageObjectRenderer; hỗ trợ fit, opacity, rotation và async decode | Có mã nguồn + unit tests |
+| Tool system | ToolManager đăng ký các công cụ bản đồ hiện có; PlaceAssetTool thuộc Phase 3 | Có mã nguồn |
 | Geography | Service quản lý worlds, continents, countries, cities, locations | Có mã nguồn và mô tả tài liệu |
 | Civilization | Service quản lý characters, races, cultures, religions, organizations | Có mã nguồn và mô tả tài liệu |
 | History | Service quản lý calendars, eras, periods, records, events | Có mã nguồn và mô tả tài liệu |
@@ -87,9 +90,10 @@ Trong `worldforge_ui_prototype/` đã thấy:
 | Project JSON | Có import/export và validate dữ liệu dự án | Có mã nguồn |
 | WFORGE archive | ZIP STORE, manifest/project JSON, externalize Data URL assets, CRC/path/size checks | Có mã nguồn |
 | Map export | Service xuất PNG/JPG/SVG/PDF theo tài liệu dự án | Có mã nguồn; cần kiểm tra trực tiếp các định dạng |
-| Asset Pack | Chưa tìm thấy manifest Pack, registry, pack parser/manager hay định dạng .wfpack | Chưa triển khai theo bằng chứng hiện có |
+| Asset Pack | Manifest validator, registry, loader, pack service và fixture .wfpack | Có mã nguồn + integration tests |
 | Asset Library UI | Chưa tìm thấy thư viện thumbnail/search/filter dựa trên Pack | Chưa triển khai theo bằng chứng hiện có |
-| Image Renderer / Place Asset Tool | Chưa thấy image object/renderer/tool | Chưa triển khai theo bằng chứng hiện có |
+| Image Renderer | Có image object/renderer, cache lifecycle invalidation, Pack-version check và SVG image embedding | Implemented; browser QA đang tiếp tục |
+| Place Asset Tool | Chưa có công cụ đặt asset chuyên biệt | Chưa triển khai; thuộc Phase 3 |
 
 ### 2.4. Persistence hiện có: nền tảng tốt nhưng chưa phải Asset System
 
@@ -103,13 +107,7 @@ Trong `worldforge_ui_prototype/` đã thấy:
 
 Repository có các file QA Import/Export: `.worldforge.json`, `.wforge`, `.png`, `.jpg`, `.svg`, `.pdf` và một ảnh bản đồ. Điều này cho thấy đã lưu lại bộ artifact phục vụ QA.
 
-Tuy nhiên, trong lần rà soát này chưa xác minh được:
-- Kịch bản test tự động và lệnh chạy test.
-- CI workflow và kết quả GitHub Actions.
-- Test coverage.
-- Quy trình test E2E lặp lại từ đầu đến cuối.
-
-Vì vậy, trạng thái chính xác là **có mã nguồn và có artifact QA**, không tự động kết luận tất cả test đều pass.
+Hiện đã có Node test suite trong `worldforge_ui_prototype/tests/assets/`, lệnh `npm test`, fixture generator và browser QA harness cho Phase 2. Người dùng đã xác nhận lần chạy trước đạt 25/25 pass; sau đó bổ sung hai regression tests và fixture PNG nhiều kích thước, vì vậy bộ test mới nhất (dự kiến 27 tests) vẫn cần chạy lại. Browser QA được người dùng đánh giá sơ bộ là “khá ok”, nhưng chưa có checklist kết quả chi tiết cho mọi thao tác và định dạng export. Không xem đây là E2E đầy đủ hoặc CI pass.
 
 ### 2.6. Rủi ro kỹ thuật thấy được
 
@@ -295,6 +293,17 @@ Công việc:
 - HitTest và chọn đúng vùng ảnh.
 - Layer ẩn/khóa/opacity có hành vi đúng.
 - Có test cho validate, draw/hitTest và export cơ bản.
+
+**Trạng thái triển khai / xác minh tại 12/11/2026:**
+
+- Image object schema v1, geometry validation, rotated bounds và hit testing: implemented.
+- Canvas renderer hỗ trợ contain/cover/fill, opacity, rotation, placeholder khi chưa có ảnh và redraw sau decode: implemented; fit behavior có regression tests.
+- AssetLoader lifecycle invalidation được nối với decoded-image cache; có kiểm thử disable/uninstall và Pack-version mismatch.
+- Map export có đường xử lý image object cho PNG/JPG/PDF qua Canvas và SVG với embedded data URI; SVG image test kiểm tra fit/opacity/rotation.
+- Automated tests trước lần hardening này: 25/25 pass do người dùng chạy. Hai test mới và fixture PNG nhiều kích thước vừa được thêm; cần chạy lại trên commit mới nhất.
+- Browser QA harness đã được mở và người dùng đánh giá sơ bộ “khá ok”; chưa có biên bản xác nhận toàn bộ checklist PNG/JPG/SVG/PDF và thao tác layer/zoom/pan.
+
+**Definition of Done còn lại:** chạy lại toàn bộ test suite; hoàn tất browser checklist với cả mountain (96×64) và forest (64×96), đặc biệt fit modes, layer visibility/opacity, pan/zoom và bốn định dạng export; ghi nhận browser/OS và lỗi console. Chưa đánh dấu Phase 2 complete cho đến khi các bước này được xác nhận.
 
 ### Phase 3 — Place Asset Tool và chỉnh sửa
 
