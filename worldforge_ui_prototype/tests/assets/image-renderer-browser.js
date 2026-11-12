@@ -12,7 +12,8 @@ const loader = new AssetLoader(registry);
 let selectedObjectId = null;
 let imageLayerVisible = true;
 let engine;
-const controls = ['image-width','image-height','image-rotation','image-opacity','image-fit','apply-image','toggle-layer','layer-opacity'];
+const imageControls = ['image-width','image-height','image-rotation','image-opacity','image-fit','apply-image'];
+const layerControls = ['toggle-layer','layer-opacity'];
 
 engine = new MapCanvasEngine($('map-canvas'), {
     onSelectionChange: selection => {
@@ -27,9 +28,17 @@ engine.setAssetLoader(loader);
 const packService = new AssetPackService({ registry, loader });
 const exportService = new MapExportService(new CanvasLayerRenderer({ imageRenderer: engine.imageRenderer }));
 function syncControls() {
+    const map = engine.getMapData();
+    const imageLayer = map.layers.find(layer => layer.id === 'layer-decorations');
+    const hasImages = Boolean(imageLayer?.objects.some(object => object.type === 'image'));
     const active = Boolean(selectedObjectId && engine.findObject(selectedObjectId)?.type === 'image');
-    controls.forEach(id => { $(id).disabled = !active; });
-    document.querySelectorAll('[data-export]').forEach(button => { button.disabled = !engine.getMapData().layers.some(layer => layer.objects.some(object => object.type === 'image')); });
+    imageControls.forEach(id => { $(id).disabled = !active; });
+    layerControls.forEach(id => { $(id).disabled = !hasImages; });
+    document.querySelectorAll('[data-export]').forEach(button => {
+        button.disabled = !map.layers.some(layer => layer.objects.some(object => object.type === 'image'));
+    });
+    imageLayerVisible = imageLayer?.visible !== false;
+    $('toggle-layer').textContent = imageLayerVisible ? 'Hide image layer' : 'Show image layer';
     if (!active) return;
     const object = engine.findObject(selectedObjectId);
     $('image-width').value = object.width;
@@ -37,8 +46,6 @@ function syncControls() {
     $('image-rotation').value = object.rotation;
     $('image-opacity').value = object.opacity;
     $('image-fit').value = object.fit;
-    const layer = engine.getMapData().layers.find(item => item.objects.some(object => object.id === selectedObjectId));
-    $('toggle-layer').textContent = layer?.visible ? 'Hide image layer' : 'Show image layer';
 }
 function addImage() {
     const asset = registry.getAsset(...$('asset-select').value.split('::'));
@@ -97,7 +104,7 @@ $('apply-image').addEventListener('click', () => {
 $('toggle-layer').addEventListener('click', () => {
     imageLayerVisible = !imageLayerVisible;
     engine.setLayerVisibility('layer-decorations', imageLayerVisible);
-    $('toggle-layer').textContent = imageLayerVisible ? 'Hide image layer' : 'Show image layer';
+    syncControls();
     status(`Image layer visible: ${imageLayerVisible}. Hidden layers should not render or receive hit tests.`);
 });
 $('layer-opacity').addEventListener('click', () => {
