@@ -17,3 +17,8 @@ The sample Pack is deliberately tiny and uses two 1×1 PNG payloads. It is a tec
 The test suite verifies ZIP round-trip, manifest validation, path traversal rejection, unsupported archive content rejection, image signature checking, minimum Core compatibility, Pack registration and namespace identity, duplicate installation rejection, enabled/disabled behavior, Blob URL loading, and cache eviction/revocation.
 
 Note: the current validator checks image signatures, not full image decoding. A later hardening task should decode images in a browser worker or trusted image decoder and enforce pixel/dimension limits before production distribution.
+
+
+## Phase 2 image-object tests
+
+Run the full Node test suite with `npm test`. The image-object tests cover schema validation, rotation-aware bounds/hit testing, renderer delegation, and the asynchronous image-load redraw path. Browser rendering still requires manual verification in the running application.
