@@ -3,6 +3,7 @@ import { CanvasLayerRenderer } from '../engine/layers/CanvasLayerRenderer.js';
 import { AssetRegistry } from '../assets/asset-registry.js';
 import { AssetLoader } from '../assets/asset-loader.js';
 import { AssetPackService } from '../assets/asset-pack-service.js';
+import { filterAssetLibraryAssets, listAssetLibraryCategories } from '../assets/asset-library-model.js';
 import { TOOL_DEFINITIONS } from '../engine/tools/ToolManager.js';
 import { ENTITY_TYPES, GeographyService } from '../services/geography-service.js';
 import { CIVILIZATION_TYPES, CivilizationService, TYPE_LABELS } from '../services/civilization-service.js';
@@ -268,13 +269,14 @@ export class UIController {
         ).join('');
         if (packs.some(pack => pack.id === previousPack)) packFilter.value = previousPack;
         else this.assetLibraryState.packId = '';
-        const assets = this.canvasEngine.toolManager.listAssetsForTool(toolId, {
-            packId: this.assetLibraryState.packId || null,
-            query: this.assetLibraryState.query
-        }).filter(asset => !this.assetLibraryState.category || asset.category === this.assetLibraryState.category);
-        const categories = [...new Set(this.canvasEngine.toolManager.listAssetsForTool(toolId, {
+        const compatibleAssets = this.canvasEngine.toolManager.listAssetsForTool(toolId, {
             packId: this.assetLibraryState.packId || null
-        }).map(asset => asset.category))].sort();
+        });
+        const assets = filterAssetLibraryAssets(compatibleAssets, {
+            category: this.assetLibraryState.category,
+            query: this.assetLibraryState.query
+        });
+        const categories = listAssetLibraryCategories(compatibleAssets);
         const categoryFilter = document.getElementById('asset-library-category-filter');
         const previousCategory = this.assetLibraryState.category;
         categoryFilter.innerHTML = '<option value="">Tất cả danh mục</option>' + categories.map(category =>
@@ -355,9 +357,10 @@ export class UIController {
             if (packAction === 'toggle') {
                 const pack = this.assetRegistry.getPack(packId);
                 if (!pack) return;
-                this.assetPackService.setPackEnabled(packId, !pack.enabled);
-                if (pack.enabled) this.clearToolAssetSelections(packId);
-                this.notify(`Đã ${pack.enabled ? 'tắt' : 'bật'} Asset Pack "${pack.manifest.name}".`);
+                const wasEnabled = pack.enabled;
+                this.assetPackService.setPackEnabled(packId, !wasEnabled);
+                if (wasEnabled) this.clearToolAssetSelections(packId);
+                this.notify(`Đã ${wasEnabled ? 'tắt' : 'bật'} Asset Pack "${pack.manifest.name}".`);
             } else if (packAction === 'remove') {
                 const pack = this.assetRegistry.getPack(packId);
                 if (!pack) return;
