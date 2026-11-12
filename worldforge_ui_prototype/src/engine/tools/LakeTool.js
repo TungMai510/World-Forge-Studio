@@ -28,6 +28,11 @@ export class LakeTool extends BaseTool {
                 radiusX,
                 radiusY,
                 fill: this.options.color,
+                ...(this.assetSelection ? {
+                    textureAssetRef: { ...this.assetSelection.assetRef },
+                    textureScale: Number.isFinite(this.assetSelection.asset.textureScale)
+                        ? this.assetSelection.asset.textureScale : 1
+                } : {}),
                 stroke: this.options.stroke || '#1e6091',
                 strokeWidth: this.options.size
             }, 'Lake');
