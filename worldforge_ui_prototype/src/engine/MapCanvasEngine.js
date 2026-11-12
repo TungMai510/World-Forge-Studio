@@ -399,6 +399,34 @@ export class MapCanvasEngine {
         return entry.layer.objects[entry.index];
     }
 
+    duplicateObject(objectId = this.selectedObjectId, offset = 16) {
+        if (typeof objectId !== 'string' || !objectId) throw new Error('Select an object to duplicate.');
+        if (!Number.isFinite(offset) || offset < 0 || offset > 1024) {
+            throw new Error('Duplicate offset must be between 0 and 1024.');
+        }
+        const entry = this.findObjectEntry(objectId);
+        if (!entry) throw new Error('Map object not found.');
+        if (entry.layer.locked || !entry.layer.visible) {
+            throw new Error('Cannot duplicate an object on a locked or hidden layer.');
+        }
+
+        const copy = JSON.parse(JSON.stringify(entry.object));
+        copy.id = globalThis.crypto?.randomUUID
+            ? `object-${globalThis.crypto.randomUUID()}`
+            : `object-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        if (copy.type === 'path') {
+            copy.commands = copy.commands.map(command => command.type === 'close'
+                ? { ...command }
+                : { ...command, x: command.x + offset, y: command.y + offset });
+        } else if (copy.type === 'terrain') {
+            copy.points = copy.points.map(point => ({ x: point.x + offset, y: point.y + offset }));
+        } else {
+            copy.x += offset;
+            copy.y += offset;
+        }
+        return this.addObject(entry.layer.id, copy, 'Duplicate object');
+    }
+
     deleteObjects(objectIds, label = 'Delete objects') {
         const ids = new Set(objectIds);
         for (const layer of this.map.layers) {
@@ -667,6 +695,17 @@ export class MapCanvasEngine {
             event.preventDefault();
             if (event.shiftKey) this.redo();
             else this.undo();
+            return;
+        }
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'd') {
+            event.preventDefault();
+            if (this.selectedObjectId) {
+                try {
+                    this.duplicateObject(this.selectedObjectId);
+                } catch (error) {
+                    this.onError(error);
+                }
+            }
             return;
         }
         if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') {
