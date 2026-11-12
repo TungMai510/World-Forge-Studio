@@ -650,3 +650,44 @@ py -m http.server 8000
 Then open `http://localhost:8000/tests/assets/image-renderer-browser.html` and follow the checklist in `tests/assets/README.md`.
 
 Phase 2 remains **in progress** until the updated Node test suite passes and the browser checklist is completed. The harness is QA-only and is not part of the production UI.
+---
+
+## 12. Quyết định kiến trúc: Local-first, Cloud-ready, Collaboration-ready (12/11/2026)
+
+### Kết luận
+
+**Chưa triển khai Real-time Sync hoặc Real-time Collaboration trong các Phase hiện tại.** Đây không phải là tính năng bị loại bỏ; đây là phần mở rộng được chủ động trì hoãn để tránh xây dựng đồng bộ nhiều người dùng trước khi vòng đời dữ liệu cục bộ ổn định.
+
+### Lộ trình dữ liệu và cộng tác
+
+1. **Local Persistence (ưu tiên trước):** hoàn thiện lưu/mở dự án, autosave, khôi phục sau lỗi, migration schema, asset snapshot và lịch sử chỉnh sửa cục bộ.
+2. **Cloud Sync (giai đoạn sau):** đồng bộ dự án giữa nhiều thiết bị của cùng một tài khoản; cần định danh tài khoản, versioning, upload/download, conflict handling và bảo mật.
+3. **Real-time Collaboration (giai đoạn tiếp theo):** nhiều người cùng chỉnh một dự án; cần presence, cursor/selection sharing, quyền truy cập, conflict resolution, locking hoặc mô hình CRDT/OT phù hợp, cùng chính sách collaborative undo.
+4. **Advanced Collaboration:** workspace, comment, review, version history và chia sẻ nâng cao.
+
+### Nguyên tắc kiến trúc áp dụng ngay
+
+- **Local-first:** WorldForge phải hoạt động đầy đủ offline; thao tác chỉnh sửa không phụ thuộc mạng.
+- **Cloud-ready:** dữ liệu và service có ranh giới rõ, có thể bổ sung adapter lưu trữ/đồng bộ mà không viết lại Map Engine.
+- **Collaboration-ready:** các thao tác thay đổi dữ liệu nên đi qua API/command rõ ràng; không để UI sửa trực tiếp cấu trúc dữ liệu tùy tiện.
+- Ghi nhận sự kiện và nguồn thay đổi ở mức cần thiết, nhưng chưa cần WebSocket, server realtime, presence hay CRDT.
+- Không để Asset Pack phụ thuộc cloud; Pack cục bộ phải dùng được offline.
+
+### Những việc không làm ở thời điểm này
+
+- Không xây backend realtime hoặc WebSocket.
+- Không xây đăng nhập/tài khoản chỉ để phục vụ đồng bộ.
+- Không triển khai multi-user editing, cursor sharing, locks hoặc collaborative undo.
+- Không hy sinh độ tin cậy của save/load và archive để chạy theo tính năng cộng tác.
+
+### Điều kiện để mở Cloud Sync
+
+Chỉ bắt đầu thiết kế Cloud Sync sau khi Project Persistence/Archive, schema migration, asset embedding/recovery và kiểm thử offline đạt tiêu chí hoàn thành. Real-time Collaboration chỉ được lên kế hoạch sau khi Cloud Sync có versioning và conflict handling được kiểm chứng.
+
+### Phase 3 — tiến độ triển khai ban đầu
+
+- Đã bổ sung PlaceAssetTool độc lập, hỗ trợ chọn asset qua assetRef, click để đặt theo defaultSize hoặc kéo để xác định bounding box.
+- Tool tạo image object schema v1, mang theo Pack version, rotation, opacity và fit; preview hình chữ nhật xuất hiện trong lúc đặt.
+- Đã đăng ký tool trong ToolManager với phím tắt P và thêm Node tests cho đăng ký, click placement, drag placement, validation và cancel.
+- Phần này mới là nền tảng đặt asset. Di chuyển, resize/rotate handles, duplicate/delete UI và kiểm thử Undo/Redo tích hợp vẫn là các bước tiếp theo của Phase 3.
+- Automated tests chưa được chạy trên checkout thực tế trong phiên cập nhật này; cần chạy `npm test` tại `worldforge_ui_prototype` trước khi xem implementation đã tested.
