@@ -10,7 +10,7 @@ npm run test:assets
 npm test
 ```
 
-The fixture generator creates `tests/assets/fixtures/classic-fantasy.wfpack` using the application's ZIP writer. The Pack contains three generated, valid PNG images: a 96×64 mountain stamp, a 64×96 forest image, and a 64×64 castle icon (`ICO-001`) explicitly declared with `usages: [\`icon\`]`. The icon uses a transparent background and a simple castle emblem. These are technical QA illustrations, not production art. The sample manifest uses CC0-1.0 for the generated fixtures.
+The fixture generator creates `tests/assets/fixtures/classic-fantasy.wfpack` using the application's ZIP writer. The Pack contains four generated, valid PNG images: a 96×64 mountain stamp (`MNT-001`), a 64×96 forest image, a 64×64 castle icon (`ICO-001`) declared with `usages: [\`icon\`]`, and a 48×48 repeating water texture (`WTR-001`) declared with `usages: [\`texture-fill\`]`. The icon uses a transparent background and a simple castle emblem. These are technical QA illustrations, not production art. The sample manifest uses CC0-1.0 for the generated fixtures.
 
 The test suite verifies ZIP round-trip, manifest validation, path traversal rejection, unsupported archive content rejection, image signature checking, minimum Core compatibility, Pack registration and namespace identity, duplicate installation rejection, enabled/disabled behavior, Blob URL loading, cache eviction/revocation, image object schema, geometry/hit testing, renderer fit behavior, lifecycle invalidation, and SVG image embedding.
 
@@ -62,8 +62,9 @@ Open `http://localhost:8000`, open a map project, then verify:
 6. Switch to **Place Asset**, reopen the library and confirm the list is filtered to assets compatible with generic placement. Select one and place it on the map.
 7. Switch to Icon Tool. Confirm only the castle icon (`ICO-001`) is listed, select it, and apply it. Click on the map and confirm the castle emblem renders as an icon object.
 8. Switch to Terrain Tool. Confirm only stamp-compatible assets are listed (the mountain fixture), select `Sample Mountain`, and click the map. Confirm an image stamp is placed centered at the click point. With no selected asset, verify the existing polygon-area workflow still works.
-9. Disable the imported Pack. Confirm its assets disappear from results and any active selection from that Pack is cleared.
-10. Re-enable the Pack and confirm its assets return. Uninstall it and confirm the Pack and assets disappear.
-11. Reopen the library and confirm no duplicate element IDs, uncaught console errors or broken previews.
+9. Switch to Lake Tool. Confirm only `Lake Water Texture` (`WTR-001`) is listed, select it, and drag to create a lake. Confirm the texture repeats inside the ellipse boundary and the outline remains visible. With no texture selected, confirm the original solid-color lake fill still works.
+10. Disable the imported Pack. Confirm its assets disappear from results and any active selection from that Pack is cleared.
+11. Re-enable the Pack and confirm its assets return. Uninstall it and confirm the Pack and assets disappear.
+12. Reopen the library and confirm no duplicate element IDs, uncaught console errors or broken previews.
 
 Pack installation and enabled state are currently in-memory for the editor session; persistence across reloads is not part of Phase 3B.
