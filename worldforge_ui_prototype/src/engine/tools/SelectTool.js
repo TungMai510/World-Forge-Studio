@@ -62,7 +62,7 @@ export class SelectTool extends BaseTool {
 
     startImageEdit(object, mode) {
         const layer = this.engine.map.layers.find(item => item.objects.some(entry => entry.id === object.id));
-        if (!layer || layer.locked || !layer.visible) return;
+        if (!layer || layer.locked || !layer.visible) return false;
         this.engine.beginEditGroup(mode === 'resize' ? 'Resize image' : 'Rotate image');
         this.draggedObjectId = object.id;
         this.editMode = mode;
