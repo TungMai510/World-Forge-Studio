@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { filterAssetLibraryAssets, listAssetLibraryCategories } from '../../src/assets/asset-library-model.js';
 
 const entries = [
-    { id: 'MNT-001', name: 'Snowy Mountain', category: 'mountains', packName: 'Classic Fantasy', description: 'Alpine peak', tags: ['snow', 'peak'] },
+    { id: 'MNT-001', name: 'Snowy Mountain', category: 'mountains', packName: 'Classic Fantasy', description: 'High-altitude summit', tags: ['snow', 'peak'] },
     { id: 'FST-001', name: 'Pine Forest', category: 'forests', packName: 'Classic Fantasy', description: 'Dense woodland', tags: ['pine', 'green'] },
     { id: 'BLD-001', name: 'Stone Keep', category: 'buildings', packName: 'Medieval', description: 'Fortified castle', tags: ['castle'] },
     { id: 'OFF-001', name: 'Disabled Asset', category: 'misc', packName: 'Old Pack', enabled: false }
