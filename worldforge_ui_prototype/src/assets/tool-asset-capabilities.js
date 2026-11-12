@@ -42,7 +42,7 @@ export function normalizeAssetQuery(query = {}) {
     };
 }
 
-export function getAssetCapabilities(asset, { allowLegacyGeneric = true } = {}) {
+export function getAssetCapabilities(asset, { allowLegacyGeneric = false } = {}) {
     if (!asset || typeof asset !== 'object') return [];
     if (asset.usages === undefined) {
         return allowLegacyGeneric ? [...LEGACY_GENERIC_CAPABILITIES] : [];
@@ -64,7 +64,7 @@ export function assetMatchesQuery(asset, query, options = {}) {
 }
 
 export class ToolAssetBinding {
-    constructor({ registry, toolId, query, allowLegacyGeneric = true } = {}) {
+    constructor({ registry, toolId, query, allowLegacyGeneric = false } = {}) {
         if (!registry || typeof registry.listAssets !== 'function' ||
             typeof registry.getAsset !== 'function' || typeof toolId !== 'string' || !toolId.trim()) {
             throw new Error('ToolAssetBinding requires an AssetRegistry and tool ID.');
