@@ -414,3 +414,10 @@ The first shared Asset Library UI is now implemented in the editor:
 - Automated coverage added for vector fallback, semantic reference metadata, repeated/rotated rendering and expanded bounds.
 
 **Verification status:** implementation and test changes are committed; run `npm run assets:fixture` and `npm test` on the updated checkout, then complete the manual browser checklist in `tests/assets/README.md`. Do not mark Phase 3C.4 complete until browser QA and export checks are confirmed.
+
+
+### Export compatibility note for Phase 3C.4
+
+- Canvas-based PNG/JPG/PDF export preloads border pattern references before rendering.
+- SVG export embeds the pattern image as a data URI and emits repeated, tangent-rotated SVG image tiles along the semantic path.
+- Export coverage includes a focused SVG regression test. Browser verification must still confirm all four user-facing formats.
