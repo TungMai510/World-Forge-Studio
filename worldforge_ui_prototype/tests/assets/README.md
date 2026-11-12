@@ -40,3 +40,29 @@ The manual browser harness is development-only. It uses the real Asset Pack pars
 12. Check the browser console for uncaught errors.
 
 Record browser name/version, operating system, each pass/fail result, and console errors. Node tests do not replace this manual browser check.
+
+
+## Phase 3B Shared Asset Library browser verification
+
+Run from `worldforge_ui_prototype/` after pulling the latest `main`:
+
+```powershell
+npm run assets:fixture
+npm test
+npx --yes http-server . -p 8000 -c-1
+```
+
+Open `http://localhost:8000`, open a map project, then verify:
+
+1. Open **Asset Library** from the top navigation while Select is active. Confirm the library shows all enabled assets and the Pack list.
+2. Import `tests/assets/fixtures/classic-fantasy.wfpack`. Confirm the Pack appears and its assets are visible.
+3. Search by asset name, asset ID, Pack name and tag. Confirm the result count and cards update.
+4. Filter by Pack and category; combine the filters and confirm only matching assets remain.
+5. Select an asset card and confirm its image and metadata appear in the preview.
+6. Switch to **Place Asset**, reopen the library and confirm the list is filtered to assets compatible with generic placement. Select one and place it on the map.
+7. Switch to Terrain, Lake, Border and Icon. Confirm the candidate list follows each tool's declared capability query. The apply button is intentionally unavailable for these tools until Phase 3C semantic integration.
+8. Disable the imported Pack. Confirm its assets disappear from results and any active selection from that Pack is cleared.
+9. Re-enable the Pack and confirm its assets return. Uninstall it and confirm the Pack and assets disappear.
+10. Reopen the library and confirm no duplicate element IDs, uncaught console errors or broken previews.
+
+Pack installation and enabled state are currently in-memory for the editor session; persistence across reloads is not part of Phase 3B.
