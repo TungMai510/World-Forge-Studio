@@ -413,7 +413,7 @@ The first shared Asset Library UI is now implemented in the editor:
 - Asset Library selection is enabled for Border Tool and displays a context-specific instruction after selection.
 - Automated coverage added for vector fallback, semantic reference metadata, repeated/rotated rendering and expanded bounds.
 
-**Verification status:** implementation and test changes are committed; run `npm run assets:fixture` and `npm test` on the updated checkout, then complete the manual browser checklist in `tests/assets/README.md`. Do not mark Phase 3C.4 complete until browser QA and export checks are confirmed.
+**Verification status:** implementation and test changes are committed. GitHub Actions run #102 completed successfully, including both Asset Foundation tests and all prototype tests. The updated checkout still needs fixture regeneration (`npm run assets:fixture`) and manual browser QA using `tests/assets/README.md`. Do not mark Phase 3C.4 complete until browser interaction and export checks are confirmed.
 
 
 ### Export compatibility note for Phase 3C.4
