@@ -1,7 +1,7 @@
 # WorldForge Studio — Tool Enhancement Specification
 
 
-**Status:** Architecture and roadmap specification  
+**Status:** Architecture specification; implementation deferred until Asset System / Asset Pack Studio milestone  
 **Date:** 12 November 2026  
 **Scope:** Phases 3E–3I (Selection, Brush, River, Landmass, Typography)  
 **Related documents:** `ROADMAP_WORLD_FORGE_STUDIO.md`, `TOOL_ASSET_INTEGRATION_SPECIFICATION.md`
@@ -12,7 +12,7 @@
 
 This program upgrades the remaining editing tools without replacing the existing map editor or its procedural/vector workflows.
 
-Implementation order:
+Implementation order within the Tool Enhancement program (deferred until the Asset System milestone is stable):
 
 1. **3E Advanced Selection System** — shared interaction foundation.
 2. **3F Brush Tool** — stroke quality and controls.
@@ -20,7 +20,9 @@ Implementation order:
 4. **3H Landmass Tool** — editable coastline geometry.
 5. **3I Typography System** — map labels and font control.
 
-Selection comes first because Brush/River/Landmass objects must participate in predictable selection, movement, history, layer guards and export. A shared Path/Vertex Editor should be designed during 3E and reused in 3G/3H.
+**Project-level priority override (12 November 2026):** this 3E–3I sequence is not the next implementation sequence. First complete Phase 3D verification, then Phase 4 Persistence/Archive, Phase 5 Asset Pack Management, Phase 6 WorldForge Asset Studio, and Phase 7 end-to-end Asset System stabilization. Only after the Create → Export → Import → Use → Save Project → Reopen workflow is verified should 3E–3I begin. Until then, maintain the existing tools only to the level needed for reliable asset selection, placement, basic editing, rendering, export and persistence.
+
+Selection still comes first *within the deferred Tool Enhancement program*, because Brush/River/Landmass objects must participate in predictable selection, movement, history, layer guards and export. A shared Path/Vertex Editor should be designed during 3E and reused in 3G/3H.
 
 ## 2. Current implementation constraints to respect
 
@@ -270,7 +272,7 @@ Generation must be reproducible. Users must be able to disable or adjust the pro
 - Semantic objects remain editable; avoid flattening to raster as a shortcut.
 - Automated tests must be run on the relevant commit; browser QA must be explicitly reported by the repository owner before a phase is marked complete.
 
-## 10. Suggested implementation slices
+## 10. Suggested implementation slices (deferred backlog; retain as the implementation plan after Asset System stabilization)
 
 | Slice | Deliverable |
 |---|---|
