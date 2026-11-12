@@ -1,4 +1,8 @@
 import { MapCanvasEngine, createEmptyMap } from '../engine/MapCanvasEngine.js';
+import { CanvasLayerRenderer } from '../engine/layers/CanvasLayerRenderer.js';
+import { AssetRegistry } from '../assets/asset-registry.js';
+import { AssetLoader } from '../assets/asset-loader.js';
+import { AssetPackService } from '../assets/asset-pack-service.js';
 import { TOOL_DEFINITIONS } from '../engine/tools/ToolManager.js';
 import { ENTITY_TYPES, GeographyService } from '../services/geography-service.js';
 import { CIVILIZATION_TYPES, CivilizationService, TYPE_LABELS } from '../services/civilization-service.js';
@@ -29,7 +33,12 @@ export class UIController {
         this.geographyCityTypeTouched = false;
         this.editingProjectId = null;
         this.toastTimeout = null;
-        this.mapExportService = new MapExportService();
+        this.assetRegistry = new AssetRegistry();
+        this.assetLoader = new AssetLoader(this.assetRegistry);
+        this.assetPackService = new AssetPackService({
+            registry: this.assetRegistry,
+            loader: this.assetLoader
+        });
         this.canvasEngine = new MapCanvasEngine(document.getElementById('map-canvas'), {
             onSelectionChange: selection => this.renderSelection(selection),
             onPointerMove: point => this.renderCoordinates(point),
@@ -40,6 +49,10 @@ export class UIController {
             onToolChange: id => this.renderTools(id),
             onError: error => this.notify(`Lỗi Canvas: ${error.message}`, true)
         });
+        this.canvasEngine.setAssetLoader(this.assetLoader);
+        this.mapExportService = new MapExportService(
+            new CanvasLayerRenderer({ imageRenderer: this.canvasEngine.imageRenderer })
+        );
     }
 
     async init() {
