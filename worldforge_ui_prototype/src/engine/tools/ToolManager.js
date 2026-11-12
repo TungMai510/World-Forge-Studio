@@ -8,6 +8,7 @@ import { LakeTool } from './LakeTool.js';
 import { BorderTool } from './BorderTool.js';
 import { TextTool } from './TextTool.js';
 import { IconTool } from './IconTool.js';
+import { PlaceAssetTool } from './PlaceAssetTool.js';
 
 export const TOOL_DEFINITIONS = [
     { id: 'select', label: 'Select', shortcut: 'V', Tool: SelectTool },
@@ -19,7 +20,8 @@ export const TOOL_DEFINITIONS = [
     { id: 'lake', label: 'Lake', shortcut: 'A', Tool: LakeTool },
     { id: 'border', label: 'Border', shortcut: 'D', Tool: BorderTool },
     { id: 'text', label: 'Text', shortcut: 'X', Tool: TextTool },
-    { id: 'icon', label: 'Icon', shortcut: 'I', Tool: IconTool }
+    { id: 'icon', label: 'Icon', shortcut: 'I', Tool: IconTool },
+    { id: 'place-asset', label: 'Place Asset', shortcut: 'P', Tool: PlaceAssetTool }
 ];
 
 export class ToolManager {
