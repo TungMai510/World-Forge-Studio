@@ -121,7 +121,7 @@ test('map export: embeds image assets in standalone SVG output', async () => {
         }
     });
     const service = new MapExportService(renderer);
-    const image = normalizeImageObject(validImage);
+    const image = normalizeImageObject({ ...validImage, rotation: 30, opacity: 0.5, fit: 'cover' });
     const svg = await service.renderSvg({
         map: {
             width: 1000,
@@ -142,6 +142,9 @@ test('map export: embeds image assets in standalone SVG output', async () => {
     });
     assert.match(svg, /<image /);
     assert.match(svg, /href="data:image\/png;base64,/);
+    assert.match(svg, /preserveAspectRatio="xMidYMid slice"/);
+    assert.match(svg, /opacity="0.5"/);
+    assert.match(svg, /rotate\(30 /);
 });
 
 
@@ -272,4 +275,56 @@ test('image renderer: rejects a reference to a different Pack version', async ()
     });
     const versioned = { ...validImage, assetRef: { ...validImage.assetRef, packVersion: '1.0.0' } };
     await assert.rejects(renderer.ensureImage(versioned), /requires Pack version "1.0.0"/);
+});
+
+
+test('image renderer: contain, cover and fill use the expected draw geometry', async () => {
+    const cases = [
+        { fit: 'contain', expected: [-50, -25, 100, 50], clips: 0 },
+        { fit: 'cover', expected: [-100, -50, 200, 100], clips: 1 },
+        { fit: 'fill', expected: [-50, -50, 100, 100], clips: 0 }
+    ];
+    for (const item of cases) {
+        const renderer = new ImageObjectRenderer({
+            assetLoader: { load: () => ({ url: 'blob:fit-test' }) },
+            createImage: () => ({ complete: true, naturalWidth: 100, naturalHeight: 50, set src(value) { this.source = value; } })
+        });
+        const object = normalizeImageObject({ ...validImage, width: 100, height: 100, fit: item.fit, opacity: 0.4, rotation: 30 });
+        await renderer.ensureImage(object);
+        const calls = { draw: null, clips: 0, rotation: null, alpha: null };
+        const context = {
+            globalAlpha: 1,
+            save() {}, restore() {}, translate() {},
+            rotate(value) { calls.rotation = value; },
+            drawImage(...args) { calls.draw = args.slice(1); calls.alpha = this.globalAlpha; },
+            beginPath() {}, rect() {}, clip() { calls.clips += 1; },
+            fillRect() {}, strokeRect() {}, moveTo() {}, lineTo() {}, stroke() {}
+        };
+        renderer.draw(context, object);
+        assert.deepEqual(calls.draw, item.expected, `${item.fit} draw geometry`);
+        assert.equal(calls.clips, item.clips, `${item.fit} clipping`);
+        assert.ok(Math.abs(calls.rotation - Math.PI / 6) < 1e-10);
+        assert.equal(calls.alpha, 0.4);
+        renderer.destroy();
+    }
+});
+
+test('image renderer: failed image decode reports an error and does not expose a drawable image', async () => {
+    let reported = null;
+    class BrokenImage {
+        constructor() { this.complete = false; this.naturalWidth = 0; this.naturalHeight = 0; }
+        set src(value) { this.source = value; }
+    }
+    const renderer = new ImageObjectRenderer({
+        assetLoader: { load: () => ({ url: 'blob:broken-image' }) },
+        createImage: () => new BrokenImage(),
+        onError: error => { reported = error; }
+    });
+    const pending = renderer.ensureImage(validImage);
+    const entry = [...renderer.images.values()][0];
+    entry.image.onerror();
+    await assert.rejects(pending, /Unable to decode image asset/);
+    assert.match(reported.message, /Unable to decode image asset/);
+    assert.equal(renderer.getImage(validImage), null);
+    renderer.destroy();
 });
