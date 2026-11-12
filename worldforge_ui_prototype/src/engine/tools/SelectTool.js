@@ -150,7 +150,7 @@ export class SelectTool extends BaseTool {
         context.moveTo((corners[0].x + corners[1].x) / 2, (corners[0].y + corners[1].y) / 2);
         context.lineTo(handles.rotate.x, handles.rotate.y);
         context.stroke();
-        for (const point of [...corners, handles.rotate]) {
+        for (const point of [handles.resize, handles.rotate]) {
             context.beginPath();
             context.fillStyle = '#ffffff';
             context.strokeStyle = '#2563eb';
