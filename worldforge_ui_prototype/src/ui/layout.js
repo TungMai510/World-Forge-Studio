@@ -211,6 +211,8 @@ export class UIController {
         document.getElementById('redo-action').addEventListener('click', () => this.canvasEngine.redo());
         document.getElementById('selection-form').addEventListener('submit', event => this.handleSelectionSubmit(event));
         document.getElementById('delete-selection').addEventListener('click', () => this.deleteSelection());
+        document.getElementById('duplicate-selection-action').addEventListener('click', () => this.duplicateSelection());
+        document.getElementById('delete-selection-action').addEventListener('click', () => this.deleteSelection());
         document.getElementById('export-project-button').addEventListener('click', () => {
             if (this.currentProject) this.exportProject(this.currentProject);
         });
@@ -1786,11 +1788,19 @@ export class UIController {
     renderSelection(selection) {
         const details = document.getElementById('selection-details');
         const form = document.getElementById('selection-form');
+        const duplicateButton = document.getElementById('duplicate-selection-action');
+        const deleteButton = document.getElementById('delete-selection-action');
         if (!selection) {
             details.textContent = 'Chọn một đối tượng trên bản đồ để xem tọa độ.';
             form.classList.add('hidden');
+            duplicateButton.disabled = true;
+            deleteButton.disabled = true;
             return;
         }
+        const selectedEntry = this.canvasEngine.findObjectEntry(selection.id);
+        const canEditSelection = Boolean(selectedEntry && selectedEntry.layer.visible && !selectedEntry.layer.locked);
+        duplicateButton.disabled = !canEditSelection;
+        deleteButton.disabled = !canEditSelection;
         const linkedGeography = this.geographyService && this.geographyService.getByMapObjectId(selection.id);
         const pathStart = selection.type === 'path'
             ? selection.commands.find(command => command.type !== 'close')
@@ -1911,6 +1921,17 @@ export class UIController {
             this.notify('Đã cập nhật đối tượng.');
         } catch (error) {
             this.notify(`Không thể cập nhật đối tượng: ${error.message}`, true);
+        }
+    }
+
+    duplicateSelection() {
+        const id = this.canvasEngine.selectedObjectId;
+        if (!id) return;
+        try {
+            this.canvasEngine.duplicateObject(id);
+            this.notify('Đã nhân bản đối tượng.');
+        } catch (error) {
+            this.notify(`Không thể nhân bản đối tượng: ${error.message}`, true);
         }
     }
 
