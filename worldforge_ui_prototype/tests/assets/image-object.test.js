@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import { MapCanvasEngine } from '../../src/engine/MapCanvasEngine.js';
 import { CanvasLayerRenderer } from '../../src/engine/layers/CanvasLayerRenderer.js';
 import { MapExportService } from '../../src/services/map-export-service.js';
+import { AssetRegistry } from '../../src/assets/asset-registry.js';
+import { AssetLoader } from '../../src/assets/asset-loader.js';
+import { AssetPackService } from '../../src/assets/asset-pack-service.js';
 import {
     normalizeImageObject,
     getImageObjectBounds,
@@ -212,4 +215,59 @@ test('image renderer: immediately decoded images trigger a redraw notification',
     await renderer.ensureImage(validImage);
     assert.equal(invalidations, 1);
     assert.ok(renderer.getImage(validImage));
+});
+
+
+test('asset pack lifecycle: disabling a Pack invalidates the renderer decoded-image cache', async () => {
+    const originalCreate = URL.createObjectURL;
+    const originalRevoke = URL.revokeObjectURL;
+    let nextUrl = 0;
+    URL.createObjectURL = () => `blob:asset-${++nextUrl}`;
+    URL.revokeObjectURL = () => {};
+    try {
+        const packId = validImage.assetRef.packId;
+        const registry = new AssetRegistry();
+        registry.registerPack({
+            enabled: true,
+            manifest: {
+                id: packId,
+                name: 'Test Pack',
+                version: '1.0.0',
+                assets: [{ id: validImage.assetRef.assetId, name: 'Mountain', file: 'assets/mountain.png', mimeType: 'image/png' }]
+            },
+            files: new Map([['assets/mountain.png', new Uint8Array([137,80,78,71,13,10,26,10])]])
+        });
+        const loader = new AssetLoader(registry);
+        const service = new AssetPackService({ registry, loader });
+        class CompleteImage {
+            constructor() { this.complete = true; this.naturalWidth = 40; this.naturalHeight = 40; }
+            set src(value) { this.source = value; }
+        }
+        const renderer = new ImageObjectRenderer({ assetLoader: loader, createImage: () => new CompleteImage() });
+        await renderer.ensureImage(validImage);
+        assert.equal(renderer.images.size, 1);
+
+        service.setPackEnabled(packId, false);
+        assert.equal(renderer.images.size, 0);
+        assert.throws(() => loader.load(packId, validImage.assetRef.assetId), /Pack is disabled/);
+
+        service.setPackEnabled(packId, true);
+        await renderer.ensureImage(validImage);
+        assert.equal(renderer.images.size, 1);
+        assert.equal(nextUrl, 2);
+        renderer.destroy();
+        loader.clear();
+    } finally {
+        URL.createObjectURL = originalCreate;
+        URL.revokeObjectURL = originalRevoke;
+    }
+});
+
+test('image renderer: rejects a reference to a different Pack version', async () => {
+    const renderer = new ImageObjectRenderer({
+        assetLoader: { load: () => ({ url: 'blob:wrong-version', packVersion: '2.0.0' }) },
+        createImage: () => ({})
+    });
+    const versioned = { ...validImage, assetRef: { ...validImage.assetRef, packVersion: '1.0.0' } };
+    await assert.rejects(renderer.ensureImage(versioned), /requires Pack version "1.0.0"/);
 });
