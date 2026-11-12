@@ -31,7 +31,29 @@ export function createFixturePng(width, height, style = 'mountain') {
         for (let x = 0; x < width; x += 1) {
             const offset = row + 1 + x * 4;
             let color;
-            if (style === 'forest') {
+            if (style === 'icon') {
+                const cx = width / 2;
+                const cy = height / 2;
+                const radius = Math.min(width, height) * 0.44;
+                const dx = x - cx;
+                const dy = y - cy;
+                const insideBadge = dx * dx + dy * dy <= radius * radius;
+                color = insideBadge ? [43, 54, 76, 255] : [0, 0, 0, 0];
+                const left = width * 0.27;
+                const right = width * 0.73;
+                const base = height * 0.72;
+                const wallTop = height * 0.43;
+                const towerLeft = width * 0.39;
+                const towerRight = width * 0.61;
+                const towerTop = height * 0.25;
+                const inWall = x >= left && x <= right && y >= wallTop && y <= base;
+                const inTower = x >= towerLeft && x <= towerRight && y >= towerTop && y <= base;
+                const battlement = y >= height * 0.36 && y <= wallTop &&
+                    ((x >= left && x <= width * 0.38) || (x >= width * 0.62 && x <= right));
+                const gate = x >= width * 0.45 && x <= width * 0.55 && y >= height * 0.56 && y <= base;
+                if (insideBadge && (inWall || inTower || battlement) && !gate) color = [235, 204, 133, 255];
+                if (insideBadge && x >= width * 0.47 && x <= width * 0.53 && y >= height * 0.28 && y <= height * 0.4) color = [43, 54, 76, 255];
+            } else if (style === 'forest') {
                 color = [205, 224, 190, 255];
                 const treeCenters = [width * 0.25, width * 0.5, width * 0.75];
                 const tree = treeCenters.some(center => {
