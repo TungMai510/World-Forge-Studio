@@ -20,7 +20,7 @@ const manifest = {
   compatibility: { minWorldForgeVersion: '1.0.0' },
   categories: ['mountains', 'forests', 'symbols'],
   assets: [
-    { id: 'MNT-001', name: 'Sample Mountain', category: 'mountains', type: 'image', file: 'assets/mountains/mountain.png', mimeType: 'image/png', tags: ['mountain', 'nature'], defaultSize: { width: 180, height: 120 } },
+    { id: 'MNT-001', name: 'Sample Mountain', category: 'mountains', type: 'image', file: 'assets/mountains/mountain.png', mimeType: 'image/png', usages: ['stamp'], tags: ['mountain', 'nature'], defaultSize: { width: 180, height: 120 } },
     { id: 'FST-001', name: 'Sample Forest', category: 'forests', type: 'image', file: 'assets/forests/forest.png', mimeType: 'image/png', tags: ['forest', 'nature'], defaultSize: { width: 100, height: 150 } },
     { id: 'ICO-001', name: 'Castle Icon', category: 'symbols', type: 'image', file: 'assets/icons/castle-icon.png', mimeType: 'image/png', usages: ['icon'], tags: ['castle', 'capital', 'settlement', 'icon'], defaultSize: { width: 64, height: 64 } }
   ]
