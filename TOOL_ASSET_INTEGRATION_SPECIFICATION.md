@@ -9,6 +9,17 @@
 
 ## 1. Purpose
 
+## Phase 3C implementation log
+
+### 3C.1 — Icon Tool (in progress)
+
+- The Asset Library can apply an `icon`-capable image to the active Icon Tool.
+- IconTool continues to create semantic `type: 'icon'` map objects; it stores the namespaced `assetRef` rather than converting the icon into a generic image object.
+- CanvasLayerRenderer delegates asset-backed icon drawing to ImageObjectRenderer, preserving the existing vector icon fallback when no asset is selected.
+- Automated coverage is added for vector fallback, semantic object creation and renderer delegation.
+- Terrain, Lake and Border remain browse-only until their own semantic rendering/placement adapters and tests are implemented. A shared BaseTool selection state alone is not considered completed integration.
+
+
 This document defines how existing map tools consume resources supplied by installed Asset Packs.
 
 The current prototype has two separate paths:
