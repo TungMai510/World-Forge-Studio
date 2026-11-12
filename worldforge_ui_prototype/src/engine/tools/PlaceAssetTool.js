@@ -116,8 +116,9 @@ export class PlaceAssetTool extends BaseTool {
         };
     }
 
-    pointerUp({ world }) {
+    pointerUp({ world, screen }) {
         if (!this.placement) return;
+        this.pointerMove({ world, screen });
         const placement = this.placement;
         this.placement = null;
         const bounds = this.getBoundsForPlacement(placement, world);
