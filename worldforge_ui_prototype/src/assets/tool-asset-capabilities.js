@@ -15,11 +15,13 @@ export function normalizeAssetQuery(query = {}) {
         throw new Error('Asset query must be an object.');
     }
     const requiredCapabilities = query.requiredCapabilities ?? [];
+    const anyCapabilities = query.anyCapabilities ?? [];
     const categories = query.categories ?? [];
     const tags = query.tags ?? [];
     const acceptedTypes = query.acceptedTypes ?? ['image'];
     for (const [label, value] of [
         ['requiredCapabilities', requiredCapabilities],
+        ['anyCapabilities', anyCapabilities],
         ['categories', categories],
         ['tags', tags],
         ['acceptedTypes', acceptedTypes]
@@ -28,11 +30,12 @@ export function normalizeAssetQuery(query = {}) {
             throw new Error(`Asset query ${label} must be an array of non-empty strings.`);
         }
     }
-    if (requiredCapabilities.some(capability => !KNOWN_CAPABILITIES.has(capability))) {
+    if ([...requiredCapabilities, ...anyCapabilities].some(capability => !KNOWN_CAPABILITIES.has(capability))) {
         throw new Error('Asset query contains an unsupported capability.');
     }
     return {
         requiredCapabilities: [...new Set(requiredCapabilities)],
+        anyCapabilities: [...new Set(anyCapabilities)],
         categories: [...new Set(categories)],
         tags: [...new Set(tags.map(tag => tag.toLocaleLowerCase()))],
         acceptedTypes: [...new Set(acceptedTypes)]
@@ -56,7 +59,8 @@ export function assetMatchesQuery(asset, query, options = {}) {
     const ownTags = Array.isArray(asset.tags) ? asset.tags.map(tag => String(tag).toLocaleLowerCase()) : [];
     if (!normalized.tags.every(tag => ownTags.includes(tag))) return false;
     const capabilities = getAssetCapabilities(asset, options);
-    return normalized.requiredCapabilities.every(capability => capabilities.includes(capability));
+    return normalized.requiredCapabilities.every(capability => capabilities.includes(capability)) &&
+        (!normalized.anyCapabilities.length || normalized.anyCapabilities.some(capability => capabilities.includes(capability)));
 }
 
 export class ToolAssetBinding {
