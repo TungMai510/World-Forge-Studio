@@ -410,6 +410,25 @@
                 <label id="tool-text-control" class="hidden items-center gap-2 text-[11px] text-wfs-muted">
                     Nhãn <input id="tool-text" type="text" maxlength="500" value="Label" class="w-36 rounded border border-wfs-border bg-wfs-bg px-2 py-1 text-white">
                 </label>
+                <div id="place-asset-options" class="hidden flex-wrap items-center gap-2 border-l border-wfs-border pl-3">
+                    <label class="flex items-center gap-1 text-[11px] text-wfs-muted">W
+                        <input id="place-asset-width" type="number" min="1" max="8192" value="128" class="w-16 rounded border border-wfs-border bg-wfs-bg px-2 py-1 text-white">
+                    </label>
+                    <label class="flex items-center gap-1 text-[11px] text-wfs-muted">H
+                        <input id="place-asset-height" type="number" min="1" max="8192" value="128" class="w-16 rounded border border-wfs-border bg-wfs-bg px-2 py-1 text-white">
+                    </label>
+                    <label class="flex items-center gap-1 text-[11px] text-wfs-muted">Góc
+                        <input id="place-asset-rotation" type="number" min="-36000" max="36000" value="0" class="w-16 rounded border border-wfs-border bg-wfs-bg px-2 py-1 text-white">
+                    </label>
+                    <label class="flex items-center gap-1 text-[11px] text-wfs-muted">Opacity
+                        <input id="place-asset-opacity" type="range" min="0" max="1" step="0.05" value="1" class="w-20 accent-blue-500">
+                    </label>
+                    <label class="flex items-center gap-1 text-[11px] text-wfs-muted">Fit
+                        <select id="place-asset-fit" class="rounded border border-wfs-border bg-wfs-bg px-2 py-1 text-white">
+                            <option value="contain">Contain</option><option value="cover">Cover</option><option value="fill">Fill</option>
+                        </select>
+                    </label>
+                </div>
             </div>
             
             <!-- Floating Zoom Controls -->
