@@ -1,4 +1,10 @@
+import { getImageObjectBounds, hitTestImageObject } from '../objects/ImageObjectRenderer.js';
+
 export class CanvasLayerRenderer {
+    constructor({ imageRenderer = null } = {}) {
+        this.imageRenderer = imageRenderer;
+    }
+
     draw(context, layer, { selectedObjectId, zoom }) {
         for (const object of layer.objects) {
             this.drawObject(context, object);
@@ -7,6 +13,10 @@ export class CanvasLayerRenderer {
     }
 
     drawObject(context, object) {
+        if (object.type === 'image') {
+            this.imageRenderer?.draw(context, object);
+            return;
+        }
         context.save();
         context.fillStyle = object.fill || '#d97706';
         context.strokeStyle = object.stroke || '#78350f';
@@ -204,6 +214,7 @@ export class CanvasLayerRenderer {
     }
 
     getBounds(object) {
+        if (object.type === 'image') return getImageObjectBounds(object);
         if (object.type === 'rect') {
             return { x: object.x, y: object.y, width: object.width, height: object.height };
         }
@@ -255,6 +266,7 @@ export class CanvasLayerRenderer {
     }
 
     hitTest(object, point, tolerance) {
+        if (object.type === 'image') return hitTestImageObject(object, point, tolerance);
         if (object.type === 'rect') {
             return point.x >= object.x - tolerance &&
                 point.x <= object.x + object.width + tolerance &&
