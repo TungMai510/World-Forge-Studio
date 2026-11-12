@@ -32,7 +32,7 @@ function pathData(commands) {
     }).join(' ');
 }
 
-function svgObject(object) {
+function svgObject(object, imageHref = null) {
     const fill = object.fill === 'transparent' ? 'none' : escapeXml(object.fill || '#d97706');
     const stroke = escapeXml(object.stroke || '#78350f');
     const strokeWidth = Number.isFinite(object.strokeWidth) ? object.strokeWidth : 2;
@@ -88,6 +88,13 @@ function svgObject(object) {
             }
             return `<circle cx="${point.x}" cy="${point.y}" r="${Math.max(1, r * .15)}" fill="${fill}"/>`;
         }).join('');
+    }
+    if (object.type === 'image') {
+        if (!imageHref) throw new Error('Image export requires a loaded AssetLoader and image data.');
+        const centerX = object.x + object.width / 2;
+        const centerY = object.y + object.height / 2;
+        const preserve = object.fit === 'cover' ? 'xMidYMid slice' : object.fit === 'fill' ? 'none' : 'xMidYMid meet';
+        return `<image x="${object.x}" y="${object.y}" width="${object.width}" height="${object.height}" opacity="${object.opacity ?? 1}" preserveAspectRatio="${preserve}" transform="rotate(${object.rotation || 0} ${centerX} ${centerY})" href="${escapeXml(imageHref)}"/>`;
     }
     throw new Error(`Cannot export map object type "${object.type}" as SVG.`);
 }
@@ -145,7 +152,14 @@ export class MapExportService {
 
     async exportMap(map, options) {
         const config = this.validateOptions(map, options);
-        if (config.format === 'svg') return new Blob([this.renderSvg(config)], { type: 'image/svg+xml;charset=utf-8' });
+        const imageObjects = config.map.layers
+            .filter(layer => layer.visible && config.layerIds.has(layer.id))
+            .flatMap(layer => layer.objects.filter(object => object.type === 'image'));
+        if (imageObjects.length) {
+            if (!this.renderer.imageRenderer) throw new Error('Image export is unavailable because no AssetLoader is connected to the map renderer.');
+            await this.renderer.imageRenderer.preload(imageObjects);
+        }
+        if (config.format === 'svg') return new Blob([await this.renderSvg(config)], { type: 'image/svg+xml;charset=utf-8' });
         const canvas = this.renderCanvas(config, config.format === 'jpg' || config.format === 'pdf');
         if (config.format === 'png') return canvasToBlob(canvas, 'image/png');
         if (config.format === 'jpg') return canvasToBlob(canvas, 'image/jpeg', 0.94);
@@ -192,17 +206,27 @@ export class MapExportService {
         return canvas;
     }
 
-    renderSvg(config) {
+    async renderSvg(config) {
         const mapHeight = config.height * config.scale;
         const scale = Math.min(config.width * config.scale / config.map.width, mapHeight / config.map.height);
         const offsetX = (config.width * config.scale - config.map.width * scale) / 2;
         const offsetY = (mapHeight - config.map.height * scale) / 2;
         const background = config.transparent ? '' : `<rect width="${config.pixelWidth}" height="${config.pixelHeight}" fill="#ffffff"/>`;
-        const layers = config.map.layers.filter(layer => layer.visible && config.layerIds.has(layer.id) &&
-            !(config.transparent && layer.role === 'background')).map(layer => {
-            const objects = layer.objects.map(svgObject).join('');
+        const layers = (await Promise.all(config.map.layers.filter(layer => layer.visible && config.layerIds.has(layer.id) &&
+            !(config.transparent && layer.role === 'background')).map(async layer => {
+            const objects = (await Promise.all(layer.objects.map(async object => {
+                if (object.type !== 'image') return svgObject(object);
+                const loaded = this.renderer.imageRenderer.assetLoader.load(object.assetRef.packId, object.assetRef.assetId);
+                const bytes = new Uint8Array(await loaded.blob.arrayBuffer());
+                let binary = '';
+                for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+                    binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+                }
+                const imageHref = `data:${loaded.mimeType};base64,${btoa(binary)}`;
+                return svgObject(object, imageHref);
+            }))).join('');
             return `<g opacity="${layer.opacity}" filter="url(#${config.style})"><g transform="translate(${offsetX} ${offsetY}) scale(${scale})">${objects}</g></g>`;
-        }).join('');
+        }))).join('');
         const caption = config.caption
             ? `<text x="${16 * config.scale}" y="${mapHeight + 20 * config.scale}" fill="#1f2937" font-size="${14 * config.scale}" font-family="sans-serif">${escapeXml(config.caption)}</text>`
             : '';
