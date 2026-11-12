@@ -558,3 +558,23 @@ Các file đã được ghi lên GitHub và đọc lại để kiểm tra nội 
 3. Kiểm thử tạo archive → inspect → install → registry lookup → AssetLoader Blob URL → disable/uninstall.
 4. Kiểm thử cache URL revoke và trường hợp ảnh lỗi.
 5. Chỉ sau khi các test trên pass mới chuyển sang Phase 2: Image Object + Renderer.
+
+
+### Cập nhật QA Phase 1 — bộ kiểm thử và Pack mẫu
+
+Đã bổ sung:
+- `worldforge_ui_prototype/package.json` với Node.js test scripts, yêu cầu Node.js 20+.
+- `tests/assets/create-fixture.js` để sinh Pack mẫu `classic-fantasy.wfpack` (2 ảnh PNG 1×1, manifest và LICENSE).
+- `tests/assets/asset-foundation.test.js` với các kiểm thử ZIP round-trip, manifest hợp lệ/không hợp lệ, path traversal, entry script không được phép, chữ ký ảnh, tương thích phiên bản, namespace asset, cài Pack trùng ID, cache eviction và luồng tích hợp Archive → Validator → Registry → Loader.
+- `tests/assets/README.md` hướng dẫn chạy.
+- `.github/workflows/worldforge-tests.yml` chạy test trên push/PR.
+- AssetPackService nhận AssetLoader tùy chọn để thu hồi Blob URL khi Pack bị disable hoặc uninstall.
+
+Lệnh chạy từ thư mục `worldforge_ui_prototype/`:
+```bash
+npm run assets:fixture
+npm run test:assets
+npm test
+```
+
+**Trạng thái:** Mã kiểm thử và CI đã được commit lên GitHub. Chưa xác nhận kết quả chạy thực tế từ môi trường này; cần kiểm tra GitHub Actions sau khi workflow hoàn tất hoặc chạy các lệnh trên máy local. Fixture là ảnh kỹ thuật 1×1, không phải bộ art chính thức. Validator hiện kiểm tra chữ ký file chứ chưa giải mã đầy đủ pixel/dimension; cần hardening trước khi phân phối Pack rộng rãi.
