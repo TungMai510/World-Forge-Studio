@@ -392,3 +392,12 @@ The first shared Asset Library UI is now implemented in the editor:
 - When a compatible `stamp` asset is selected, a click places a centered Image Object using the Pack's `defaultSize` and namespaced asset reference.
 - The shared Asset Library apply action is enabled for Terrain.
 - Unit coverage is being added for vector fallback, semantic image-stamp creation and renderer delegation. Local test and browser verification remain pending until the owner pulls this commit.
+
+
+## Phase 3C.3 — Lake Tool texture fill (in progress)
+
+- LakeTool retains its existing solid-color ellipse when no texture asset is selected.
+- A selected `texture-fill` asset reference is stored on the lake object as `textureAssetRef`.
+- CanvasLayerRenderer requests the texture image from ImageObjectRenderer and repeats it inside the ellipse clip; the existing lake outline is drawn above it.
+- Classic Fantasy QA fixture adds `WTR-001` Lake Water Texture with `usages: ["texture-fill"]`.
+- Unit coverage and browser verification are pending on the owner’s local checkout.
