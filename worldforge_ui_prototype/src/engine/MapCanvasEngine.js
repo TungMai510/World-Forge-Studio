@@ -236,6 +236,10 @@ export class MapCanvasEngine {
         this.imageRenderer.setAssetLoader(assetLoader);
     }
 
+    setAssetRegistry(assetRegistry) {
+        return this.toolManager.setAssetRegistry(assetRegistry);
+    }
+
     registerLayerRenderer(type, renderer) {
         if (typeof type !== 'string' || !type.trim() || !renderer || typeof renderer.draw !== 'function') {
             throw new Error('A layer renderer must have a type and a draw(context, layer, state) method.');
