@@ -295,11 +295,11 @@ Tiếp tục hỗ trợ import formatVersion 1 và legacy JSON. Import all-or-no
 | Slice | Nội dung | Trạng thái |
 |---|---|---|
 | 4.1 | Snapshot contract, capture, deduplication, SHA-256 metadata, Pack→snapshot runtime fallback | **Hoàn tất — chủ dự án xác nhận 13/11/2026** |
-| 4.2 | Harden save/load, verify snapshot persistence/integrity on reload, regression tests | **Công việc tiếp theo** |
-| 4.3 | Portable archive v2, binary snapshot entries, manifest integrity, v1 compatibility | Chưa hoàn tất |
+| 4.2 | Harden save/load, verify snapshot persistence/integrity on reload, regression tests | Đang hoàn thiện; archive import đã có re-verification |
+| 4.3 | Portable archive v2, binary snapshot entries, manifest integrity, v1 compatibility | **Đã triển khai; 84 automated tests pass; browser/clean-profile QA còn lại** |
 | 4.4 | Round-trip, clean-profile, offline, corruption/security và all-or-nothing QA | Chưa hoàn tất |
 
-Phase 4.1 đã được browser QA xác nhận: save/reopen giữ ảnh; gỡ Pack ngay trong phiên không làm ảnh biến mất do snapshot fallback. Automated coverage được bổ sung cho deduplication, giữ snapshot sau uninstall và fallback khi Pack disable. Digest được tạo khi capture; re-verification cryptographic đầy đủ khi load/import vẫn thuộc hardening tiếp theo.
+Phase 4.1 đã được browser QA xác nhận: save/reopen giữ ảnh; gỡ Pack ngay trong phiên không làm ảnh biến mất do snapshot fallback. Automated coverage được bổ sung cho deduplication, giữ snapshot sau uninstall và fallback khi Pack disable. Phase 4.3 đã thêm `.wforge` formatVersion 2 với snapshot binary entries deterministic theo SHA-256, manifest metadata, project-entry checksum, MIME/image-signature validation, phát hiện entry thừa/thiếu và vẫn hỗ trợ import v1. Automated suite hiện có 84 bài pass; browser/clean-profile QA và kiểm tra persistence sau reload vẫn cần hoàn tất trước khi đóng Phase 4.
 
 Phase 4 chỉ được đóng khi project có Pack-backed assets render đúng sau save/reopen, disable/uninstall Pack, export/import và import trên browser profile sạch không có Pack gốc. Canonical references, Pack version và transform phải giữ nguyên.
 
@@ -570,6 +570,7 @@ File này là nguồn Markdown tổng hợp chuẩn duy nhất ở repository ro
 | 12/11/2026 | WorldForge AI Layer là kiến trúc tương lai, không phải quyền triển khai AI ngay trong Asset System. |
 | 13/11/2026 | Chủ dự án xác nhận Phase 3D hoàn tất. |
 | 13/11/2026 | Phase 4.1 snapshot capture/runtime fallback hoàn tất sau browser QA; Phase 4.2 là việc tiếp theo. |
+| 13/11/2026 | Triển khai Phase 4.3 `.wforge` formatVersion 2: binary snapshot entries theo SHA-256, manifest integrity, v1 compatibility; 84 automated tests pass. |
 | 13/11/2026 | Bổ sung định hướng World Environment Studio: lục địa, địa chất, khí hậu, thời tiết, gió mùa, hải lưu, thủy văn và biome. |
 | 13/11/2026 | Hợp nhất tài liệu Markdown tổng hợp thành file master duy nhất; loại bỏ các bản trùng lặp và lịch sử roadmap lặp lại. |
 
@@ -577,15 +578,16 @@ File này là nguồn Markdown tổng hợp chuẩn duy nhất ở repository ro
 
 ## 15. Trạng thái hiện tại và việc tiếp theo
 
-**Milestone đang hoạt động: Phase 4.2 — Project save/load hardening.**
+**Milestone đang hoạt động: Phase 4.2–4.3 — Project save/load và portable archive hardening.**
 
 Việc cần làm:
 1. Kiểm tra snapshot persistence sau reload và schema compatibility.
 2. Bổ sung digest re-verification khi load/import; kiểm tra missing/corrupt snapshot.
 3. Bổ sung automated regression tests cho save/open và Pack disable/uninstall.
-4. Phase 4.3: triển khai .wforge formatVersion 2 với snapshot binary entries và manifest integrity.
-5. Phase 4.4: round-trip, clean-profile, offline, security limits và all-or-nothing import.
-6. Chỉ sau khi Phase 4 đạt acceptance gate mới chuyển sang Phase 5 Pack Manager.
+4. Browser QA cho export/import `.wforge` v2, clean profile và Pack disable/uninstall.
+5. Phase 4.4: round-trip, offline, security limits và all-or-nothing import QA.
+6. Hoàn tất kiểm tra persistence sau reload và schema compatibility của snapshot.
+7. Chỉ sau khi Phase 4 đạt acceptance gate mới chuyển sang Phase 5 Pack Manager.
 
 **Chưa chuyển trọng tâm sang:** marketplace, payment, AI generation, cloud sync, multiverse conflict hoặc World Environment simulation trước khi các nền tảng ưu tiên hoàn tất.
 

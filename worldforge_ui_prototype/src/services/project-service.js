@@ -3,6 +3,7 @@ import { ENTITY_TYPES, GeographyService } from './geography-service.js';
 import { CivilizationService } from './civilization-service.js';
 import { MapCanvasEngine, createEmptyMap } from '../engine/MapCanvasEngine.js';
 import { createZipArchive, decodeAssetDataUrl, encodeDataUrlAsset, readZipArchive } from './archive-service.js';
+import { sha256Fallback } from './project-asset-snapshot-service.js';
 
 export const SCHEMA_VERSION = 2;
 const MAX_NAME_LENGTH = 80;
@@ -11,7 +12,58 @@ const MAX_COVER_LENGTH = 3 * 1024 * 1024;
 const MAX_RECENT_PROJECTS = 10;
 const MAX_PROJECT_ARCHIVE_SIZE = 100 * 1024 * 1024;
 const MAX_PROJECT_ARCHIVE_ENTRIES = 10000;
+const MAX_PROJECT_SNAPSHOT_BYTES = 20 * 1024 * 1024;
+const MAX_PROJECT_SNAPSHOT_FILE_BYTES = 15 * 1024 * 1024;
 const PROJECT_ARCHIVE_FORMAT = 'WorldForgeStudioProject';
+const PROJECT_ARCHIVE_VERSION = 2;
+
+const SNAPSHOT_TYPES = Object.freeze({
+    'image/png': 'png',
+    'image/jpeg': 'jpg',
+    'image/webp': 'webp',
+    'image/gif': 'gif'
+});
+
+function bytesFromBase64(value) {
+    if (typeof value !== 'string' || !/^[A-Za-z0-9+/]*={0,2}$/.test(value) || value.length % 4 === 1) {
+        throw new Error('Project snapshot data is not valid base64.');
+    }
+    let binary;
+    try {
+        binary = atob(value);
+    } catch {
+        throw new Error('Project snapshot data is not valid base64.');
+    }
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+    return bytes;
+}
+
+function hasImageSignature(bytes, mimeType) {
+    if (mimeType === 'image/png') return bytes.length >= 8 && [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].every((value, index) => bytes[index] === value);
+    if (mimeType === 'image/jpeg') return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+    if (mimeType === 'image/gif') return bytes.length >= 6 && new TextDecoder().decode(bytes.subarray(0, 6)) === 'GIF87a' || new TextDecoder().decode(bytes.subarray(0, 6)) === 'GIF89a';
+    if (mimeType === 'image/webp') return bytes.length >= 12 && new TextDecoder().decode(bytes.subarray(0, 4)) === 'RIFF' && new TextDecoder().decode(bytes.subarray(8, 12)) === 'WEBP';
+    return false;
+}
+
+function snapshotPath(snapshot) {
+    const extension = SNAPSHOT_TYPES[snapshot.mimeType];
+    return `assets/${snapshot.sha256}.${extension}`;
+}
+
+function validateSnapshotBytes(snapshot, bytes, context = 'Project snapshot') {
+    if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) throw new Error(`${context} metadata is invalid.`);
+    const extension = SNAPSHOT_TYPES[snapshot.mimeType];
+    if (!extension || !Number.isInteger(snapshot.size) || snapshot.size !== bytes.length || bytes.length > MAX_PROJECT_SNAPSHOT_FILE_BYTES) {
+        throw new Error(`${context} has an invalid byte length or MIME type.`);
+    }
+    if (typeof snapshot.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(snapshot.sha256) || sha256Fallback(bytes) !== snapshot.sha256) {
+        throw new Error(`${context} failed its SHA-256 integrity check.`);
+    }
+    if (!hasImageSignature(bytes, snapshot.mimeType)) throw new Error(`${context} failed its image signature check.`);
+    return extension;
+}
 
 function validateMap(map) {
     const validator = Object.create(MapCanvasEngine.prototype);
@@ -145,6 +197,39 @@ export class ProjectService {
     exportProjectPackage(project) {
         const validated = this.validateProject(project);
         const exportedProject = JSON.parse(JSON.stringify(validated));
+        const snapshots = Array.isArray(exportedProject.data.assetSnapshots)
+            ? exportedProject.data.assetSnapshots
+            : [];
+        const snapshotFiles = new Map();
+        const snapshotManifest = [];
+        let snapshotBytes = 0;
+        const snapshotKeys = new Set();
+        for (const snapshot of snapshots) {
+            if (snapshotKeys.has(snapshot?.key)) throw new Error(`Project contains duplicate asset snapshot "${snapshot?.key}".`);
+            snapshotKeys.add(snapshot?.key);
+            const bytes = bytesFromBase64(snapshot?.data);
+            validateSnapshotBytes(snapshot, bytes);
+            snapshotBytes += bytes.length;
+            if (snapshotBytes > MAX_PROJECT_SNAPSHOT_BYTES) throw new Error('Project asset snapshots exceed the 20 MB archive limit.');
+            const path = snapshotPath(snapshot);
+            const existing = snapshotFiles.get(path);
+            if (existing && (existing.length !== bytes.length || sha256Fallback(existing) !== sha256Fallback(bytes))) {
+                throw new Error(`Project snapshot path collision for "${snapshot.key}".`);
+            }
+            snapshotFiles.set(path, bytes);
+            snapshotManifest.push({
+                key: snapshot.key,
+                packId: snapshot.packId,
+                ...(snapshot.packVersion ? { packVersion: snapshot.packVersion } : {}),
+                assetId: snapshot.assetId,
+                mimeType: snapshot.mimeType,
+                extension: SNAPSHOT_TYPES[snapshot.mimeType],
+                byteLength: bytes.length,
+                sha256: snapshot.sha256,
+                path
+            });
+        }
+        exportedProject.data.assetSnapshots = snapshots.map(({ data, ...snapshot }) => snapshot);
         const files = {};
         let assetIndex = 0;
         let totalAssetBytes = 0;
@@ -173,15 +258,20 @@ export class ProjectService {
         externalizeAssets(exportedProject);
         const projectJson = JSON.stringify(exportedProject);
         const projectJsonBytes = new TextEncoder().encode(projectJson);
-        if (totalAssetBytes + projectJsonBytes.length > MAX_PROJECT_ARCHIVE_SIZE) {
+        if (totalAssetBytes + snapshotBytes + projectJsonBytes.length > MAX_PROJECT_ARCHIVE_SIZE) {
             throw new Error('Project package exceeds the 100 MB export limit.');
         }
         files['project.json'] = projectJsonBytes;
+        for (const [path, bytes] of snapshotFiles) files[path] = bytes;
         files['manifest.json'] = JSON.stringify({
             format: PROJECT_ARCHIVE_FORMAT,
-            formatVersion: 1,
+            formatVersion: PROJECT_ARCHIVE_VERSION,
             projectEntry: 'project.json',
-            assetCount: assetIndex
+            assetCount: assetIndex,
+            snapshotCount: snapshotManifest.length,
+            snapshotEntryCount: snapshotFiles.size,
+            projectSha256: sha256Fallback(projectJsonBytes),
+            snapshots: snapshotManifest
         });
         const archive = createZipArchive(files);
         if (archive.length > MAX_PROJECT_ARCHIVE_SIZE) {
@@ -204,14 +294,62 @@ export class ProjectService {
         let project;
         try {
             manifest = JSON.parse(readText('manifest.json'));
-            if (manifest.format !== PROJECT_ARCHIVE_FORMAT || manifest.formatVersion !== 1 ||
-                manifest.projectEntry !== 'project.json' || !Number.isInteger(manifest.assetCount) ||
-                manifest.assetCount < 0) {
+            if (manifest.format !== PROJECT_ARCHIVE_FORMAT || ![1, PROJECT_ARCHIVE_VERSION].includes(manifest.formatVersion) ||
+                manifest.projectEntry !== 'project.json' || !Number.isInteger(manifest.assetCount) || manifest.assetCount < 0) {
                 throw new Error('Unsupported WorldForge project package format.');
             }
-            project = JSON.parse(readText(manifest.projectEntry));
+            const projectBytes = files.get(manifest.projectEntry);
+            if (manifest.formatVersion === PROJECT_ARCHIVE_VERSION &&
+                (typeof manifest.projectSha256 !== 'string' || sha256Fallback(projectBytes) !== manifest.projectSha256)) {
+                throw new Error('Project entry failed its SHA-256 integrity check.');
+            }
+            project = JSON.parse(new TextDecoder().decode(projectBytes));
         } catch (error) {
             throw new Error(`Could not read project package: ${error.message}`);
+        }
+        if (manifest.formatVersion === PROJECT_ARCHIVE_VERSION) {
+            if (!Number.isInteger(manifest.snapshotCount) || manifest.snapshotCount < 0 ||
+                !Number.isInteger(manifest.snapshotEntryCount) || manifest.snapshotEntryCount < 0 ||
+                !Array.isArray(manifest.snapshots) || manifest.snapshots.length !== manifest.snapshotCount ||
+                !Array.isArray(project.data?.assetSnapshots) || project.data.assetSnapshots.length !== manifest.snapshotCount) {
+                throw new Error('Project snapshot metadata does not match its manifest.');
+            }
+            const snapshotByKey = new Map(project.data.assetSnapshots.map(snapshot => [snapshot?.key, snapshot]));
+            const snapshotKeys = new Set();
+            const snapshotPaths = new Set();
+            const snapshotFiles = new Set();
+            let totalSnapshotBytes = 0;
+            for (const entry of manifest.snapshots) {
+                if (!entry || typeof entry.key !== 'string' || snapshotKeys.has(entry.key) || snapshotFiles.has(entry.path) || snapshotPaths.has(entry.path) ||
+                    entry.path !== snapshotPath(entry) || !Number.isInteger(entry.byteLength)) {
+                    throw new Error('Project snapshot manifest contains invalid or duplicate metadata.');
+                }
+                const file = files.get(entry.path);
+                if (!file) throw new Error(`Project package is missing snapshot "${entry.path}".`);
+                if (!snapshotByKey.has(entry.key)) throw new Error(`Project snapshot "${entry.key}" is missing from project data.`);
+                const snapshot = snapshotByKey.get(entry.key);
+                if (snapshot.packId !== entry.packId || snapshot.assetId !== entry.assetId ||
+                    snapshot.packVersion !== entry.packVersion || snapshot.mimeType !== entry.mimeType ||
+                    snapshot.size !== entry.byteLength || snapshot.sha256 !== entry.sha256) {
+                    throw new Error(`Project snapshot "${entry.key}" does not match its manifest.`);
+                }
+                validateSnapshotBytes({ ...entry, size: entry.byteLength }, file, `Project snapshot "${entry.key}"`);
+                totalSnapshotBytes += file.length;
+                if (totalSnapshotBytes > MAX_PROJECT_SNAPSHOT_BYTES) throw new Error('Project asset snapshots exceed the 20 MB import limit.');
+                snapshotPaths.add(entry.path);
+                snapshotFiles.add(entry.path);
+                snapshotKeys.add(entry.key);
+                snapshot.data = (() => {
+                    let binary = '';
+                    for (let offset = 0; offset < file.length; offset += 0x8000) binary += String.fromCharCode(...file.subarray(offset, offset + 0x8000));
+                    return btoa(binary);
+                })();
+            }
+            const actualSnapshotFiles = [...files.keys()].filter(path => path.startsWith('assets/'));
+            if (snapshotFiles.size !== manifest.snapshotEntryCount || actualSnapshotFiles.length !== snapshotFiles.size ||
+                actualSnapshotFiles.some(path => !snapshotFiles.has(path))) {
+                throw new Error('Project package snapshot entries do not match its manifest.');
+            }
         }
         const referencedAssets = new Set();
         const restoreAssets = value => {
@@ -241,15 +379,18 @@ export class ProjectService {
             return value;
         };
         const assetEntries = [...files.keys()].filter(path => path.startsWith('assets/'));
+        const legacyAssetEntries = assetEntries.filter(path => /^assets\/\d{6,}\.(png|jpg|webp|gif|svg)$/.test(path));
         if ([...files.keys()].some(path => !['manifest.json', 'project.json'].includes(path) &&
-            !/^assets\/\d{6,}\.(png|jpg|webp|gif|svg)$/.test(path))) {
+            (manifest.formatVersion === PROJECT_ARCHIVE_VERSION
+                ? !/^assets\/[a-f0-9]{64}\.(png|jpg|webp|gif)$/.test(path)
+                : !/^assets\/\d{6,}\.(png|jpg|webp|gif|svg)$/.test(path)))) {
             throw new Error('Project package contains an unexpected file entry.');
         }
-        if (assetEntries.length !== manifest.assetCount) {
+        if ((manifest.formatVersion === 1 ? assetEntries : legacyAssetEntries).length !== manifest.assetCount) {
             throw new Error('Project package asset count does not match its manifest.');
         }
         const restoredProject = restoreAssets(project);
-        if (referencedAssets.size !== assetEntries.length) {
+        if (manifest.formatVersion === 1 && referencedAssets.size !== assetEntries.length) {
             throw new Error('Project package contains missing or unreferenced assets.');
         }
         return this.importProject(restoredProject);

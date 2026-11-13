@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import { AssetRegistry } from '../../src/assets/asset-registry.js';
 import { AssetLoader } from '../../src/assets/asset-loader.js';
 import { captureProjectAssetSnapshots, sha256Fallback } from '../../src/services/project-asset-snapshot-service.js';
+import { createEmptyMap } from '../../src/engine/MapCanvasEngine.js';
+import { createZipArchive, readZipArchive } from '../../src/services/archive-service.js';
+import { ProjectService } from '../../src/services/project-service.js';
 
 function fixtureRegistry() {
     const registry = new AssetRegistry();
@@ -73,4 +76,83 @@ test('same-session fallback works after snapshots are activated and Pack is remo
     const loaded = loader.load('test-pack', 'asset-1', '1.0.0');
     assert.equal(loaded.source, 'project-snapshot');
     loader.clear();
+});
+
+function archiveProjectService() {
+    const stored = new Map();
+    return new ProjectService({
+        async getProject(id) { return stored.get(id) || null; },
+        async addProject(project) { stored.set(project.id, project); }
+    });
+}
+
+function projectWithSnapshot() {
+    const bytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+    let binary = '';
+    for (const byte of bytes) binary += String.fromCharCode(byte);
+    return {
+        project: {
+            id: 'archive-project',
+            name: 'Archive Project',
+            description: '',
+            coverImage: '',
+            createdAt: '2026-11-13T00:00:00.000Z',
+            updatedAt: '2026-11-13T00:00:00.000Z',
+            schemaVersion: 2,
+            data: {
+                map: createEmptyMap(),
+                assetSnapshots: [{
+                    schemaVersion: 1,
+                    key: 'test-pack::1.0.0::asset-1',
+                    packId: 'test-pack',
+                    packVersion: '1.0.0',
+                    assetId: 'asset-1',
+                    name: 'Test Asset',
+                    mimeType: 'image/png',
+                    size: bytes.length,
+                    sha256: sha256Fallback(bytes),
+                    data: btoa(binary)
+                }]
+            }
+        },
+        bytes
+    };
+}
+
+test('exports formatVersion 2 with deterministic binary snapshot entries', () => {
+    const service = archiveProjectService();
+    const { project, bytes } = projectWithSnapshot();
+    const archive = service.exportProjectPackage(project);
+    const files = readZipArchive(archive);
+    const manifest = JSON.parse(new TextDecoder().decode(files.get('manifest.json')));
+    assert.equal(manifest.formatVersion, 2);
+    assert.equal(manifest.snapshotCount, 1);
+    assert.equal(manifest.snapshotEntryCount, 1);
+    assert.equal(manifest.snapshots[0].path, `assets/${sha256Fallback(bytes)}.png`);
+    assert.deepEqual([...files.keys()].sort(), ['assets/' + sha256Fallback(bytes) + '.png', 'manifest.json', 'project.json'].sort());
+    assert.deepEqual(files.get(manifest.snapshots[0].path), bytes);
+    assert.doesNotMatch(new TextDecoder().decode(files.get('project.json')), /"data":"/);
+});
+
+test('imports formatVersion 2 and reconstructs embedded snapshot data', () => {
+    const service = archiveProjectService();
+    const { project } = projectWithSnapshot();
+    const archive = service.exportProjectPackage(project);
+    return service.importProjectPackage(archive).then(result => {
+        assert.equal(result.project.data.assetSnapshots.length, 1);
+        assert.equal(result.project.data.assetSnapshots[0].data.length > 0, true);
+        assert.equal(result.project.data.assetSnapshots[0].sha256, project.data.assetSnapshots[0].sha256);
+    });
+});
+
+test('rejects a formatVersion 2 snapshot whose binary is corrupted', () => {
+    const service = archiveProjectService();
+    const { project } = projectWithSnapshot();
+    const archive = service.exportProjectPackage(project);
+    const files = readZipArchive(archive);
+    const manifest = JSON.parse(new TextDecoder().decode(files.get('manifest.json')));
+    const corrupted = files.get(manifest.snapshots[0].path).slice();
+    corrupted[corrupted.length - 1] ^= 0xff;
+    files.set(manifest.snapshots[0].path, corrupted);
+    assert.throws(() => service.importProjectPackage(createZipArchive(Object.fromEntries(files))), /integrity|signature/i);
 });
