@@ -216,3 +216,22 @@ test('malformed archive import is all-or-nothing before database writes', () => 
     assert.throws(() => service.importProjectPackage(createZipArchive(Object.fromEntries(files))), /missing snapshot/i);
     assert.equal(addCalls, 0);
 });
+
+test('rejects snapshot export with unsupported MIME or invalid image signature', () => {
+    const service = archiveProjectService();
+    const { project } = projectWithSnapshot();
+    project.data.assetSnapshots[0].mimeType = 'image/svg+xml';
+    assert.throws(() => service.exportProjectPackage(project), /invalid byte length or MIME type/i);
+
+    const invalid = projectWithSnapshot();
+    invalid.project.data.assetSnapshots[0].data = btoa('not-an-image');
+    invalid.project.data.assetSnapshots[0].size = 12;
+    invalid.project.data.assetSnapshots[0].sha256 = sha256Fallback(new TextEncoder().encode('not-an-image'));
+    assert.throws(() => service.exportProjectPackage(invalid.project), /image signature/i);
+});
+
+test('rejects an archive larger than the project import limit before parsing', () => {
+    const service = archiveProjectService();
+    const oversized = new Uint8Array(100 * 1024 * 1024 + 1);
+    assert.throws(() => service.importProjectPackage(oversized), /100 MB import limit/i);
+});
