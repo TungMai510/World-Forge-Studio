@@ -62,3 +62,15 @@ test('SHA-256 fallback matches the standard digest without Web Crypto', () => {
         '4c4b6a3be1314ab86138bef4314dde022e600960d8689a2c8f8631802d20dab6'
     );
 });
+
+test('same-session fallback works after snapshots are activated and Pack is removed', async () => {
+    const { registry } = fixtureRegistry();
+    const snapshots = await captureProjectAssetSnapshots(projectData, registry);
+    const loader = new AssetLoader(registry);
+    loader.setProjectSnapshots(snapshots);
+    registry.unregisterPack('test-pack');
+    loader.invalidatePack('test-pack');
+    const loaded = loader.load('test-pack', 'asset-1', '1.0.0');
+    assert.equal(loaded.source, 'project-snapshot');
+    loader.clear();
+});
