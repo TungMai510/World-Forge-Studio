@@ -138,3 +138,21 @@ Continue importing existing formatVersion 1 packages. Existing JSON project impo
 - Asset Pack authoring/export (Phase 6).
 - Cloud sync, collaboration, account services or remote storage.
 - Advanced selection and geometry enhancements (deferred Tool Enhancement phases).
+
+
+## 10. Implementation progress — 13 November 2026
+
+### Phase 4.1 implementation slice committed
+
+- Added `project-asset-snapshot-service.js` to discover Pack-backed references in map data (image, pattern and texture references), deduplicate them by Pack/version/asset identity, and capture JSON-safe base64 bytes with MIME, byte size and SHA-256 metadata.
+- Snapshot capture is bounded to 20 MB per project snapshot collection. Missing Pack assets may reuse an existing snapshot; otherwise save fails with an actionable error rather than silently discarding the dependency.
+- Project save now captures snapshots from the live Asset Registry and stores them in `project.data.assetSnapshots`; project open installs that collection into the AssetLoader.
+- AssetLoader resolves from the enabled compatible Pack first, then from the project snapshot. The canonical `assetRef` on map objects is unchanged. Required Pack versions are passed through the renderer.
+- Added tests for deduplication, retaining snapshots after Pack uninstall, and fallback after Pack disable.
+
+### Known limitations before Phase 4.1/4.2 sign-off
+
+- Snapshot SHA-256 is generated at capture time and its metadata/byte length are checked when loaded; cryptographic digest re-verification on every read is still required before treating imported or externally modified project data as trusted. This must be completed with archive integrity work.
+- Project archive export/import remains formatVersion 1 and does not yet externalize/embed `assetSnapshots` as declared archive entries. Portable transfer is not complete.
+- Browser-level QA for save/reopen, Pack disable/uninstall and clean-profile import remains pending.
+- GitHub Actions initially exposed two legacy error-message compatibility assertions; the loader message was adjusted without changing the fallback behavior. The latest run must pass before this slice is considered green.
