@@ -156,3 +156,63 @@ test('rejects a formatVersion 2 snapshot whose binary is corrupted', () => {
     files.set(manifest.snapshots[0].path, corrupted);
     assert.throws(() => service.importProjectPackage(createZipArchive(Object.fromEntries(files))), /integrity|signature/i);
 });
+
+test('imports legacy formatVersion 1 project packages', async () => {
+    const service = archiveProjectService();
+    const { project, bytes } = projectWithSnapshot();
+    delete project.data.assetSnapshots;
+    project.data.legacyAsset = 'wforge-asset:assets/000000.png';
+    const archive = createZipArchive({
+        'project.json': JSON.stringify(project),
+        'manifest.json': JSON.stringify({
+            format: 'WorldForgeStudioProject',
+            formatVersion: 1,
+            projectEntry: 'project.json',
+            assetCount: 1
+        }),
+        'assets/000000.png': bytes
+    });
+    const result = await service.importProjectPackage(archive);
+    assert.equal(result.project.data.legacyAsset, `data:image/png;base64,${Buffer.from(bytes).toString('base64')}`);
+});
+
+test('rejects a formatVersion 2 archive with a missing snapshot entry', () => {
+    const service = archiveProjectService();
+    const { project } = projectWithSnapshot();
+    const files = readZipArchive(service.exportProjectPackage(project));
+    const manifest = JSON.parse(new TextDecoder().decode(files.get('manifest.json')));
+    files.delete(manifest.snapshots[0].path);
+    assert.throws(() => service.importProjectPackage(createZipArchive(Object.fromEntries(files))), /missing snapshot/i);
+});
+
+test('rejects a formatVersion 2 archive with an undeclared snapshot entry', () => {
+    const service = archiveProjectService();
+    const { project, bytes } = projectWithSnapshot();
+    const files = readZipArchive(service.exportProjectPackage(project));
+    files.set(`assets/${'0'.repeat(64)}.png`, bytes);
+    assert.throws(() => service.importProjectPackage(createZipArchive(Object.fromEntries(files))), /do not match its manifest/i);
+});
+
+test('rejects a formatVersion 2 archive when project.json integrity is stale', () => {
+    const service = archiveProjectService();
+    const { project } = projectWithSnapshot();
+    const files = readZipArchive(service.exportProjectPackage(project));
+    const projectBytes = files.get('project.json').slice();
+    projectBytes[projectBytes.length - 2] ^= 1;
+    files.set('project.json', projectBytes);
+    assert.throws(() => service.importProjectPackage(createZipArchive(Object.fromEntries(files))), /Project entry failed its SHA-256/i);
+});
+
+test('malformed archive import is all-or-nothing before database writes', () => {
+    let addCalls = 0;
+    const service = new ProjectService({
+        async getProject() { return null; },
+        async addProject() { addCalls += 1; }
+    });
+    const { project } = projectWithSnapshot();
+    const files = readZipArchive(service.exportProjectPackage(project));
+    const manifest = JSON.parse(new TextDecoder().decode(files.get('manifest.json')));
+    files.delete(manifest.snapshots[0].path);
+    assert.throws(() => service.importProjectPackage(createZipArchive(Object.fromEntries(files))), /missing snapshot/i);
+    assert.equal(addCalls, 0);
+});
