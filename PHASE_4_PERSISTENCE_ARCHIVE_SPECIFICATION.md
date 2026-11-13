@@ -150,9 +150,16 @@ Continue importing existing formatVersion 1 packages. Existing JSON project impo
 - AssetLoader resolves from the enabled compatible Pack first, then from the project snapshot. The canonical `assetRef` on map objects is unchanged. Required Pack versions are passed through the renderer.
 - Added tests for deduplication, retaining snapshots after Pack uninstall, and fallback after Pack disable.
 
-### Known limitations before Phase 4.1/4.2 sign-off
+### Remaining work after Phase 4.1 acceptance
 
 - Snapshot SHA-256 is generated at capture time and its metadata/byte length are checked when loaded; cryptographic digest re-verification on every read is still required before treating imported or externally modified project data as trusted. This must be completed with archive integrity work.
 - Project archive export/import remains formatVersion 1 and does not yet externalize/embed `assetSnapshots` as declared archive entries. Portable transfer is not complete.
-- Browser-level QA for save/reopen, Pack disable/uninstall and clean-profile import remains pending.
-- GitHub Actions initially exposed two legacy error-message compatibility assertions; the loader message was adjusted without changing the fallback behavior. The latest run must pass before this slice is considered green.
+- Browser-level QA for save/reopen and Pack disable/uninstall was confirmed complete by the user on 13 November 2026. Clean-profile archive import remains pending until Phase 4.3.
+- The LAN HTTP SHA-256 fallback and its automated test passed. Same-session Pack removal was corrected by activating snapshots immediately after save and triggering renderer invalidation. The user confirmed Phase 4.1 browser testing complete on 13 November 2026.
+
+
+### Phase 4.1 acceptance record — 13 November 2026
+
+**Status: COMPLETE (user-confirmed).** Browser verification passed: project save/reopen retains images, and removing the Asset Pack during the active session no longer removes rendered images. The automated suites had previously passed 76/76 and 79/79; SHA-256 fallback and same-session regression coverage were subsequently added. Phase 4.1 is accepted as the snapshot capture and runtime resolution foundation.
+
+**Next:** Phase 4.2 formalizes persistence guarantees and save/load regression coverage. Existing save/open wiring remains in place and should be hardened, not duplicated.
