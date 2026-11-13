@@ -73,6 +73,7 @@ export class ImageObjectRenderer {
             if(entry.status==='loading')entry.rejectPending?.(new Error(`Image asset "${key}" was invalidated while loading.`));
             entry.status='invalidated';
         }
+        this.onInvalidate();
     }
     ensureImage(object) {
         if(!this.assetLoader)return Promise.reject(new Error('Image rendering requires an AssetLoader.'));
