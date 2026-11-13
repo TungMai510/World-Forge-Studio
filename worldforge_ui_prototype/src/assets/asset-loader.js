@@ -2,7 +2,7 @@ const MIME={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp'
 export class AssetLoader {
     constructor(registry,{maxCacheEntries=200}={}){
         if(!registry||typeof registry.getAssetFile!=='function')throw new Error('AssetLoader requires an AssetRegistry.');
-        this.registry=registry;this.maxCacheEntries=Math.max(1,maxCacheEntries);this.cache=new Map();this.listeners=new Set();
+        this.registry=registry;this.maxCacheEntries=Math.max(1,maxCacheEntries);this.cache=new Map();this.listeners=new Set();this.projectSnapshots=new Map();
     }
     subscribe(listener){
         if(typeof listener!=='function')throw new Error('AssetLoader subscriber must be a function.');
@@ -15,17 +15,44 @@ export class AssetLoader {
         }
     }
     getCacheKey(packId,assetId){const pack=this.registry.getPack(packId);return pack?`${packId}::${pack.manifest.version}::${assetId}`:null;}
-    load(packId,assetId){
+    setProjectSnapshots(snapshots = []) {
+        this.projectSnapshots = new Map();
+        for (const snapshot of snapshots) {
+            if (!snapshot || typeof snapshot.packId !== 'string' || typeof snapshot.assetId !== 'string') continue;
+            this.projectSnapshots.set(snapshot.packId + '::' + (snapshot.packVersion || 'latest') + '::' + snapshot.assetId, snapshot);
+            this.projectSnapshots.set(snapshot.packId + '::latest::' + snapshot.assetId, snapshot);
+        }
+        this.clear();
+    }
+    load(packId,assetId,requiredVersion=null){
         const asset=this.registry.getAsset(packId,assetId);
-        if(!asset)throw new Error(`Asset "${packId}::${assetId}" is missing or its Pack is disabled.`);
-        const key=this.getCacheKey(packId,assetId);
-        if(this.cache.has(key)){const hit=this.cache.get(key);this.cache.delete(key);this.cache.set(key,hit);return hit;}
-        const bytes=this.registry.getAssetFile(packId,assetId);
-        if(!bytes)throw new Error(`Asset file for "${key}" is unavailable.`);
-        const ext=asset.file.split('.').pop().toLowerCase();const mimeType=asset.mimeType||MIME[ext];
-        if(!mimeType||!mimeType.startsWith('image/'))throw new Error(`Asset "${key}" has an unsupported MIME type.`);
-        const blob=new Blob([bytes],{type:mimeType});
-        const loaded={key,packId,packVersion:asset.packVersion,assetId,name:asset.name,mimeType,blob,url:URL.createObjectURL(blob)};
+        const pack=this.registry.getPack(packId);
+        if(asset && pack && (!requiredVersion || pack.manifest.version === requiredVersion)){
+            const key=this.getCacheKey(packId,assetId);
+            if(this.cache.has(key)){const hit=this.cache.get(key);this.cache.delete(key);this.cache.set(key,hit);return hit;}
+            const bytes=this.registry.getAssetFile(packId,assetId);
+            if(!bytes)throw new Error('Asset file for "'+key+'" is unavailable.');
+            const ext=asset.file.split('.').pop().toLowerCase();const mimeType=asset.mimeType||MIME[ext];
+            if(!mimeType||!mimeType.startsWith('image/'))throw new Error('Asset "'+key+'" has an unsupported MIME type.');
+            const blob=new Blob([bytes],{type:mimeType});
+            const loaded={key,packId,packVersion:asset.packVersion,assetId,name:asset.name,mimeType,blob,url:URL.createObjectURL(blob),source:'pack'};
+            this.cache.set(key,loaded);this.evictOverflow();return loaded;
+        }
+        const lookup=packId+'::'+(requiredVersion || 'latest')+'::'+assetId;
+        const snapshot=this.projectSnapshots.get(lookup);
+        if(!snapshot || (requiredVersion && snapshot.packVersion!==requiredVersion)) {
+            throw new Error('Asset "'+packId+'::'+assetId+'" is missing or incompatible and has no project snapshot.');
+        }
+        const key='snapshot::'+packId+'::'+snapshot.packVersion+'::'+assetId;
+        if(this.cache.has(key))return this.cache.get(key);
+        const binary=atob(snapshot.data || '');
+        const bytes=new Uint8Array(binary.length);
+        for(let index=0;index<binary.length;index+=1)bytes[index]=binary.charCodeAt(index);
+        if(bytes.length!==snapshot.size || !/^[a-f0-9]{64}$/i.test(snapshot.sha256 || '')) {
+            throw new Error('Embedded asset snapshot failed its metadata integrity check.');
+        }
+        const blob=new Blob([bytes],{type:snapshot.mimeType});
+        const loaded={key,packId,packVersion:snapshot.packVersion,assetId,name:snapshot.name,mimeType:snapshot.mimeType,blob,url:URL.createObjectURL(blob),source:'project-snapshot'};
         this.cache.set(key,loaded);this.evictOverflow();return loaded;
     }
     evictOverflow(){while(this.cache.size>this.maxCacheEntries){const [key,item]=this.cache.entries().next().value;URL.revokeObjectURL(item.url);this.cache.delete(key);}}
