@@ -295,11 +295,11 @@ Tiếp tục hỗ trợ import formatVersion 1 và legacy JSON. Import all-or-no
 | Slice | Nội dung | Trạng thái |
 |---|---|---|
 | 4.1 | Snapshot contract, capture, deduplication, SHA-256 metadata, Pack→snapshot runtime fallback | **Hoàn tất — chủ dự án xác nhận 13/11/2026** |
-| 4.2 | Harden save/load, verify snapshot persistence/integrity on reload, regression tests | Đang hoàn thiện; archive import đã có re-verification |
+| 4.2 | Harden save/load, verify snapshot persistence/integrity on reload, regression tests | **Hoàn tất — chủ dự án xác nhận kiểm thử 14/11/2026** |
 | 4.3 | Portable archive v2, binary snapshot entries, manifest integrity, v1 compatibility | **Đã triển khai; 84 automated tests pass; browser round-trip đã xác nhận; clean-profile QA còn lại** |
 | 4.4 | Round-trip, clean-profile, offline, corruption/security và all-or-nothing QA | Chưa hoàn tất |
 
-Phase 4.1 đã được browser QA xác nhận: save/reopen giữ ảnh; gỡ Pack ngay trong phiên không làm ảnh biến mất do snapshot fallback. Automated coverage được bổ sung cho deduplication, giữ snapshot sau uninstall và fallback khi Pack disable. Phase 4.3 đã thêm `.wforge` formatVersion 2 với snapshot binary entries deterministic theo SHA-256, manifest metadata, project-entry checksum, MIME/image-signature validation, phát hiện entry thừa/thiếu và vẫn hỗ trợ import v1. Automated suite hiện có 84 bài pass. Browser QA ngày 13/11/2026 đã xác nhận qua UI: export ZIP v2, kiểm tra project entry/snapshot binary, import round-trip tạo project mới và giữ nguyên snapshot/image object, sau đó tắt/gỡ Pack nguồn mà snapshot vẫn còn. Clean browser profile, offline và security-limit QA vẫn cần hoàn tất trước khi đóng Phase 4.
+Phase 4.1 đã được browser QA xác nhận: save/reopen giữ ảnh; gỡ Pack ngay trong phiên không làm ảnh biến mất do snapshot fallback. Automated coverage được bổ sung cho deduplication, giữ snapshot sau uninstall và fallback khi Pack disable. Phase 4.2 đã hoàn tất theo xác nhận kiểm thử của chủ dự án ngày 14/11/2026, bao gồm hardening save/load, kiểm tra snapshot persistence/integrity sau reload và regression tests. Phase 4.3 đã thêm `.wforge` formatVersion 2 với snapshot binary entries deterministic theo SHA-256, manifest metadata, project-entry checksum, MIME/image-signature validation, phát hiện entry thừa/thiếu và vẫn hỗ trợ import v1. Automated suite được ghi nhận có 84 bài pass tại lần cập nhật 13/11/2026. Browser QA ngày 13/11/2026 đã xác nhận qua UI: export ZIP v2, kiểm tra project entry/snapshot binary, import round-trip tạo project mới và giữ nguyên snapshot/image object, sau đó tắt/gỡ Pack nguồn mà snapshot vẫn còn. Các việc còn lại trước khi đóng Phase 4: clean browser profile, offline và security-limit/all-or-nothing QA.
 
 Phase 4 chỉ được đóng khi project có Pack-backed assets render đúng sau save/reopen, disable/uninstall Pack, export/import và import trên browser profile sạch không có Pack gốc. Canonical references, Pack version và transform phải giữ nguyên.
 
@@ -316,7 +316,7 @@ Mục tiêu Beta 0.1: nền tảng tạo thế giới local-first ổn định g
 | Thứ tự | Phase | Kết quả | Trạng thái |
 |---|---|---|---|
 | 1 | Core Map Editor + Asset Foundation | Map canvas, tools, asset runtime, .wfpack, tool integration | Nền tảng đã có; Phase 3D đóng |
-| 2 | Phase 4 — Persistence/Archive | Save/load snapshots, .wforge v2, round-trip/offline | Đang thực hiện; 4.1 xong |
+| 2 | Phase 4 — Persistence/Archive | Save/load snapshots, .wforge v2, round-trip/offline | Đang thực hiện; 4.1, 4.2 và 4.3 hoàn tất; còn 4.4 QA |
 | 3 | Phase 5 — Asset Pack Management | Pack Manager UI, install/disable/uninstall/update, version/dependency, persistence | Chưa bắt đầu |
 | 4 | Phase 6 — Asset Pack Studio | Authoring, batch import, metadata, preview, validator, exporter | Chưa bắt đầu |
 | 5 | Phase 7 — E2E/Offline/Stability QA | E2E, clean profile, offline, docs, accessibility, regression | Chưa bắt đầu |
@@ -572,6 +572,7 @@ File này là nguồn Markdown tổng hợp chuẩn duy nhất ở repository ro
 | 13/11/2026 | Phase 4.1 snapshot capture/runtime fallback hoàn tất sau browser QA; Phase 4.2 là việc tiếp theo. |
 | 13/11/2026 | Triển khai Phase 4.3 `.wforge` formatVersion 2: binary snapshot entries theo SHA-256, manifest integrity, v1 compatibility; 84 automated tests pass. |
 | 13/11/2026 | Browser QA Phase 4.3 xác nhận export/import round-trip qua UI và snapshot fallback sau khi tắt/gỡ Pack; clean-profile/offline/security QA còn lại. |
+| 14/11/2026 | Chủ dự án xác nhận Phase 4.2 hoàn tất sau khi chạy kiểm thử; chuyển trọng tâm sang Phase 4.4 QA acceptance. |
 | 13/11/2026 | Bổ sung định hướng World Environment Studio: lục địa, địa chất, khí hậu, thời tiết, gió mùa, hải lưu, thủy văn và biome. |
 | 13/11/2026 | Hợp nhất tài liệu Markdown tổng hợp thành file master duy nhất; loại bỏ các bản trùng lặp và lịch sử roadmap lặp lại. |
 
@@ -579,16 +580,20 @@ File này là nguồn Markdown tổng hợp chuẩn duy nhất ở repository ro
 
 ## 15. Trạng thái hiện tại và việc tiếp theo
 
-**Milestone đang hoạt động: Phase 4.2–4.3 — Project save/load và portable archive hardening.**
+**Milestone đang hoạt động: Phase 4.4 — Final Persistence/Archive Acceptance QA.**
 
-Việc cần làm:
-1. Kiểm tra snapshot persistence sau reload và schema compatibility.
-2. Bổ sung digest re-verification khi load/import; kiểm tra missing/corrupt snapshot.
-3. Bổ sung automated regression tests cho save/open và Pack disable/uninstall.
-4. Browser QA cho export/import `.wforge` v2, clean profile và Pack disable/uninstall.
-5. Phase 4.4: round-trip, offline, security limits và all-or-nothing import QA.
-6. Hoàn tất kiểm tra persistence sau reload và schema compatibility của snapshot.
-7. Chỉ sau khi Phase 4 đạt acceptance gate mới chuyển sang Phase 5 Pack Manager.
+Đã hoàn tất:
+- Phase 4.1 — snapshot capture, deduplication và runtime fallback.
+- Phase 4.2 — save/load hardening, snapshot persistence/integrity sau reload và regression tests; chủ dự án xác nhận kiểm thử hoàn tất ngày 14/11/2026.
+- Phase 4.3 — `.wforge` formatVersion 2, binary snapshot entries, SHA-256 integrity, manifest validation và backward compatibility với formatVersion 1; 84 automated tests pass tại lần ghi nhận gần nhất và browser round-trip đã xác nhận.
+
+Việc cần làm trong Phase 4.4:
+1. Import trên browser profile sạch không có Pack nguồn; xác nhận asset vẫn render từ embedded snapshot.
+2. Kiểm tra offline: mở project, render, save và export khi không có network.
+3. Kiểm tra archive hỏng/corrupt, snapshot thiếu/thừa, sai checksum/MIME/signature và archive vượt giới hạn.
+4. Xác nhận import all-or-nothing: dữ liệu lỗi không tạo project một phần hoặc làm thay đổi project đang có.
+5. Chạy full regression và ghi nhận kết quả browser QA/automated tests.
+6. Đóng Phase 4 chỉ khi toàn bộ acceptance criteria đạt; sau đó mới chuyển sang Phase 5 — Asset Pack Management.
 
 **Chưa chuyển trọng tâm sang:** marketplace, payment, AI generation, cloud sync, multiverse conflict hoặc World Environment simulation trước khi các nền tảng ưu tiên hoàn tất.
 
