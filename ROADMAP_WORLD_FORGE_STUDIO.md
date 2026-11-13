@@ -1232,3 +1232,11 @@ A project containing Pack-backed images must remain renderable after save/reopen
 - Advanced Selection/Brush/River/Landmass/Typography enhancements remain deferred until the Asset System workflow is stable.
 
 **Technical specification:** [`PHASE_4_PERSISTENCE_ARCHIVE_SPECIFICATION.md`](PHASE_4_PERSISTENCE_ARCHIVE_SPECIFICATION.md).
+
+
+## Phase 4 implementation update — 13/11/2026
+
+- Phase 4.1 code slice is committed: project-scoped snapshot capture, reference deduplication, SHA-256 metadata, AssetLoader Pack→snapshot fallback, and save/open wiring.
+- Automated coverage added for duplicate references, Pack uninstall snapshot retention, and Pack-disabled fallback.
+- Phase 4.1/4.2 are not signed off yet: latest GitHub Actions run must pass and browser QA is pending. SHA-256 re-verification on snapshot read and archive v2 portability remain open.
+- Details and limitations: [Phase 4 Persistence & Archive Specification](PHASE_4_PERSISTENCE_ARCHIVE_SPECIFICATION.md).
