@@ -9,6 +9,7 @@ import { ENTITY_TYPES, GeographyService } from '../services/geography-service.js
 import { CIVILIZATION_TYPES, CivilizationService, TYPE_LABELS } from '../services/civilization-service.js';
 import { DATE_PRECISIONS, HistoryService, HISTORY_TYPES, LABELS, RELATION_TYPES } from '../services/history-service.js';
 import { MapExportService } from '../services/map-export-service.js';
+import { captureProjectAssetSnapshots } from '../services/project-asset-snapshot-service.js';
 
 const MAX_COVER_FILE_SIZE = 2 * 1024 * 1024;
 const MAX_IMPORT_SIZE = 100 * 1024 * 1024;
@@ -658,6 +659,7 @@ export class UIController {
             civilization: this.civilizationService.data,
             history: this.historyService.data
         };
+        this.assetLoader.setProjectSnapshots(project.data.assetSnapshots || []);
         this.canvasEngine.setMap(project.data.map || createEmptyMap());
         document.getElementById('current-project-name').textContent = project.name;
         document.getElementById('project-manager').classList.add('hidden');
@@ -700,6 +702,9 @@ export class UIController {
                 civilization: this.civilizationService ? this.civilizationService.data : {},
                 history: this.historyService ? this.historyService.data : {}
             };
+            data.assetSnapshots = await captureProjectAssetSnapshots(
+                data, this.assetRegistry, this.currentProject.data?.assetSnapshots || []
+            );
             this.currentProject = await this.projectService.saveProject(this.currentProject.id, data);
             status.textContent = 'Đã lưu';
             await this.renderProjectLists();
