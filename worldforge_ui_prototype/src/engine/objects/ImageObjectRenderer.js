@@ -84,7 +84,7 @@ export class ImageObjectRenderer {
             let settled=false;
             entry.rejectPending=error=>{if(!settled){settled=true;reject(error);}};
             try{
-                const loaded=this.assetLoader.load(packId,assetId);
+                const loaded=this.assetLoader.load(packId,assetId,object.assetRef.packVersion || null);
                 if(object.assetRef.packVersion&&loaded.packVersion!==object.assetRef.packVersion){
                     throw new Error(`Image asset "${packId}::${assetId}" requires Pack version "${object.assetRef.packVersion}", but "${loaded.packVersion||'unknown'}" is loaded.`);
                 }
