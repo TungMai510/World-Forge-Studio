@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { AssetRegistry } from '../../src/assets/asset-registry.js';
 import { AssetLoader } from '../../src/assets/asset-loader.js';
-import { captureProjectAssetSnapshots } from '../../src/services/project-asset-snapshot-service.js';
+import { captureProjectAssetSnapshots, sha256Fallback } from '../../src/services/project-asset-snapshot-service.js';
 
 function fixtureRegistry() {
     const registry = new AssetRegistry();
@@ -53,4 +53,12 @@ test('AssetLoader resolves a disabled or absent Pack asset from the project snap
     assert.equal(loaded.source, 'project-snapshot');
     assert.equal(loaded.mimeType, 'image/png');
     loader.clear();
+});
+
+test('SHA-256 fallback matches the standard digest without Web Crypto', () => {
+    const bytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+    assert.equal(
+        sha256Fallback(bytes),
+        '4c4b6a3be1314ab86138bef4314dde022e600960d8689a2c8f8631802d20dab6'
+    );
 });
