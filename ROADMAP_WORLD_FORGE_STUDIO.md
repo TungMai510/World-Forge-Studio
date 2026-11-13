@@ -1215,8 +1215,8 @@ The current archive exporter does not resolve Pack-backed `assetRef` values agai
 
 ### Active implementation sequence
 
-1. **Phase 4.1 — Asset snapshot contract and resolution:** define project-scoped snapshots, capture referenced Pack asset bytes and integrity metadata, and provide snapshot fallback without rewriting semantic references.
-2. **Phase 4.2 — Project save/load integration:** persist snapshots with project data and verify save/reopen plus disabled/uninstalled Pack behavior.
+1. **Phase 4.1 — Asset snapshot contract and resolution: COMPLETE (13/11/2026, user-confirmed).** Project-scoped snapshot capture, deduplication, SHA-256 metadata, Pack→snapshot fallback, and same-session Pack removal behavior have been implemented and browser-tested.
+2. **Phase 4.2 — Project save/load integration: NEXT.** Harden existing save/open wiring, validate snapshot persistence and integrity on reload, and add regression coverage for missing/corrupt snapshots and project schema compatibility.
 3. **Phase 4.3 — Portable archive v2:** export only referenced snapshots, add manifest declarations and SHA-256 integrity checks, retain formatVersion 1 and JSON import compatibility.
 4. **Phase 4.4 — Round-trip hardening:** test import on a clean browser profile, offline use, corrupt/missing/unsafe entries, size limits, deduplication and all-or-nothing import.
 
@@ -1238,5 +1238,12 @@ A project containing Pack-backed images must remain renderable after save/reopen
 
 - Phase 4.1 code slice is committed: project-scoped snapshot capture, reference deduplication, SHA-256 metadata, AssetLoader Pack→snapshot fallback, and save/open wiring.
 - Automated coverage added for duplicate references, Pack uninstall snapshot retention, and Pack-disabled fallback.
-- Phase 4.1/4.2 are not signed off yet: latest GitHub Actions run must pass and browser QA is pending. SHA-256 re-verification on snapshot read and archive v2 portability remain open.
+- Phase 4.1 is COMPLETE by user confirmation on 13/11/2026. Remaining Phase 4 work: snapshot digest re-verification, formal save/load hardening (4.2), portable archive v2 (4.3), and round-trip/security hardening (4.4).
 - Details and limitations: [Phase 4 Persistence & Archive Specification](PHASE_4_PERSISTENCE_ARCHIVE_SPECIFICATION.md).
+
+
+## Phase 4.1 acceptance — 13/11/2026
+
+- **Status: COMPLETE — confirmed by user after browser testing.**
+- Verified: save/reopen retains Pack-backed images; removing the Asset Pack during the active session does not remove rendered images because the project snapshot is available.
+- Phase 4.2 is the next active milestone. Existing snapshot save/open integration is a foundation to harden and test, not work to recreate.
