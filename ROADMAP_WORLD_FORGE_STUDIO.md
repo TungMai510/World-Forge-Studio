@@ -1188,3 +1188,47 @@ Người dùng báo cáo bộ kiểm thử Phase 3D.2 đạt **76/76 PASS** trư
 Trước Phase 3E, cần xác minh Phase 3D.2 trên checkout mới nhất. Khi bắt đầu 3E, kiểm tra kỹ MapCanvasEngine hiện chỉ có selection đơn qua `selectedObjectId`; thiết kế `selectedObjectIds` cùng primary selection nhưng duy trì API đơn hiện tại như compatibility wrapper. Không thêm group resize/rotate trong lát cắt đầu tiên nếu chưa có phép biến đổi geometry đúng cho mọi object type.
 
 **Tài liệu đặc tả chi tiết:** `WORLD_FORGE_TOOL_ENHANCEMENT_SPECIFICATION.md`.
+
+
+---
+
+# Current Roadmap Addendum — Phase 3D verified; Phase 4 started (13/11/2026)
+
+> This addendum supersedes earlier pending-verification notes where they conflict with the user-confirmed status below.
+
+## Phase 3D — Complete
+
+The project owner confirmed on 13 November 2026 that the Phase 3D review and verification are complete. Phase 3D is therefore closed and Phase 4 is the active milestone. This status is based on the user's explicit QA confirmation; detailed test counts are not restated here.
+
+## Phase 4 — Persistence & Archive (IN PROGRESS)
+
+A repository review found that Phase 4 already has a partial foundation:
+- IndexedDB project storage and recent-project tracking in `DatabaseManager`.
+- Project validation, schema v1→v2 migration, and save/open/import flows in `ProjectService`.
+- ZIP STORE creation/reading with CRC32 checks and basic path, entry-count and expanded-size defenses in `archive-service.js`.
+- `.wforge` formatVersion 1 export/import, including externalization of image data URLs.
+- Image objects preserve semantic `assetRef` fields (`packId`, `assetId`, optional `packVersion`).
+
+### Confirmed gap
+
+The current archive exporter does not resolve Pack-backed `assetRef` values against the Asset Registry and does not embed the actual bytes of referenced Pack assets. Pack-backed images can therefore lose their rendered content when the source Pack is disabled/uninstalled or unavailable on another machine. The runtime Pack registry is currently in-memory.
+
+### Active implementation sequence
+
+1. **Phase 4.1 — Asset snapshot contract and resolution:** define project-scoped snapshots, capture referenced Pack asset bytes and integrity metadata, and provide snapshot fallback without rewriting semantic references.
+2. **Phase 4.2 — Project save/load integration:** persist snapshots with project data and verify save/reopen plus disabled/uninstalled Pack behavior.
+3. **Phase 4.3 — Portable archive v2:** export only referenced snapshots, add manifest declarations and SHA-256 integrity checks, retain formatVersion 1 and JSON import compatibility.
+4. **Phase 4.4 — Round-trip hardening:** test import on a clean browser profile, offline use, corrupt/missing/unsafe entries, size limits, deduplication and all-or-nothing import.
+
+### Phase 4 acceptance gate
+
+A project containing Pack-backed images must remain renderable after save/reopen, Pack disable/uninstall, archive export/import, and import into a clean browser profile without the original Pack installed. Canonical `assetRef`, Pack version and image transforms must remain intact. Projects without Pack-backed images must retain existing behavior.
+
+### Boundaries
+
+- Pack installation persistence and Pack Manager UI remain Phase 5.
+- Asset Pack authoring remains Phase 6.
+- Cloud sync/collaboration are out of scope.
+- Advanced Selection/Brush/River/Landmass/Typography enhancements remain deferred until the Asset System workflow is stable.
+
+**Technical specification:** [`PHASE_4_PERSISTENCE_ARCHIVE_SPECIFICATION.md`](PHASE_4_PERSISTENCE_ARCHIVE_SPECIFICATION.md).
