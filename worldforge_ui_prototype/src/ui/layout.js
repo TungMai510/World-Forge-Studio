@@ -706,6 +706,8 @@ export class UIController {
                 data, this.assetRegistry, this.currentProject.data?.assetSnapshots || []
             );
             this.currentProject = await this.projectService.saveProject(this.currentProject.id, data);
+            // Keep snapshots active in this session immediately after a successful save.
+            this.assetLoader.setProjectSnapshots(data.assetSnapshots);
             status.textContent = 'Đã lưu';
             await this.renderProjectLists();
             this.notify(`Đã lưu dự án "${this.currentProject.name}".`);
