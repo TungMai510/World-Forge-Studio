@@ -41,7 +41,7 @@ export class AssetLoader {
         const lookup=packId+'::'+(requiredVersion || 'latest')+'::'+assetId;
         const snapshot=this.projectSnapshots.get(lookup);
         if(!snapshot || (requiredVersion && snapshot.packVersion!==requiredVersion)) {
-            throw new Error('Asset "'+packId+'::'+assetId+'" is missing or incompatible and has no project snapshot.');
+            throw new Error('Asset "'+packId+'::'+assetId+'" is missing or its Pack is disabled; no compatible project snapshot is available.');
         }
         const key='snapshot::'+packId+'::'+snapshot.packVersion+'::'+assetId;
         if(this.cache.has(key))return this.cache.get(key);
