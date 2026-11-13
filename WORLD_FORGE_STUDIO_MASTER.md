@@ -296,10 +296,10 @@ Tiếp tục hỗ trợ import formatVersion 1 và legacy JSON. Import all-or-no
 |---|---|---|
 | 4.1 | Snapshot contract, capture, deduplication, SHA-256 metadata, Pack→snapshot runtime fallback | **Hoàn tất — chủ dự án xác nhận 13/11/2026** |
 | 4.2 | Harden save/load, verify snapshot persistence/integrity on reload, regression tests | Đang hoàn thiện; archive import đã có re-verification |
-| 4.3 | Portable archive v2, binary snapshot entries, manifest integrity, v1 compatibility | **Đã triển khai; 84 automated tests pass; browser/clean-profile QA còn lại** |
+| 4.3 | Portable archive v2, binary snapshot entries, manifest integrity, v1 compatibility | **Đã triển khai; 84 automated tests pass; browser round-trip đã xác nhận; clean-profile QA còn lại** |
 | 4.4 | Round-trip, clean-profile, offline, corruption/security và all-or-nothing QA | Chưa hoàn tất |
 
-Phase 4.1 đã được browser QA xác nhận: save/reopen giữ ảnh; gỡ Pack ngay trong phiên không làm ảnh biến mất do snapshot fallback. Automated coverage được bổ sung cho deduplication, giữ snapshot sau uninstall và fallback khi Pack disable. Phase 4.3 đã thêm `.wforge` formatVersion 2 với snapshot binary entries deterministic theo SHA-256, manifest metadata, project-entry checksum, MIME/image-signature validation, phát hiện entry thừa/thiếu và vẫn hỗ trợ import v1. Automated suite hiện có 84 bài pass; browser/clean-profile QA và kiểm tra persistence sau reload vẫn cần hoàn tất trước khi đóng Phase 4.
+Phase 4.1 đã được browser QA xác nhận: save/reopen giữ ảnh; gỡ Pack ngay trong phiên không làm ảnh biến mất do snapshot fallback. Automated coverage được bổ sung cho deduplication, giữ snapshot sau uninstall và fallback khi Pack disable. Phase 4.3 đã thêm `.wforge` formatVersion 2 với snapshot binary entries deterministic theo SHA-256, manifest metadata, project-entry checksum, MIME/image-signature validation, phát hiện entry thừa/thiếu và vẫn hỗ trợ import v1. Automated suite hiện có 84 bài pass. Browser QA ngày 13/11/2026 đã xác nhận qua UI: export ZIP v2, kiểm tra project entry/snapshot binary, import round-trip tạo project mới và giữ nguyên snapshot/image object, sau đó tắt/gỡ Pack nguồn mà snapshot vẫn còn. Clean browser profile, offline và security-limit QA vẫn cần hoàn tất trước khi đóng Phase 4.
 
 Phase 4 chỉ được đóng khi project có Pack-backed assets render đúng sau save/reopen, disable/uninstall Pack, export/import và import trên browser profile sạch không có Pack gốc. Canonical references, Pack version và transform phải giữ nguyên.
 
@@ -571,6 +571,7 @@ File này là nguồn Markdown tổng hợp chuẩn duy nhất ở repository ro
 | 13/11/2026 | Chủ dự án xác nhận Phase 3D hoàn tất. |
 | 13/11/2026 | Phase 4.1 snapshot capture/runtime fallback hoàn tất sau browser QA; Phase 4.2 là việc tiếp theo. |
 | 13/11/2026 | Triển khai Phase 4.3 `.wforge` formatVersion 2: binary snapshot entries theo SHA-256, manifest integrity, v1 compatibility; 84 automated tests pass. |
+| 13/11/2026 | Browser QA Phase 4.3 xác nhận export/import round-trip qua UI và snapshot fallback sau khi tắt/gỡ Pack; clean-profile/offline/security QA còn lại. |
 | 13/11/2026 | Bổ sung định hướng World Environment Studio: lục địa, địa chất, khí hậu, thời tiết, gió mùa, hải lưu, thủy văn và biome. |
 | 13/11/2026 | Hợp nhất tài liệu Markdown tổng hợp thành file master duy nhất; loại bỏ các bản trùng lặp và lịch sử roadmap lặp lại. |
 
