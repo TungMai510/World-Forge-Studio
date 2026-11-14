@@ -627,6 +627,188 @@ Các ví dụ “năm 0–100 triệu, các mảng kiến tạo phân tách” l
 
 ---
 
+
+### 8.9 World Evolution Milestones — Cột mốc và chế độ tiến hóa thế giới
+
+#### 8.9.1 Mục tiêu và quan hệ với History & Timeline
+
+World Evolution Milestones là lớp trải nghiệm tiến hóa có định hướng, xây dựng trên World Genesis & Evolution, World State Manager và History & Timeline. Mỗi milestone không chỉ là một dòng sự kiện để đọc: nó mở một **chế độ sáng tạo chuyên biệt**, cung cấp công cụ bản đồ, cấu hình, loại asset, hướng dẫn và điều kiện đánh giá phù hợp với giai đoạn phát triển thế giới.
+
+History & Timeline tiếp tục là hệ thống ghi nhận thời gian và sự kiện. Milestone Engine là lớp điều phối tiến trình: xác định milestone hiện tại, điều kiện đủ để chuyển tiếp, các lựa chọn có ảnh hưởng, nhánh phát triển và kết quả đánh giá. Khi milestone làm thay đổi thế giới, thay đổi phải được ghi thành state transition/patch có cấu trúc và liên kết về Timeline; không chỉ lưu một nhãn “đã hoàn thành”.
+
+Đây là đặc tả tương lai, chưa được triển khai và không thuộc First Usable Build.
+
+#### 8.9.2 Bộ milestone mặc định
+
+Có thể cung cấp một chuỗi gợi ý ban đầu, nhưng không áp đặt thành trình tự bắt buộc cho mọi thể loại thế giới:
+
+| Milestone | Mục tiêu | Công cụ/chế độ sáng tạo tiêu biểu |
+|---|---|---|
+| 0. Planetary Genesis | Hình thành hành tinh và hệ thiên thể | Ngôi sao, quỹ đạo, khối lượng, bán kính, trọng lực, chu kỳ quay, độ nghiêng trục, vệ tinh |
+| 1. Geological Formation | Hình thành cấu trúc địa chất | Mảng kiến tạo, chuyển động, núi, núi lửa, đáy biển, độ cao/độ sâu, lục địa |
+| 2. Atmospheric Formation | Xây dựng khí quyển | Thành phần khí, tỷ lệ/áp suất riêng phần, áp suất, nhiệt độ và điều kiện giữ khí |
+| 3. Ocean and Solvent Formation | Hình thành đại dương hoặc môi trường dung môi | Nước/chất lỏng/dung môi giả tưởng, lưu vực, biển, hồ và chu trình liên quan |
+| 4. Origin of Life | Thiết lập nền tảng hóa sinh và nguồn gốc sự sống | Hóa sinh, thành phần môi trường, nguồn năng lượng, môi trường sống và mô hình sự sống sơ khai |
+| 5. Biological Evolution | Tiến hóa sinh học | Sinh vật sơ khai, hệ sinh thái, thích nghi, tuyệt chủng và đa dạng sinh học |
+| 6. Complex Life | Xuất hiện sự sống phức tạp | Hệ sinh thái đa tầng, sinh vật lớn, chuỗi thức ăn và môi trường sống |
+| 7. Civilization Emergence | Hình thành nền văn minh | Loài có trí tuệ, nơi định cư, tài nguyên, xã hội và công nghệ ban đầu |
+| 8. Historical Development | Phát triển lịch sử | Thời kỳ, sự kiện, lãnh thổ, văn hóa và biến động xã hội |
+| 9. Technological Era | Phát triển công nghệ | Năng lực khoa học, công nghiệp, năng lượng và các mốc công nghệ |
+
+Creator có thể:
+- Bỏ qua, thêm, đổi tên, sắp xếp lại hoặc gộp milestone.
+- Tạo milestone tùy chỉnh cho fantasy, sci-fi, alternate evolution hoặc worldbuilding phi tuyến.
+- Chọn checkpoint/điểm bắt đầu khác nhau.
+- Chuyển sang chế độ tự do mà không cần hoàn thành toàn bộ chuỗi.
+
+Milestone mặc định chỉ là template; không phải một tuyên bố rằng mọi hành tinh phải trải qua cùng một lịch sử.
+
+#### 8.9.3 Milestone Mode và bản đồ chuyên biệt
+
+Khi mở một milestone, Studio chuyển sang một workspace có cấu hình phù hợp:
+- **World View:** bản đồ/toàn cảnh và trạng thái thế giới tại thời điểm đang xét.
+- **Milestone Workspace:** công cụ chuyên biệt cho miền đang phát triển, ví dụ tectonic editor, atmosphere composer, ocean/solvent editor hoặc life/ecosystem editor.
+- **Configuration Panel:** các tham số, lựa chọn, metadata và preset.
+- **Scientific/Worldbuilding Advisor:** giải thích điều kiện, giả định, mâu thuẫn, hệ quả có thể xảy ra và mức độ chắc chắn.
+- **Evolution Preview:** xem trước thay đổi dự kiến trước khi áp dụng.
+- **Milestone Progress:** trạng thái hoàn thành, điều kiện còn thiếu, asset/tool được mở khóa và các rủi ro.
+
+Không cần xây một editor hoàn toàn riêng biệt cho mỗi milestone nếu các editor dùng chung được. Milestone nên khai báo capability/tool set, schema cấu hình và policy; workspace ghép các công cụ hiện có với module chuyên biệt khi cần.
+
+#### 8.9.4 Origin of Life — cấu hình nguồn gốc sự sống
+
+Đây là milestone có thể tạo khác biệt cho World Forge Studio. Creator có thể khai báo nền tảng sinh học:
+- **Carbon-based life:** sự sống dựa trên hóa học carbon; đây là dạng sự sống duy nhất đã được xác nhận hiện nay.
+- **Hypothetical silicon-based life:** giả thuyết/sáng tạo suy đoán, không được trình bày như một dạng sự sống đã được khoa học xác nhận.
+- **Alternative/custom biochemistry:** hóa sinh khác do creator định nghĩa, có thể dựa trên luật khoa học suy đoán hoặc quy tắc hư cấu.
+
+Không dùng một lựa chọn đơn lẻ kiểu “chọn một nguyên tố để quyết định toàn bộ khí quyển/đất”. Cần cho phép mô tả **hỗn hợp và thành phần**:
+- Khí quyển: các khí/phân tử, tỷ lệ thành phần, áp suất riêng phần, tổng áp suất và nhiệt độ.
+- Vỏ hành tinh/đất/đá: khoáng vật, hợp chất, nguyên tố hoặc nhóm vật chất theo tỷ lệ/độ phong phú.
+- Dung môi: nước, ammonia hoặc dung môi do creator định nghĩa.
+- Nguồn năng lượng: ánh sáng, địa nhiệt, phản ứng hóa học hoặc nguồn giả tưởng.
+- Môi trường sống: đại dương, miệng phun thủy nhiệt, bề mặt, dưới lòng đất, khí quyển hoặc môi trường tùy chỉnh.
+- Điều kiện: nhiệt độ, áp suất, độ ổn định, tính sẵn có của nguyên liệu và các điều kiện khác do rule set yêu cầu.
+
+Scientific Advisor cần phân biệt nguyên tố, phân tử, hợp chất và khoáng vật. Ví dụ:
+- Helium là nguyên tố/khí đơn nguyên tử, không phải một hợp chất; do nhẹ và trơ về mặt hóa học, khí quyển giàu helium trên hành tinh giống Trái Đất có thể khó giữ ổn định qua thời gian địa chất. Đây là cảnh báo theo giả định vật lý, không phải lệnh cấm thế giới hư cấu.
+- CO₂ là phân tử/hợp chất, không phải nguyên tố.
+- Silicate là nhóm khoáng vật/hợp chất chứa silicon và oxygen, không phải một nguyên tố.
+- “Đất giàu lưu huỳnh” cần được mô hình hóa bằng thành phần lưu huỳnh và các hợp chất/khoáng vật liên quan; lưu huỳnh nguyên tố không mặc nhiên là nền đất màu mỡ.
+
+Các ví dụ carbon-based/water-based hoặc silicon-based/ammonia-based chỉ là preset minh họa. Engine phải nêu rõ giả định, không tuyên bố đã mô phỏng được quá trình abiogenesis thực tế nếu chưa có mô hình chuyên dụng.
+
+#### 8.9.5 Milestone Gate và điều kiện chuyển tiếp
+
+Mỗi milestone có thể khai báo:
+- Required conditions: điều kiện bắt buộc để đủ chuẩn.
+- Recommended conditions: khuyến nghị nhằm tăng độ ổn định/khả năng phát triển.
+- Warnings and risks: điều kiện đáng lưu ý nhưng không nhất thiết chặn tiến trình.
+- Unlock rules: asset, tool hoặc loại entity được phép sử dụng từ milestone này.
+- Transition effects: các state patch/event được tạo khi milestone được xác nhận.
+- Validation ruleset: bộ quy tắc, phiên bản và mức độ nghiêm ngặt được sử dụng.
+
+Trạng thái milestone:
+- **Locked:** chưa thể bắt đầu do dependency hoặc điều kiện trước đó.
+- **Available:** có thể bắt đầu.
+- **In Progress:** đang cấu hình/sáng tạo.
+- **Qualified:** đạt điều kiện chuyển tiếp theo rule set đang dùng.
+- **Failed:** không đạt hoặc đường tiến hóa hiện tại bị đứt gãy theo điều kiện challenge đã định nghĩa.
+- **Skipped/Overridden:** creator chủ động bỏ qua hoặc ghi đè trong Creative Mode; phải lưu lại quyết định và lý do nếu cần.
+
+Phân biệt hai loại thất bại:
+- **Soft Failure / Not Qualified:** thiếu điều kiện hoặc có mâu thuẫn có thể sửa; creator có thể quay lại chỉnh cấu hình, thêm điều kiện hoặc thử phương án khác.
+- **Hard Failure:** trạng thái/đường tiến hóa hiện tại không thể tiếp tục theo luật đã chọn, ví dụ một thảm họa làm mất môi trường cần thiết. Không xóa world/project; giữ nguyên trạng thái, giải thích nguyên nhân và cho phép phục hồi từ checkpoint hoặc tạo nhánh timeline khác.
+
+Không khóa tiến trình chỉ vì một khuyến nghị khoa học chưa được đáp ứng. Gate chỉ được chặn khi rule set của creator xác định điều kiện đó là bắt buộc. Luôn hiển thị rõ điều kiện nào đang chặn và cách khắc phục/override.
+
+#### 8.9.6 Hai chế độ trải nghiệm
+
+**Creative Mode**
+- Ưu tiên tự do sáng tạo; có thể bỏ qua milestone và dùng luật vật lý/hóa sinh hư cấu.
+- Advisor đưa cảnh báo và giải thích nhưng không tự ý ngăn creator.
+- Override phải được lưu như một quyết định có chủ đích; không sửa hoặc xóa dữ liệu gốc âm thầm.
+
+**Evolution Challenge Mode**
+- Milestone gate và điều kiện chuyển tiếp được bật.
+- Lựa chọn có thể mở/đóng các con đường phát triển và tạo hậu quả.
+- Asset/tool có thể được mở khóa theo milestone và metadata.
+- Thất bại, tuyệt chủng hoặc sụp đổ môi trường có thể xảy ra theo rule set đã chọn.
+- Creator được xem mục tiêu, điều kiện, mức độ rủi ro và quy tắc đánh giá trước khi bắt đầu challenge.
+
+Có thể bổ sung **Guided/Assisted Mode** như một mức trung gian: hệ thống gợi ý lựa chọn và hậu quả, nhưng creator duyệt trước khi áp dụng.
+
+#### 8.9.7 Branching Evolution và alternate timelines
+
+Mỗi lựa chọn quan trọng có thể tạo ra các hướng phát triển khác nhau. Hệ thống cần hỗ trợ:
+- Main Timeline: nhánh tiến hóa chính.
+- Experimental Branch: nhánh thử nghiệm không thay đổi nhánh chính.
+- What-if Branch: giả định “nếu lựa chọn khác đi”.
+- Recovery Branch: phục hồi sau một trạng thái thất bại từ checkpoint hợp lệ.
+
+Mỗi branch cần tham chiếu parent branch/checkpoint, thời điểm phân nhánh, state snapshot/patch, lựa chọn nguyên nhân, milestone/rule version và stable IDs. Không nhân bản toàn bộ project một cách không cần thiết nếu snapshot + patch có thể biểu diễn khác biệt. Creator có thể so sánh trạng thái, đổi nhánh đang xem và chọn nhánh làm canon/primary theo quyền kiểm soát của mình.
+
+#### 8.9.8 Milestone Configuration Schema và Milestone Engine
+
+Trước khi phát triển UI đầy đủ hoặc mô phỏng chuyên sâu, cần thiết kế schema và engine độc lập với giao diện. Một milestone definition nên có tối thiểu:
+- `milestoneId`, `schemaVersion`, `name`, `description`, `category`, `order`.
+- `timeScale` và khoảng thời gian/điều kiện áp dụng.
+- `prerequisites` và dependency graph; hỗ trợ milestone phi tuyến.
+- `workspaceCapabilities`/tool requirements và asset categories được phép/mở khóa.
+- `configurationSchema` cho tham số đầu vào.
+- `requiredConditions`, `recommendedConditions`, `warningRules` và `failureRules`.
+- `transitionOperations` mô tả state patches/events được tạo khi xác nhận.
+- `rulesetId`, `rulesetVersion`, mức độ chắc chắn/nguồn giả định và seed nếu có tính ngẫu nhiên.
+- `branchPolicy`, override policy và khả năng phục hồi.
+- Trạng thái thực thi của milestone được lưu riêng với definition/template để cập nhật template không làm thay đổi lịch sử đã chạy.
+
+Milestone Engine phải:
+1. Đọc milestone definitions và trạng thái world/checkpoint hiện tại.
+2. Xác định milestone khả dụng theo dependency graph.
+3. Validate cấu hình theo schema và rule set.
+4. Phân loại kết quả: error, warning, risk, qualified, soft failure hoặc hard failure.
+5. Tạo preview các state changes và hậu quả dự kiến.
+6. Chỉ áp dụng transition khi creator xác nhận, trừ automation đã được cho phép rõ ràng.
+7. Ghi event, before/after references, causal links, branch và rule version vào World State Manager/History & Timeline.
+8. Có thể replay/revalidate theo đúng rule version; không âm thầm thay đổi kết quả lịch sử khi rule set mới được cập nhật.
+
+#### 8.9.9 Nguyên tắc khoa học, minh bạch và an toàn dữ liệu
+
+- Hỗ trợ nhiều rule profile: Earth-like scientific assumptions, speculative science và custom fictional rules.
+- Scientific Advisor là công cụ hỗ trợ quyết định, không phải chân lý tuyệt đối; phải nêu giả định và giới hạn.
+- Phân biệt dữ kiện đã xác nhận, giả thuyết khoa học, heuristic của engine và luật hư cấu do creator đặt ra.
+- Không tuyên bố mô phỏng chính xác khí hậu, địa chất, nguồn gốc sự sống hoặc tiến hóa nếu hệ thống chỉ dùng rule-based heuristic.
+- Cùng input + ruleset version + seed phải cho kết quả deterministic trong phạm vi engine cam kết.
+- Mọi transition, override và failure đều có thể truy vết; không tự xóa project hoặc timeline.
+- Milestone state, branch, snapshot và patches phải tương thích với save/load, archive import/export và schema migration.
+
+#### 8.9.10 Thứ tự triển khai và acceptance criteria
+
+Đề xuất thứ tự:
+1. Thiết kế Milestone Configuration Schema và dependency graph.
+2. Xây Milestone Engine ở mức declarative/rule-based, chưa cần mô phỏng vật lý.
+3. Tạo một số milestone mẫu có cấu hình và validation minh họa.
+4. Liên kết milestone transition với World State Manager và History & Timeline.
+5. Xây Milestone Progress UI và workspace capability composition.
+6. Thêm Creative/Guided/Challenge modes và branch/recovery.
+7. Chỉ sau đó mới bổ sung mô hình chuyên sâu theo từng miền.
+
+**Acceptance criteria dài hạn**
+- Creator có thể tạo, chỉnh sửa và sắp xếp milestone; hỗ trợ chuỗi tuyến tính lẫn dependency graph.
+- Mỗi milestone mở đúng workspace/tool capability và điều kiện asset tương ứng.
+- Cấu hình milestone được validate và Advisor giải thích rõ lỗi/cảnh báo/giả định.
+- Có thể xem preview trước khi áp dụng transition.
+- Qualified/Failed/Skipped/Overridden có trạng thái và lý do rõ ràng.
+- Soft Failure có thể sửa; Hard Failure giữ nguyên world và hỗ trợ checkpoint/recovery/branch.
+- Mỗi transition được ghi vào Timeline với before/after, nguyên nhân, hậu quả và ruleset version.
+- Có thể tạo và so sánh các nhánh tiến hóa mà không làm hỏng nhánh chính.
+- Creative Mode không ép challenge gates; Challenge Mode chỉ áp dụng gate đã công bố trước.
+- Save/reopen/export/import bảo toàn milestone definitions, run state, branches và lịch sử.
+
+**Scope note:** Mục 8.9 là định hướng tương lai, chưa triển khai. History & Timeline hiện tại không tự điều khiển milestone, không đánh giá điều kiện tiến hóa và không thay đổi bản đồ theo thời gian. Không đưa Milestone Engine vào phạm vi First Usable Build; trước mắt vẫn ưu tiên hoàn thiện Core Studio và workflow Asset Library → Map Studio → save/reopen → export/import.
+
+---
+
 ## 9. WorldForge AI Layer — kiến trúc dài hạn
 
 ### 9.1 Vị trí và thành phần
@@ -926,7 +1108,8 @@ File này là nguồn Markdown tổng hợp chuẩn duy nhất ở repository ro
 | 14/11/2026 | Phase 4.4 browser acceptance: clean-origin import không có Pack nguồn vẫn giữ 1 snapshot/1 image object; offline save/export đạt; corrupt archive bị từ chối theo checksum và project count không đổi. Clean browser profile độc lập thật sự vẫn pending. |
 | 14/11/2026 | Bổ sung SHA-256 revalidation khi validate/open project và khi AssetLoader kích hoạt snapshot; thêm kiểm tra cấu trúc ảnh, dimension/pixel limit và regression same-size mutation. |
 | 14/11/2026 | Phase 4.4 automated QA đạt: corruption, missing/undeclared snapshot, stale project checksum và all-or-nothing import đều có regression tests. |
-| 14/11/2026 | Browser QA Phase 4.4 xác nhận mở project không có Pack nguồn và save/export khi offline; clean browser profile độc lập còn chờ môi trường browser context phù hợp. |\n| 14/11/2026 | Bổ sung đặc tả World Genesis & Evolution: Genesis Wizard, nhiều thang thời gian, Era Constraints/Asset unlock, World State Manager, Evolution Engine, World Survival Validation và Catastrophe Events; xác định rõ đây là định hướng dài hạn, chưa triển khai và không thuộc First Usable Build. |\n| 14/11/2026 | Bổ sung đặc tả ý tưởng World Forge Showcase: trải nghiệm triển lãm thế giới, Animated World Presentation, World Page, published snapshot/data contract, quyền riêng tư, community và lộ trình MVP phụ thuộc First Usable Build. |
+| 14/11/2026 | Browser QA Phase 4.4 xác nhận mở project không có Pack nguồn và save/export khi offline; clean browser profile độc lập còn chờ môi trường browser context phù hợp. |\n| 14/11/2026 | Bổ sung đặc tả World Genesis & Evolution: Genesis Wizard, nhiều thang thời gian, Era Constraints/Asset unlock, World State Manager, Evolution Engine, World Survival Validation và Catastrophe Events; xác định rõ đây là định hướng dài hạn, chưa triển khai và không thuộc First Usable Build. |\n| 14/11/2026 | Bổ sung đặc tả World Evolution Milestones: milestone-specific workspaces, Origin of Life/biochemistry configuration, milestone gates, Creative/Guided/Challenge modes, branching evolution và Milestone Configuration Schema/Engine; xác định là định hướng tương lai, chưa triển khai và không thuộc First Usable Build. |
+| 14/11/2026 | Bổ sung đặc tả ý tưởng World Forge Showcase: trải nghiệm triển lãm thế giới, Animated World Presentation, World Page, published snapshot/data contract, quyền riêng tư, community và lộ trình MVP phụ thuộc First Usable Build. |
 | 13/11/2026 | Browser QA Phase 4.3 xác nhận export/import round-trip qua UI và snapshot fallback sau khi tắt/gỡ Pack; clean-profile/offline/security QA còn lại. |
 | 14/11/2026 | Chủ dự án xác nhận Phase 4.2 hoàn tất sau khi chạy kiểm thử; chuyển trọng tâm sang Phase 4.4 QA acceptance. |
 | 13/11/2026 | Bổ sung định hướng World Environment Studio: lục địa, địa chất, khí hậu, thời tiết, gió mùa, hải lưu, thủy văn và biome. |
