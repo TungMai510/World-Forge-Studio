@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { AssetRegistry } from '../../src/assets/asset-registry.js';
 import { AssetLoader } from '../../src/assets/asset-loader.js';
-import { captureProjectAssetSnapshots, sha256Fallback } from '../../src/services/project-asset-snapshot-service.js';
+import { captureProjectAssetSnapshots, sha256Fallback, validateImageBytes } from '../../src/services/project-asset-snapshot-service.js';
 import { createEmptyMap } from '../../src/engine/MapCanvasEngine.js';
 import { createZipArchive, readZipArchive } from '../../src/services/archive-service.js';
 import { ProjectService } from '../../src/services/project-service.js';
@@ -119,6 +119,30 @@ function projectWithSnapshot() {
         bytes
     };
 }
+
+function webpFixture(kind, width, height) {
+    const payload = kind === 'VP8X'
+        ? new Uint8Array([0, 0, 0, 0, (width - 1) & 0xff, (width - 1) >> 8 & 0xff, (width - 1) >> 16 & 0xff,
+            (height - 1) & 0xff, (height - 1) >> 8 & 0xff, (height - 1) >> 16 & 0xff])
+        : kind === 'VP8 '
+            ? new Uint8Array([0, 0, 0, 0x9d, 0x01, 0x2a, width & 0xff, width >> 8 & 0x3f, height & 0xff, height >> 8 & 0x3f])
+            : new Uint8Array([0x2f, (width - 1) & 0xff, ((width - 1) >> 8 & 0x3f) | ((height - 1) << 6 & 0xc0),
+                (height - 1) >> 2 & 0xff, (height - 1) >> 10 & 0x0f]);
+    const bytes = new Uint8Array(20 + payload.length);
+    bytes.set([0x52, 0x49, 0x46, 0x46, (bytes.length - 8) & 0xff, (bytes.length - 8) >> 8 & 0xff,
+        (bytes.length - 8) >> 16 & 0xff, (bytes.length - 8) >> 24 & 0xff, 0x57, 0x45, 0x42, 0x50], 0);
+    for (let index = 0; index < 4; index += 1) bytes[12 + index] = kind.charCodeAt(index);
+    bytes[16] = payload.length;
+    bytes.set(payload, 20);
+    return bytes;
+}
+
+test('validates dimensions for WebP VP8, VP8L and VP8X payloads', () => {
+    for (const kind of ['VP8 ', 'VP8L', 'VP8X']) {
+        assert.doesNotThrow(() => validateImageBytes(webpFixture(kind, 64, 32), 'image/webp', kind));
+        assert.throws(() => validateImageBytes(webpFixture(kind, 9000, 9000), 'image/webp', kind), /dimensions/i);
+    }
+});
 
 test('exports formatVersion 2 with deterministic binary snapshot entries', () => {
     const service = archiveProjectService();

@@ -32,6 +32,15 @@ function readUint32BE(bytes, offset) {
         (bytes[offset + 2] << 8) | bytes[offset + 3]) >>> 0;
 }
 
+function readUint16LE(bytes, offset) {
+    return bytes[offset] | (bytes[offset + 1] << 8);
+}
+
+function readUint32LE(bytes, offset) {
+    return (bytes[offset] | (bytes[offset + 1] << 8) |
+        (bytes[offset + 2] << 16) | (bytes[offset + 3] << 24)) >>> 0;
+}
+
 function validateDimensions(width, height, context) {
     if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 ||
         width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION || width * height > MAX_IMAGE_PIXELS) {
@@ -103,11 +112,28 @@ export function validateImageBytes(bytes, mimeType, context = 'Project snapshot'
             throw new Error(`${context} failed its WebP structure check.`);
         }
         const chunk = String.fromCharCode(...bytes.subarray(12, 16));
-        if (chunk === 'VP8X' && bytes.length >= 30) {
+        const chunkSize = readUint32LE(bytes, 16);
+        const dataOffset = 20;
+        if (chunkSize > bytes.length - dataOffset) throw new Error(`${context} contains a truncated WebP chunk.`);
+        if (chunk === 'VP8X' && chunkSize >= 10) {
             const width = 1 + bytes[24] + (bytes[25] << 8) + (bytes[26] << 16);
             const height = 1 + bytes[27] + (bytes[28] << 8) + (bytes[29] << 16);
             validateDimensions(width, height, context);
-        } else if (!['VP8 ', 'VP8L'].includes(chunk) || bytes.length <= 20) {
+        } else if (chunk === 'VP8 ' && chunkSize >= 10) {
+            if (bytes[dataOffset + 3] !== 0x9d || bytes[dataOffset + 4] !== 0x01 || bytes[dataOffset + 5] !== 0x2a) {
+                throw new Error(`${context} does not contain a valid VP8 frame.`);
+            }
+            validateDimensions(
+                readUint16LE(bytes, dataOffset + 6) & 0x3fff,
+                readUint16LE(bytes, dataOffset + 8) & 0x3fff,
+                context
+            );
+        } else if (chunk === 'VP8L' && chunkSize >= 5) {
+            if (bytes[dataOffset] !== 0x2f) throw new Error(`${context} does not contain a valid VP8L frame.`);
+            const width = 1 + ((bytes[dataOffset + 1] | (bytes[dataOffset + 2] << 8)) & 0x3fff);
+            const height = 1 + ((bytes[dataOffset + 2] >> 6) | (bytes[dataOffset + 3] << 2) | ((bytes[dataOffset + 4] & 0x0f) << 10));
+            validateDimensions(width, height, context);
+        } else {
             throw new Error(`${context} does not contain a valid WebP frame.`);
         }
         return true;
