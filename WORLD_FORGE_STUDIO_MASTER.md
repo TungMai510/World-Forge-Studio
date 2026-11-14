@@ -297,9 +297,9 @@ Tiếp tục hỗ trợ import formatVersion 1 và legacy JSON. Import all-or-no
 | 4.1 | Snapshot contract, capture, deduplication, SHA-256 metadata, Pack→snapshot runtime fallback | **Hoàn tất — chủ dự án xác nhận 13/11/2026** |
 | 4.2 | Harden save/load, verify snapshot persistence/integrity on reload, regression tests | **Hoàn tất — chủ dự án xác nhận kiểm thử 14/11/2026** |
 | 4.3 | Portable archive v2, binary snapshot entries, mixed embedded assets, manifest integrity, v1 compatibility | **Đã triển khai; 95 automated tests pass; browser round-trip đã xác nhận** |
-| 4.4 | Round-trip, clean-profile, offline, corruption/security và all-or-nothing QA | **Automated QA và offline browser QA đạt; clean browser profile độc lập còn lại** |
+| 4.4 | Round-trip, clean-profile, offline, corruption/security và all-or-nothing QA | **Automated, clean-origin, offline và corruption/all-or-nothing browser QA đạt; clean browser profile độc lập còn lại** |
 
-Phase 4.1 đã được browser QA xác nhận: save/reopen giữ ảnh; gỡ Pack ngay trong phiên không làm ảnh biến mất do snapshot fallback. Automated coverage được bổ sung cho deduplication, giữ snapshot sau uninstall và fallback khi Pack disable. Phase 4.2 đã hoàn tất theo xác nhận kiểm thử của chủ dự án ngày 14/11/2026, bao gồm hardening save/load, kiểm tra snapshot persistence/integrity sau reload và regression tests. Phase 4.3 đã thêm `.wforge` formatVersion 2 với snapshot binary entries deterministic theo SHA-256, manifest metadata, project-entry checksum, mixed Data URL + snapshot entries, tổng giới hạn archive entries, MIME/image-structure validation và vẫn hỗ trợ import v1. Automated suite hiện có 95 bài pass, bao gồm v1 compatibility, same-size snapshot mutation, corrupted/missing/undeclared entries, mixed-asset round-trip, tổng entry limit, WebP VP8/VP8L/VP8X dimension checks, MIME/structure checks, archive size limit và all-or-nothing import. Khi mở project và khi AssetLoader kích hoạt snapshot, SHA-256 thực tế được xác minh lại. Browser QA trước đó đã xác nhận export/import round-trip, snapshot fallback sau tắt/gỡ Pack và offline save/export khi project đã mở. Independent clean browser profile và browser corruption/all-or-nothing acceptance vẫn chưa hoàn tất.
+Phase 4.1 đã được browser QA xác nhận: save/reopen giữ ảnh; gỡ Pack ngay trong phiên không làm ảnh biến mất do snapshot fallback. Automated coverage được bổ sung cho deduplication, giữ snapshot sau uninstall và fallback khi Pack disable. Phase 4.2 đã hoàn tất theo xác nhận kiểm thử của chủ dự án ngày 14/11/2026, bao gồm hardening save/load, kiểm tra snapshot persistence/integrity sau reload và regression tests. Phase 4.3 đã thêm `.wforge` formatVersion 2 với snapshot binary entries deterministic theo SHA-256, manifest metadata, project-entry checksum, mixed Data URL + snapshot entries, tổng giới hạn archive entries, MIME/image-structure validation và vẫn hỗ trợ import v1. Automated suite hiện có 95 bài pass, bao gồm v1 compatibility, same-size snapshot mutation, corrupted/missing/undeclared entries, mixed-asset round-trip, tổng entry limit, WebP VP8/VP8L/VP8X dimension checks, MIME/structure checks, archive size limit và all-or-nothing import. Khi mở project và khi AssetLoader kích hoạt snapshot, SHA-256 thực tế được xác minh lại. Browser QA đã xác nhận export/import round-trip, snapshot fallback sau tắt/gỡ Pack, import trên clean origin không có Pack nguồn, offline save/export và từ chối archive corrupt mà không tạo project một phần. Independent clean browser profile thật sự vẫn chưa được xác nhận.
 
 Phase 4 chỉ được đóng khi project có Pack-backed assets render đúng sau save/reopen, disable/uninstall Pack, export/import và import trên browser profile sạch không có Pack gốc. Canonical references, Pack version và transform phải giữ nguyên.
 
@@ -573,6 +573,7 @@ File này là nguồn Markdown tổng hợp chuẩn duy nhất ở repository ro
 | 13/11/2026 | Triển khai Phase 4.3 `.wforge` formatVersion 2: binary snapshot entries theo SHA-256, manifest integrity, v1 compatibility; 91 automated tests pass sau bổ sung regression archive QA. |
 | 14/11/2026 | Sửa archive v2 để phân biệt embedded Data URL assets với snapshot entries, kiểm tra tổng entry limit và thêm mixed-asset round-trip regression; bộ test đạt 94/94. |
 | 14/11/2026 | Bổ sung đọc dimension cho WebP VP8, VP8L và VP8X, áp dụng giới hạn pixel chung; bộ test đạt 95/95. |
+| 14/11/2026 | Phase 4.4 browser acceptance: clean-origin import không có Pack nguồn vẫn giữ 1 snapshot/1 image object; offline save/export đạt; corrupt archive bị từ chối theo checksum và project count không đổi. Clean browser profile độc lập thật sự vẫn pending. |
 | 14/11/2026 | Bổ sung SHA-256 revalidation khi validate/open project và khi AssetLoader kích hoạt snapshot; thêm kiểm tra cấu trúc ảnh, dimension/pixel limit và regression same-size mutation. |
 | 14/11/2026 | Phase 4.4 automated QA đạt: corruption, missing/undeclared snapshot, stale project checksum và all-or-nothing import đều có regression tests. |
 | 14/11/2026 | Browser QA Phase 4.4 xác nhận mở project không có Pack nguồn và save/export khi offline; clean browser profile độc lập còn chờ môi trường browser context phù hợp. |
@@ -593,11 +594,11 @@ File này là nguồn Markdown tổng hợp chuẩn duy nhất ở repository ro
 - Phase 4.3 — `.wforge` formatVersion 2, binary snapshot entries, mixed Data URL assets, SHA-256 integrity, manifest validation và backward compatibility với formatVersion 1; 95 automated tests pass và browser round-trip đã xác nhận.
 
 Việc cần làm trong Phase 4.4:
-1. Import trên browser profile sạch không có Pack nguồn; xác nhận asset vẫn render từ embedded snapshot.
-2. Kiểm tra offline: mở project, render, save và export khi không có network.
-3. Browser QA trên archive hỏng/corrupt, snapshot thiếu/thừa, sai checksum/MIME/structure và archive vượt giới hạn.
-4. Browser QA xác nhận import all-or-nothing: dữ liệu lỗi không tạo project một phần hoặc làm thay đổi project đang có.
-5. Chạy clean browser profile độc lập và ghi nhận kết quả cuối cùng.
+1. Đã pass trên clean origin: import không có Pack nguồn giữ snapshot và image object; cần lặp lại trên browser profile độc lập thật sự.
+2. Đã pass: mở project, save và export khi offline.
+3. Đã pass một archive corrupt có checksum lỗi; tiếp tục kiểm tra snapshot thiếu/thừa và MIME/structure qua browser nếu cần mở rộng coverage.
+4. Đã pass: corrupt archive bị từ chối và project count không đổi, không tạo project một phần.
+5. Chạy clean browser profile độc lập thật sự và ghi nhận kết quả cuối cùng.
 6. Đóng Phase 4 chỉ khi toàn bộ acceptance criteria đạt; sau đó mới chuyển sang Phase 5 — Asset Pack Management.
 
 **Chưa chuyển trọng tâm sang:** marketplace, payment, AI generation, cloud sync, multiverse conflict hoặc World Environment simulation trước khi các nền tảng ưu tiên hoàn tất.
