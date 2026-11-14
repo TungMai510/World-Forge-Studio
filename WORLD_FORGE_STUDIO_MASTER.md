@@ -398,6 +398,20 @@ Không phát triển riêng UI của tất cả milestone trước rồi mới x
 7. Migration và recovery path nếu schema thay đổi.
 
 
+#### Định hướng trải nghiệm sau First Usable Build
+
+Sau khi Core và First Usable Build ổn định, roadmap cần phát triển không chỉ năng lực tạo dữ liệu mà cả trải nghiệm trước, trong và sau khi hoàn thành một thế giới. Các hạng mục dưới đây được đặc tả tại mục 10.5 và không làm thay đổi thứ tự ưu tiên Phase hiện tại:
+
+- World Overview và World Bible Export cần dựa trên World Data Core, schema và quan hệ ổn định.
+- World Consistency Advisor cần được xây theo từng miền dữ liệu, phân biệt lỗi dữ liệu, cảnh báo/heuristic và quy tắc hư cấu do creator định nghĩa.
+- World Evolution Preview cần có luồng Preview → Compare → Apply → Record to Timeline, có checkpoint/branch và không tự ghi đè canon.
+- World Presentation là lớp trình bày/xuất bản trực quan, phụ thuộc Map, Timeline và publication contract.
+- Templates có thể xuất hiện sớm ở mức preset an toàn; World Comparison/Branch Comparison phụ thuộc snapshot và branching.
+- Collaboration, AI generation, Marketplace và tích hợp xuất sang game/story là dài hạn; không chen vào First Usable Build.
+
+Nguyên tắc giữ chân người dùng: sau khi hoàn thành một world, họ phải có lý do để quay lại tiếp tục phát triển lịch sử, tạo nhánh giả định, hoàn thiện nội dung, chia sẻ hoặc khám phá thế giới khác. Đây là mục tiêu trải nghiệm, không phải yêu cầu biến mọi dự án thành mô phỏng liên tục.
+
+
 ---
 
 ## 8. World Environment Studio — định hướng tương lai
@@ -1091,6 +1105,127 @@ Không xây Showcase trước khi Studio có thể tạo và lưu một thế gi
 
 Đây là đặc tả ý tưởng và yêu cầu tương lai, **chưa phải tính năng đã triển khai hoặc phase được cam kết lịch**. Ưu tiên hiện tại vẫn là hoàn thành Core Studio và First Usable Build.
 
+
+### 10.5 World Completion & Return Experience — trải nghiệm hoàn thành và tiếp tục phát triển thế giới
+
+#### 10.5.1 Mục tiêu trải nghiệm
+
+World Forge Studio không nên kết thúc trải nghiệm ở thao tác lưu hoặc đóng project. Khi creator cảm thấy một world đã đạt trạng thái có thể giới thiệu, Studio cần giúp họ nhìn lại thành quả, hiểu các miền dữ liệu đã xây dựng, trình bày thế giới và chọn bước tiếp theo.
+
+Cảm xúc mục tiêu: **“Mình đã tạo ra cả một thế giới — nó có quá khứ, hiện tại, những quy luật riêng và một tương lai còn có thể khám phá.”**
+
+Không ép người dùng phải hoàn thành mọi miền dữ liệu. “Finish World” là một mốc do creator chủ động chọn, không khóa project, không tuyên bố thế giới hoàn chỉnh tuyệt đối và không ngăn chỉnh sửa tiếp.
+
+#### 10.5.2 World Overview — hồ sơ tổng quan
+
+Một trang tổng quan tập hợp dữ liệu đã có và được phép hiển thị:
+- Planetary: thông số hành tinh/thiên thể, trọng lực và khí quyển nếu đã khai báo.
+- Geography: lục địa, đại dương, địa hình, địa danh.
+- Climate: vùng khí hậu và dữ liệu môi trường đã tạo.
+- Biology: loài, quần thể, môi trường sống và hệ sinh thái.
+- Civilization: loài có trí tuệ, nền văn minh, văn hóa và tổ chức.
+- Nations: quốc gia, lãnh thổ và thể chế.
+- History: thời kỳ, sự kiện và quan hệ nhân quả.
+- Story: nhân vật, tuyến truyện và sự kiện được creator liên kết.
+
+Overview phải thể hiện rõ số liệu/miền dữ liệu chưa được cung cấp; không tự bịa nội dung để lấp trạng thái trống. Ngoài thống kê, có thể tạo phần tóm lược dạng văn bản từ dữ liệu cấu trúc, nhưng creator phải được xem trước và chỉnh sửa trước khi xuất bản/chia sẻ.
+
+#### 10.5.3 World Consistency Advisor — cố vấn tính nhất quán
+
+Advisor kiểm tra quan hệ liên miền và đưa ra kết quả theo ba mức:
+1. **Data conflict:** vi phạm schema, ID/relationship hoặc quy tắc bắt buộc của ruleset đang chọn.
+2. **Plausibility warning:** có vẻ bất thường theo heuristic/giả định đã khai báo, nhưng không khẳng định là bất khả thi.
+3. **Custom canon rule:** quy tắc hư cấu do creator đặt ra; chỉ kiểm tra theo luật mà creator đã chọn.
+
+Ví dụ kiểm tra: khí hậu và biome; dân số, diện tích và nguồn lực; công nghệ và hạ tầng năng lượng; đặc điểm sinh học và habitat; thứ tự thời gian giữa sự kiện và thực thể. Mỗi cảnh báo cần nêu dữ liệu liên quan, lý do, mức độ tin cậy, giả định/ruleset và cách khắc phục hoặc miễn trừ.
+
+Không áp đặt Earth-like science lên Fantasy/Sci-Fi/custom worlds. Creator có thể chấp nhận, bỏ qua, miễn trừ hoặc sửa cảnh báo; việc miễn trừ nên lưu lý do tùy chọn và có thể truy vết. Advisor không tự sửa canon.
+
+#### 10.5.4 World Evolution Preview — xem trước thay đổi
+
+Cho phép thử thay đổi trước khi áp dụng, theo luồng:
+
+**Preview → Compare → Apply → Record to Timeline**
+
+Ví dụ: dịch chuyển địa chất, biến đổi khí hậu, tuyệt chủng loài, phát minh nguồn năng lượng, thay đổi biên giới hoặc kết quả một cuộc chiến. Kết quả phải chỉ rõ:
+- Những thực thể/trường dữ liệu bị ảnh hưởng trực tiếp và gián tiếp.
+- Giả định, quy tắc, tham số hoặc seed đã sử dụng.
+- Mức độ chắc chắn: deterministic rule, heuristic hay speculative outcome.
+- Các khác biệt giữa trạng thái hiện tại và trạng thái preview.
+
+Apply phải tạo transition/patch có thể kiểm tra, lưu và undo/recover theo contract; chỉ ghi sự kiện vào Timeline khi creator xác nhận. Preview không được âm thầm mutate dữ liệu canonical. Có thể tạo branch What-if/Experimental để thử các kịch bản mà không ảnh hưởng Main canon.
+
+#### 10.5.5 World Presentation — trình diễn thế giới
+
+World Presentation là công cụ tạo hành trình khám phá trực quan, có thể dùng trong Studio hoặc xuất thành publication cho Showcase. Một presentation cơ bản có thể gồm:
+1. World Reveal — toàn cảnh và giới thiệu thế giới.
+2. Geography Reveal — lục địa, đại dương và địa hình.
+3. Civilization Reveal — nền văn minh, địa danh và biểu tượng.
+4. History Reveal — các mốc nổi bật trên Timeline.
+5. Present Day — trạng thái hiện tại và lời giới thiệu của creator.
+
+Creator chọn camera/view, lớp dữ liệu, cảnh, thứ tự, thời lượng, nội dung công khai và media. Hỗ trợ poster/thumbnail tĩnh làm fallback; video/animation là phương thức trình bày, không phải điều kiện để xem nội dung. Không tự động công khai private notes, draft hoặc dữ liệu chưa được chọn. Tái sử dụng publication snapshot/data contract ở mục 10.4 thay vì tạo một pipeline dữ liệu công khai song song.
+
+#### 10.5.6 Công cụ hỗ trợ sáng tạo và tái sử dụng
+
+- **World Templates:** preset để bắt đầu nhanh (ví dụ fantasy map, archipelago, desert world, sci-fi colony); template phải khai báo phần nào là dữ liệu mẫu và cho phép creator tùy chỉnh.
+- **World Bible Export:** xuất hồ sơ thế giới có cấu trúc, gồm overview, bản đồ/ảnh, entity, quan hệ, timeline và ghi chú được chọn; hỗ trợ định dạng tài liệu phù hợp khi schema đã ổn định. Export phải ghi rõ version/schema và không bao gồm dữ liệu private bị loại trừ.
+- **World Comparison:** so sánh hai world hoặc hai snapshot theo dữ liệu, bản đồ, timeline và các miền được chọn; tránh chỉ so ảnh tổng thể.
+- **Branch Comparison:** so sánh Main với What-if/Experimental/Recovery branch và hỗ trợ chọn thay đổi để hợp nhất nếu contract cho phép.
+- **World Collaboration:** nhiều creator cùng làm việc với quyền, attribution, versioning và conflict resolution rõ ràng; chỉ triển khai sau khi local persistence, migration, snapshot và permission model ổn định.
+- **AI World Assistance:** gợi ý/tạo nháp entity, asset, mô tả hoặc sự kiện theo schema; mọi output qua validation và human approval, không tự ghi đè canon.
+- **World-to-Story/Game Integration:** xuất dữ liệu có cấu trúc cho quy trình viết truyện, truyện tranh, tabletop hoặc game; cần adapter/version contract riêng, không làm World Data Core phụ thuộc một engine cụ thể.
+
+#### 10.5.7 Finish World — điểm tổng kết không khóa dự án
+
+Khi creator chọn Finish World, Studio mở một World Completion Review:
+- Tóm tắt các miền đã có dữ liệu và các miền còn trống.
+- Hiển thị các consistency findings chưa giải quyết, không bắt buộc tất cả phải bằng 0.
+- Cho xem World Overview và Timeline highlights.
+- Đề xuất tạo World Presentation, xuất World Bible hoặc chuẩn bị publication.
+- Cho phép đánh dấu world là Ready to Present/Published/Personal Milestone theo trạng thái riêng.
+- Luôn có lựa chọn Continue Editing, tạo branch hoặc quay lại bất cứ Studio nào.
+
+Không dùng một nút Finish World để tự động publish, đóng băng hoặc thay đổi quyền riêng tư. Việc công bố phải theo publish workflow và published snapshot tại mục 10.4.
+
+#### 10.5.8 Lý do quay lại và nguyên tắc giảm độ phức tạp
+
+Các vòng lặp quay lại có giá trị gồm: tiếp tục lịch sử, tạo nền văn minh/nhân vật, thử nhánh giả định, cập nhật presentation, chuyển world thành tác phẩm khác, cộng tác hoặc khám phá tác phẩm creator khác.
+
+Để tránh quá tải:
+- Không mở tất cả Studio nâng cao ngay lần đầu; dùng progressive disclosure và contextual entry points.
+- Có Quick Start/Templates nhưng không bắt buộc dùng wizard hoặc milestone.
+- Ưu tiên trực quan hóa kết quả trên bản đồ, Timeline, overview và preview thay vì buộc người dùng đọc quá nhiều thông số.
+- Giữ Creative/Free World Mode và custom rulesets; milestone là hướng dẫn/challenge tùy chọn, không phải rào cản sáng tạo.
+- Không biến Consistency Advisor thành cơ chế phán xét mọi lựa chọn hư cấu.
+- Không yêu cầu mô phỏng khoa học chi tiết để một world được xem là có thể trình bày.
+
+#### 10.5.9 Ưu tiên và acceptance criteria
+
+| Hạng mục | Phụ thuộc | Ưu tiên định hướng |
+|---|---|---|
+| World Overview | World Data Core và các domain contracts | Rất cao, sau nền tảng dữ liệu |
+| World Bible Export | Schema/relations ổn định, export permissions | Cao |
+| World Consistency Advisor | Domain validation, ruleset/versioning, provenance | Rất cao nhưng triển khai tăng dần theo từng miền |
+| World Evolution Preview | State/patch, timeline, checkpoint/branch | Cao, sau Milestone Engine foundation |
+| World Presentation | Map/Timeline views và publication contract | Cao, sau khi có dữ liệu trực quan đủ dùng |
+| World Templates | Import/schema compatibility và template validation | Trung bình; preset cơ bản có thể làm sớm |
+| World/Branch Comparison | Snapshot và branch model | Trung bình |
+| Collaboration | Permission, concurrency/conflict resolution | Dài hạn |
+| AI assistance | Stable schema, validator, approval workflow | Dài hạn |
+| Marketplace và tích hợp game/story | Creator ecosystem, licensing và adapter contracts | Dài hạn |
+
+Acceptance cho trải nghiệm tổng kết ở phiên bản đầu:
+- Creator có thể mở World Overview và chỉ thấy dữ liệu thực sự tồn tại/được phép xem.
+- Có thể xem trạng thái hoàn thiện theo miền mà không bị ép hoàn thành mọi miền.
+- Advisor phân loại conflict/warning/custom rule và giải thích được căn cứ.
+- Preview không thay đổi canonical project trước khi creator Apply.
+- Finish World không khóa chỉnh sửa, không tự publish và không thay đổi visibility.
+- World Bible/Presentation chỉ xuất dữ liệu được creator chọn; export có version/schema metadata.
+- Có thể tiếp tục chỉnh sửa hoặc tạo branch sau khi đánh dấu hoàn thành.
+
+Đây là đặc tả sản phẩm và roadmap định hướng, **chưa phải tính năng đã triển khai**. Không làm thay đổi phạm vi First Usable Build hoặc ưu tiên Phase 4.4 → 5 → 6 → 7.
+
 ---
 
 ## 11. Sản phẩm đồng hành dài hạn: WorldForge Multiverse Conflict
@@ -1211,7 +1346,8 @@ File này là nguồn Markdown tổng hợp chuẩn duy nhất ở repository ro
 | 14/11/2026 | Bổ sung SHA-256 revalidation khi validate/open project và khi AssetLoader kích hoạt snapshot; thêm kiểm tra cấu trúc ảnh, dimension/pixel limit và regression same-size mutation. |
 | 14/11/2026 | Phase 4.4 automated QA đạt: corruption, missing/undeclared snapshot, stale project checksum và all-or-nothing import đều có regression tests. |
 | 14/11/2026 | Browser QA Phase 4.4 xác nhận mở project không có Pack nguồn và save/export khi offline; clean browser profile độc lập còn chờ môi trường browser context phù hợp. |\n| 14/11/2026 | Bổ sung đặc tả World Genesis & Evolution: Genesis Wizard, nhiều thang thời gian, Era Constraints/Asset unlock, World State Manager, Evolution Engine, World Survival Validation và Catastrophe Events; xác định rõ đây là định hướng dài hạn, chưa triển khai và không thuộc First Usable Build. |\n| 14/11/2026 | Bổ sung đặc tả World Evolution Milestones: milestone-specific workspaces, Origin of Life/biochemistry configuration, milestone gates, Creative/Guided/Challenge modes, branching evolution và Milestone Configuration Schema/Engine; xác định là định hướng tương lai, chưa triển khai và không thuộc First Usable Build. |
-| 14/11/2026 | Tái cấu trúc World Evolution Milestones thành bốn giai đoạn mặc định: Year 0/World Formation, Life Forms, Intelligent Life và Nations; quy định History & Timeline/Event System khả dụng từ đầu, Power System Studio mở ở Milestone 3, Story & Event Studio mở ở Milestone 4 và Free World Mode sau Milestone 4. |\n| 14/11/2026 | Đánh giá roadmap: giữ nguyên thứ tự Phase 4.4 → 5 → 6 → 7 cho First Usable Build, nhưng đưa QA vào từng phase; đề xuất roadmap sau đó theo World Data Core → Time/History/Event → Milestone/Genesis → bốn milestone → Free World Mode → Showcase. |\n| 14/11/2026 | Bổ sung đặc tả ý tưởng World Forge Showcase: trải nghiệm triển lãm thế giới, Animated World Presentation, World Page, published snapshot/data contract, quyền riêng tư, community và lộ trình MVP phụ thuộc First Usable Build. |
+| 14/11/2026 | Tái cấu trúc World Evolution Milestones thành bốn giai đoạn mặc định: Year 0/World Formation, Life Forms, Intelligent Life và Nations; quy định History & Timeline/Event System khả dụng từ đầu, Power System Studio mở ở Milestone 3, Story & Event Studio mở ở Milestone 4 và Free World Mode sau Milestone 4. |\n| 14/11/2026 | Đánh giá roadmap: giữ nguyên thứ tự Phase 4.4 → 5 → 6 → 7 cho First Usable Build, nhưng đưa QA vào từng phase; đề xuất roadmap sau đó theo World Data Core → Time/History/Event → Milestone/Genesis → bốn milestone → Free World Mode → Showcase. |\n| 14/11/2026 | Bổ sung trải nghiệm World Completion & Return: World Overview, Consistency Advisor, Evolution Preview, World Presentation, World Bible Export, Templates, World/Branch Comparison và Finish World không khóa chỉnh sửa; xác định ưu tiên, acceptance criteria và các giới hạn chống quá tải. |
+| 14/11/2026 | Bổ sung đặc tả ý tưởng World Forge Showcase: trải nghiệm triển lãm thế giới, Animated World Presentation, World Page, published snapshot/data contract, quyền riêng tư, community và lộ trình MVP phụ thuộc First Usable Build. |
 | 13/11/2026 | Browser QA Phase 4.3 xác nhận export/import round-trip qua UI và snapshot fallback sau khi tắt/gỡ Pack; clean-profile/offline/security QA còn lại. |
 | 14/11/2026 | Chủ dự án xác nhận Phase 4.2 hoàn tất sau khi chạy kiểm thử; chuyển trọng tâm sang Phase 4.4 QA acceptance. |
 | 13/11/2026 | Bổ sung định hướng World Environment Studio: lục địa, địa chất, khí hậu, thời tiết, gió mùa, hải lưu, thủy văn và biome. |
