@@ -93,6 +93,8 @@ Sau khi triển khai, agent phải báo cáo:
 
 Không đánh dấu task hoàn tất chỉ dựa trên lời khẳng định của agent. Phải phân biệt rõ: **code đã viết**, **automated test đã chạy**, **browser acceptance đã kiểm tra**, và **đã xác minh trên môi trường sạch/CI**.
 
+**Quy tắc dừng sau 3 lần thử:** nếu cùng một lỗi vẫn chưa được giải quyết sau tối đa 3 lần thử sửa có mục tiêu, coding agent phải dừng retry. Không tiếp tục thay đổi ngẫu nhiên hoặc lặp lại cùng giả thuyết; thay vào đó, báo cáo ba lần thử, bằng chứng/log, giả thuyết đã bị loại trừ, phân tích nguyên nhân gốc và đề xuất bước điều tra tiếp theo để chủ dự án duyệt. Lần thử được tính là một chu kỳ sửa → chạy kiểm tra liên quan → đánh giá kết quả.
+
 ## 4. Phân công riêng cho UI/UX
 
 Giao diện là một phần quan trọng của First Usable Build. Không chỉ tối ưu vẻ ngoài; cần đảm bảo người dùng hiểu công cụ, biết trạng thái và nhận phản hồi sau thao tác.
@@ -188,19 +190,19 @@ Với tối thiểu hai pack:
 
 Không trì hoãn các kiểm thử nhỏ đến giai đoạn release. Mỗi Phase phải có automated tests, browser acceptance phù hợp và regression checks riêng.
 
-## 7. Thứ tự ưu tiên công việc trước mắt
+## 7. Thứ tự ưu tiên công việc trước mắt — First Usable Build
 
-1. Hoàn tất và xác nhận Phase 4.4 theo các tiêu chí đã thống nhất.
-2. Đánh giá UI hiện tại, ghi nhận các vấn đề ảnh hưởng trực tiếp đến First Usable Build.
-3. Thống nhất Asset Style Guide và cấu trúc Asset Pack.
-4. Tạo Pack 01 — Natural Terrain.
-5. Tạo Pack 02 — World Symbols.
-6. Triển khai Phase 5 — Asset Pack Management.
-7. Import hai pack vào Map Studio; kiểm tra save/reopen và export/import.
-8. Triển khai Phase 6 — Asset Pack Studio.
-9. Hoàn thiện UI/UX và kiểm thử First Usable Build.
+Thứ tự triển khai chính thức gồm **5 đợt**, đồng bộ với Mục 13.3 của `WORLD_FORGE_STUDIO_MASTER.md`:
 
-Các hệ thống World Genesis, Climate, Biology, Civilization, Showcase, Marketplace và AI Generation nâng cao vẫn theo roadmap tổng thể; không được tự động đưa vào phạm vi First Usable Build chỉ vì có thêm model AI.
+1. **Đợt 1 — Khóa sổ Phase 4.4:** storage persistence request; Safe Save và xử lý `QuotaExceededError`; bảo toàn Unknown Fields ở project và entity con; chạy ST-02, ST-03, ST-04 và ST-05 trên clean browser profile độc lập.
+2. **Đợt 2 — Chuẩn bị Phase 5:** lập Dependency/Import Map thực tế của `layout.js`; tách một `AssetPackApplicationService` làm boundary cho UI quản lý Pack; cập nhật `CURRENT_PHASE_CONTEXT.md` (dưới 150 dòng) từ source đã xác minh. Có thể chốt Asset Style Guide ở mức tài liệu, nhưng chưa tạo hai Pack mẫu.
+3. **Đợt 3 — Phase 5:** triển khai Pack Registry bền vững trong IndexedDB; UI install/enable/disable/uninstall/update; compatibility `minWorldForgeVersion`; bảo vệ asset snapshot đã pin; reset Active Tool an toàn khi Pack chứa tool đang chọn bị disable/uninstall; chạy ST-10 và ST-11. Manual refresh asset đã pin phải là thao tác tùy chọn có preview/xác nhận của creator.
+4. **Đợt 4 — Phase 6:** hoàn thiện Asset Pack Studio và luồng export `.wfpack`; batch import, metadata/license/capabilities và kiểm tra giải mã ảnh bằng `createImageBitmap()` (giải phóng bitmap sau validation). **Chỉ sau khi bộ xuất `.wfpack` hoạt động**, tạo Pack mẫu Natural Terrain và World Symbols bằng chính workflow của Studio.
+5. **Đợt 5 — Phase 7:** E2E First Usable Build: cài/import Pack → dùng asset → save/close/reopen → export/import `.wforge` → clean profile/offline → xác minh asset snapshot và dữ liệu không mất.
+
+Không đảo thứ tự Phase 5 và Phase 6; không tạo Pack mẫu trước khi Asset Pack Studio có thể export `.wfpack`. Không đưa các hệ thống World Genesis, Climate, Biology, Civilization, Showcase, Marketplace hoặc AI Generation nâng cao vào First Usable Build.
+
+**Đóng băng roadmap tương lai:** cho đến khi Phase 7 hoàn tất, không tự ý mở rộng hoặc viết lại các mục Phase 8–16+ trong Master Document. Chỉ cập nhật các mục vận hành hiện tại (Mục 3, 6, 13.3, 14, 15) khi cần phản ánh code, quyết định hoặc trạng thái đã xác minh; thay đổi kiến trúc tương lai chỉ được đề xuất khi có xung đột nghiêm trọng ảnh hưởng trực tiếp đến First Usable Build.
 
 ## 8. Quy tắc tránh phân tán và xung đột
 
