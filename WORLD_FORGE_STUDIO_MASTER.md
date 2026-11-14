@@ -1,7 +1,7 @@
 # World Forge Studio — Master Project Document
 
 > **Tài liệu chuẩn duy nhất của dự án**  
-> **Cập nhật:** 13/11/2026  
+> **Cập nhật:** 14/11/2026  
 > **Repository:** TungMai510/World-Forge-Studio  
 > **Nhánh:** main  
 > **Ứng dụng:** worldforge_ui_prototype/  
@@ -71,7 +71,7 @@ Studio sở hữu quy tắc nghiệp vụ của miền mình; không để Studi
 | Power System Studio | Sức mạnh, phép thuật, công nghệ và quy tắc | Tương lai |
 | Story Studio | Cốt truyện, tuyến truyện, sự kiện, liên kết nhân vật/thế giới | Tương lai |
 | Plugin Studio / Soundscape Studio | Mở rộng công cụ, âm thanh môi trường | Định hướng dài hạn |
-| Creator Hub | Hồ sơ creator, đóng góp, showcase và cộng đồng | Định hướng dài hạn |
+| World Forge Showcase | Xuất bản, trưng bày, khám phá và trải nghiệm các thế giới do creator tạo | Định hướng dài hạn; đặc tả sản phẩm ban đầu tại mục 10.4 |\n| Creator Hub | Hồ sơ creator, đóng góp, showcase và cộng đồng | Định hướng dài hạn |
 
 Các Studio tương lai không được xem là đã triển khai chỉ vì xuất hiện trong kiến trúc.
 
@@ -457,6 +457,132 @@ Thành phần khái niệm:
 
 Lời kêu gọi đóng góp cần thân thiện, minh bạch và điều chỉnh theo từng cộng đồng creator. Nêu rõ loại tài nguyên cần, license mong muốn, cách ghi nhận tác giả, cách gửi và quy trình kiểm duyệt. Đóng góp là tự nguyện; không tạo cảm giác creator phải cung cấp tài nguyên miễn phí.
 
+### 10.4 World Forge Showcase — nền tảng trưng bày và khám phá thế giới
+
+#### 10.4.1 Tầm nhìn và định vị
+
+World Forge Showcase là không gian triển lãm số dành cho các thế giới được tạo bằng World Forge Studio. Đây không chỉ là thư viện ảnh bản đồ hoặc trang đăng project, mà là nơi người xem có thể khám phá một thế giới, hiểu địa lý, nền văn minh, lịch sử và câu chuyện của nó thông qua trải nghiệm trực quan, có chiều sâu.
+
+Thông điệp định hướng:
+**“Every World Has a Story. Every Creator Has a Universe.”**
+
+Ba mục tiêu chính:
+- **Discover:** khám phá thế giới mới theo thể loại, chủ đề, creator và xu hướng.
+- **Experience:** trải nghiệm thế giới qua bản đồ, hoạt ảnh, dữ liệu và câu chuyện.
+- **Share:** creator giới thiệu tác phẩm, cập nhật tiến trình và xây dựng cộng đồng người theo dõi.
+
+Showcase là sản phẩm web/community layer về sau; không phải điều kiện để dùng World Forge Studio. Không chuyển trọng tâm khỏi First Usable Build của Studio để triển khai Showcase quá sớm.
+
+#### 10.4.2 Cấu trúc trải nghiệm
+
+**Trang chủ**
+- Featured Worlds: thế giới nổi bật với hero cover/animated preview, tên, tagline, creator, thể loại, số lục địa/nền văn minh và kỷ nguyên hiện tại.
+- Explore Worlds: lưới thẻ thế giới với ảnh/hoạt ảnh xem trước, mô tả ngắn, creator và metadata cơ bản.
+- Trending, Recently Published và Recommended: các khu vực khám phá theo mức độ quan tâm, cập nhật và gợi ý.
+- Bộ lọc thể loại gợi ý: Fantasy, Sci-Fi, Medieval, Modern, Post-apocalyptic, Mythology, Historical Fiction và Other.
+- Sắp xếp gợi ý: mới cập nhật, mới xuất bản, phổ biến và mức độ hoàn thiện. Các chỉ số phổ biến phải có định nghĩa rõ ràng, không chỉ dựa vào lượt xem.
+
+**Trang chi tiết của một thế giới**
+1. **World Introduction:** hero toàn màn hình, tên thế giới, tagline, creator, thể loại, ngày tạo/ngày cập nhật và lời giới thiệu.
+2. **World Geography:** bản đồ tương tác pan/zoom; hiển thị lục địa, đại dương, địa hình, sông, hồ và địa điểm quan trọng. Chọn một lục địa để xem hồ sơ, vùng, địa hình, khí hậu và các nền văn minh liên quan nếu dữ liệu đã được công bố.
+3. **Civilizations:** thẻ nền văn minh với tên, biểu tượng/cờ, loài/chủng tộc, thể chế, thủ đô, thời điểm thành lập và lãnh thổ. Trang chi tiết có thể mở rộng sang văn hóa, kiến trúc, trang phục, tôn giáo, quân đội và lịch sử.
+4. **History & Timeline:** dòng thời gian có mốc sự kiện, thời kỳ, kỷ nguyên và thay đổi lãnh thổ; về sau có thể liên kết sự kiện với trạng thái bản đồ theo thời điểm.
+5. **World Gallery:** ảnh bản đồ, phong cảnh, thành phố, kiến trúc, nhân vật, sinh vật, vật phẩm và minh họa sự kiện.
+6. **Creator Notes:** cảm hứng sáng tác, ghi chú, tiến độ, nội dung có spoiler và kế hoạch cập nhật. Creator có thể đánh dấu nội dung spoiler trước khi hiển thị.
+
+Không hiển thị các miền dữ liệu chưa được tạo hoặc chưa được creator công bố như thể chúng đã tồn tại. Trang Showcase cần có trạng thái rỗng/“chưa được cung cấp” rõ ràng.
+
+#### 10.4.3 Animated World Presentation
+
+Hoạt ảnh là một điểm nhận diện quan trọng, nhưng không nên dùng GIF cho mọi thành phần. GIF có thể lớn, giới hạn màu và thiếu hiệu quả với hoạt ảnh dài. Định hướng định dạng:
+- WebP animated hoặc GIF cho preview ngắn, loop đơn giản.
+- MP4/WebM cho cinematic sequence dài hoặc nhiều chuyển động.
+- PNG/JPEG cho ảnh tĩnh.
+- SVG chỉ khi có pipeline sanitize và render an toàn được thiết kế riêng; không mặc định cho phép SVG tùy ý từ người dùng.
+- Poster/thumbnail tĩnh luôn có để fallback, tải nhanh và hỗ trợ thiết bị không phát animation.
+
+Một bản giới thiệu thế giới có thể gồm 5 cảnh:
+1. **World Reveal:** mở đầu bằng hình ảnh hành tinh/thế giới và tên.
+2. **Geography Reveal:** lần lượt làm nổi bật lục địa, đại dương và địa hình.
+3. **Civilization Reveal:** giới thiệu biểu tượng và thông tin các nền văn minh.
+4. **History Reveal:** hiển thị một số mốc lịch sử nổi bật trên timeline.
+5. **Present Day:** chuyển về bản đồ/trạng thái hiện tại và lời giới thiệu của creator.
+
+Creator có thể chọn template, phong cách trình bày, thứ tự cảnh, nội dung công khai và tài nguyên minh họa. Về lâu dài, Showcase có thể tự tạo phần lớn presentation từ World Project data, thay vì bắt creator dựng toàn bộ thủ công. Không tự sinh hoặc công khai nội dung chưa được creator duyệt.
+
+#### 10.4.4 Publish workflow và quyền riêng tư
+
+Luồng dự kiến: **World Forge Studio → Prepare for Showcase → Preview publication → Publish snapshot → Public World Page.**
+
+Khi xuất bản, creator chọn:
+- Tên, tagline, mô tả, thể loại và cover/animated preview.
+- Các lục địa, nền văn minh, sự kiện lịch sử và gallery muốn công khai.
+- Creator notes và nội dung có spoiler.
+- Quyền truy cập và license/attribution cho nội dung đính kèm.
+
+Mức hiển thị:
+- **Public:** xuất hiện trong Explore và có thể được tìm thấy.
+- **Unlisted:** có đường dẫn trực tiếp nhưng không xuất hiện trong khám phá công khai.
+- **Private:** chỉ creator và người được cấp quyền xem.
+- **Collaborative:** chia sẻ có kiểm soát cho cộng tác viên; quyền đọc/đóng góp cần được xác định riêng.
+
+**Bắt buộc dùng published snapshot:** Showcase không được đọc trực tiếp project đang chỉnh sửa hoặc tự động làm lộ dữ liệu nội bộ. Creator chọn thời điểm xuất bản và nội dung được đưa vào một snapshot có version. Thay đổi trong Studio không làm thay đổi publication hiện tại cho tới khi creator preview và publish phiên bản mới. Có thể giữ lịch sử publication/rollback về phiên bản trước.
+
+#### 10.4.5 World Publication Data Contract
+
+Showcase phải tiêu thụ dữ liệu cấu trúc đã được xuất bản từ World Project, không chỉ dựa vào ảnh và văn bản nhập tay. Cần thiết kế một publication package/manifest có version riêng, tương thích với World Data Core và archive, gồm tối thiểu:
+- Publication ID, World ID, project/schema version, publication version và thời điểm tạo.
+- Metadata công khai: title, tagline, description, genre, creator attribution, cover/poster.
+- Danh sách entity được chọn công khai và các trường được phép hiển thị.
+- Quan hệ giữa World, Continent, Civilization, Location, Event và Timeline record qua stable IDs.
+- Gallery media references, media type, thumbnail/poster, kích thước và checksum.
+- Presentation scenes/timeline, thứ tự, thời lượng và tham chiếu nội dung.
+- Visibility, spoiler flags, license/attribution và publication status.
+
+Nguyên tắc:
+- Chỉ serialize entity/field được creator chọn công khai; không export private notes, draft hoặc dữ liệu không được cấp quyền.
+- Giữ stable IDs và quan hệ để trang Showcase có thể điều hướng từ bản đồ tới lục địa, nền văn minh và sự kiện.
+- Dữ liệu publication là snapshot bất biến theo version; update là publication version mới.
+- Dùng schema versioning, validation, checksum và migration/compatibility policy.
+- Media phải qua giới hạn dung lượng, kiểm tra MIME/signature và xử lý nội dung không tin cậy; không cho phép script hoặc HTML tùy ý.
+- Tách canonical project data, published snapshot và media derivatives/cache.
+- Không yêu cầu toàn bộ hệ Studio tương lai phải hoàn tất mới có thể xuất bản một world cơ bản; Showcase chỉ hiển thị các miền dữ liệu có sẵn.
+
+#### 10.4.6 Community và creator features
+
+Các tính năng có thể triển khai theo từng giai đoạn:
+- Appreciate/Like, bookmark và share.
+- Follow creator và feed cập nhật từ creator đang theo dõi.
+- Comment/discussion có moderation, report và block.
+- Collections để người xem lưu nhóm thế giới theo chủ đề.
+- Creator profile, danh sách tác phẩm và publication history.
+- Analytics cơ bản cho creator: lượt xem hợp lệ, lượt lưu, tương tác và nguồn khám phá, đi kèm chính sách privacy.
+- World Connections: creator tự liên kết các thế giới trong cùng multiverse, alternate timeline, shared universe hoặc dự án đồng sáng tác.
+
+Các liên kết giữa thế giới phải là metadata do creator chủ động khai báo và có quyền kiểm soát; không tự suy luận rằng hai thế giới có chung canon. Social features, comments, moderation, analytics và marketplace cần có chính sách abuse/privacy trước khi phát hành.
+
+#### 10.4.7 Phạm vi MVP và thứ tự phát triển
+
+Không xây Showcase trước khi Studio có thể tạo và lưu một thế giới đủ hoàn chỉnh. Thứ tự phụ thuộc:
+1. Hoàn thiện First Usable Build của World Forge Studio: Asset Pack Manager/Studio MVP, dùng được hai Asset Libraries trong Map Studio, save/reopen và export/import ổn định.
+2. Tạo World Data Core/publication contract tối thiểu cho World, Continent, Location và metadata.
+3. Hoàn thiện luồng chọn dữ liệu, preview và xuất published snapshot.
+4. Xây Showcase MVP: trang Explore đơn giản, World Page, animated/static cover, bản đồ/ảnh gallery và metadata cơ bản.
+5. Bổ sung Civilization/History sections khi các Studio và schema tương ứng sẵn sàng.
+6. Sau đó mới mở rộng community, creator profiles, comments, analytics, collections, world connections và marketplace.
+
+**Showcase MVP acceptance criteria**
+- Creator có thể chọn một world và các dữ liệu cụ thể để công khai.
+- Có preview trước khi publish và lựa chọn Public/Unlisted/Private.
+- Published snapshot không làm lộ dữ liệu private/draft.
+- Trang World Page đọc được metadata và các entity/relations trong snapshot.
+- Có cover tĩnh fallback; animation tải theo cơ chế phù hợp và không chặn nội dung chính.
+- Publication version không đổi khi project gốc được chỉnh sửa; chỉ đổi sau lần publish mới.
+- Có thể unpublish hoặc đổi visibility theo quyền của creator.
+- Import/validation lỗi không tạo publication dở dang.
+
+Đây là đặc tả ý tưởng và yêu cầu tương lai, **chưa phải tính năng đã triển khai hoặc phase được cam kết lịch**. Ưu tiên hiện tại vẫn là hoàn thành Core Studio và First Usable Build.
+
 ---
 
 ## 11. Sản phẩm đồng hành dài hạn: WorldForge Multiverse Conflict
@@ -576,7 +702,7 @@ File này là nguồn Markdown tổng hợp chuẩn duy nhất ở repository ro
 | 14/11/2026 | Phase 4.4 browser acceptance: clean-origin import không có Pack nguồn vẫn giữ 1 snapshot/1 image object; offline save/export đạt; corrupt archive bị từ chối theo checksum và project count không đổi. Clean browser profile độc lập thật sự vẫn pending. |
 | 14/11/2026 | Bổ sung SHA-256 revalidation khi validate/open project và khi AssetLoader kích hoạt snapshot; thêm kiểm tra cấu trúc ảnh, dimension/pixel limit và regression same-size mutation. |
 | 14/11/2026 | Phase 4.4 automated QA đạt: corruption, missing/undeclared snapshot, stale project checksum và all-or-nothing import đều có regression tests. |
-| 14/11/2026 | Browser QA Phase 4.4 xác nhận mở project không có Pack nguồn và save/export khi offline; clean browser profile độc lập còn chờ môi trường browser context phù hợp. |
+| 14/11/2026 | Browser QA Phase 4.4 xác nhận mở project không có Pack nguồn và save/export khi offline; clean browser profile độc lập còn chờ môi trường browser context phù hợp. |\n| 14/11/2026 | Bổ sung đặc tả ý tưởng World Forge Showcase: trải nghiệm triển lãm thế giới, Animated World Presentation, World Page, published snapshot/data contract, quyền riêng tư, community và lộ trình MVP phụ thuộc First Usable Build. |
 | 13/11/2026 | Browser QA Phase 4.3 xác nhận export/import round-trip qua UI và snapshot fallback sau khi tắt/gỡ Pack; clean-profile/offline/security QA còn lại. |
 | 14/11/2026 | Chủ dự án xác nhận Phase 4.2 hoàn tất sau khi chạy kiểm thử; chuyển trọng tâm sang Phase 4.4 QA acceptance. |
 | 13/11/2026 | Bổ sung định hướng World Environment Studio: lục địa, địa chất, khí hậu, thời tiết, gió mùa, hải lưu, thủy văn và biome. |
