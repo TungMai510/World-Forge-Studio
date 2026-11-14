@@ -1856,6 +1856,57 @@ Mỗi test report phải ghi commit, môi trường, lệnh, số test pass/fail
 
 File này là nguồn Markdown tổng hợp chuẩn duy nhất ở repository root. Không duy trì song song các bản Vision, Roadmap, Specification hoặc Status tổng hợp khác.
 
+
+### 13.3 Lean Hardening — quyết định phạm vi trước Phase 5
+
+**Quyết định:** Áp dụng Lean Hardening. Ưu tiên các biện pháp trực tiếp ngăn mất dữ liệu và bảo vệ tính tương thích; không triển khai trước các framework tổng quát, dịch vụ nền tảng lớn hoặc tái cấu trúc diện rộng. Quyết định này cụ thể hóa nguyên tắc modular monolith và tránh abstraction sớm tại mục 2.5.
+
+#### Phạm vi chọn làm
+
+1. **Storage protection tối thiểu:** yêu cầu persistent storage bằng \`navigator.storage.persist()\` khi khởi động nếu API khả dụng; ghi nhận kết quả nhưng không coi đây là bảo đảm tuyệt đối. Có thể lấy \`navigator.storage.estimate()\` để hỗ trợ cảnh báo/backup nếu bổ sung được với chi phí nhỏ; không xây Storage Health state machine.
+2. **Safe save:** bắt lỗi lưu IndexedDB, nhận diện \`QuotaExceededError\`, thông báo rõ và giữ nguyên bản lưu trước đó. Không xóa project/asset tự động để giải phóng dung lượng. IndexedDB transaction bảo đảm tính nguyên tử trong phạm vi transaction; không thêm Transaction Journal riêng cho thao tác ghi hiện tại nếu chưa có bằng chứng cần thiết.
+3. **Unknown-field preservation:** bảo toàn dữ liệu chưa nhận diện khi validate/migrate/round-trip. Dùng spread có chủ đích chỉ khi các lớp con cũng giữ trường lạ; không giả định spread ở cấp project tự động bảo vệ field trong entity con. Bổ sung round-trip regression trước khi kết luận đạt.
+4. **Asset snapshot pinning:** project snapshot đã nhúng là nguồn ưu tiên; không tự thay nội dung bằng Pack mới. Giữ lại snapshot khi Pack bị disable/uninstall nếu project còn tham chiếu.
+5. **Pack compatibility tối thiểu:** kiểm tra \`minWorldForgeVersion\` khi inspect/install Pack. Chưa xây dependency graph cho các Pack độc lập của First Usable Build.
+6. **Ảnh ở Phase 6:** giữ giới hạn archive/ảnh hiện có; dùng \`createImageBitmap()\` hoặc decoder tương đương để xác nhận giải mã thành công trước khi đăng ký asset, có xử lý lỗi và giải phóng bitmap. Không tự động giải mã toàn bộ tài nguyên ngay trong luồng import nếu chưa cần.
+7. **Layer safety:** thao tác chỉnh sửa và Undo/Redo phải tôn trọng layer \`locked\`/\`hidden\`; ưu tiên sửa policy hiện có, chưa viết lại history thành command framework tổng quát.
+8. **Một lát cắt Application Service:** trước UI Phase 5, tách \`AssetPackApplicationService\` làm facade/use-case boundary cho workflow quản lý Pack. Không tách hàng loạt Repository/Domain services; không đại tu \`layout.js\`.
+9. **AI workflow:** duy trì file ngữ cảnh vận hành ngắn \`CURRENT_PHASE_CONTEXT.md\` (mục tiêu dưới 150 dòng), cập nhật từ code thực tế. Sau tối đa 3 lần thử sửa cùng một lỗi mà chưa giải quyết, dừng retry và chuyển sang phân tích nguyên nhân/thu hẹp giả thuyết. Task nhỏ không bắt buộc review chéo nhiều model.
+
+#### Hoãn hoặc không triển khai ở giai đoạn này
+
+- Transaction Journal/Startup Recovery framework; Storage Health state machine nhiều trạng thái.
+- Streaming rewrite cho ZIP import/export; chuyển toàn bộ ZIP/SHA-256 sang multi-worker pipeline.
+- Dependency Graph/Cycle Detection giữa Pack; UI Pack Update Preview nhiều trạng thái.
+- Command-based Undo/Redo tổng quát; Repository/Domain layer hóa toàn bộ codebase.
+- Bộ 18 test hardening cùng lúc; review chéo nhiều model cho task nhỏ.
+- Marketplace, cloud sync, AI generation và world simulation vẫn ngoài phạm vi First Usable Build.
+
+Các mục trên có thể được xem xét lại khi xuất hiện bằng chứng: dữ liệu thực tế vượt giới hạn bộ nhớ, Pack phụ thuộc chéo, nhiều module cùng ghi dữ liệu, hoặc lỗi phục hồi không được IndexedDB transaction giải quyết. Hoãn không có nghĩa là cấm triển khai vĩnh viễn.
+
+#### P0 gates — chỉ sáu kiểm tra trọng yếu
+
+| ID | Kiểm tra bắt buộc | Điều kiện đạt |
+|---|---|---|
+| ST-02 | QuotaExceededError | Lưu thất bại có thông báo; bản lưu trước vẫn đọc được; không xóa dữ liệu |
+| ST-03 | Failed save preserves previous version | Lỗi giữa workflow lưu không làm thay thế bản lưu hợp lệ trước |
+| ST-04 | Unknown-field round-trip | Trường lạ ở project/data/entity được giữ qua load, edit trường đã biết, save, export/import |
+| ST-05 | Independent clean browser profile | Import \`.wforge\` v2 không có Pack nguồn vẫn render từ snapshot; ghi rõ browser/profile |
+| ST-10 | Asset version pinning | Pack update/disable không âm thầm đổi asset snapshot đang dùng trong project |
+| ST-11 | Pack uninstall with active references | Gỡ Pack không làm mất snapshot của project đã lưu |
+
+Đây là danh sách kiểm tra được chọn, **không phải tuyên bố các test đã được viết hoặc đã pass**. Các test hiện có tiếp tục chạy theo script trong mục 12.2; P0 regression được bổ sung theo từng lát cắt, không gom thành một đợt test framework lớn.
+
+#### Thứ tự triển khai
+
+1. Khóa Phase 4.4: storage persistence request + safe-save error handling; xác minh unknown-field preservation; chạy ST-02/03/04/05 và kiểm tra độc lập trên browser profile mới. Chỉ đóng phase khi có bằng chứng.
+2. Chuẩn bị Phase 5: lập dependency/import map tối thiểu từ code thực tế; tách \`AssetPackApplicationService\` và cập nhật \`CURRENT_PHASE_CONTEXT.md\`.
+3. Phase 5: Pack Registry/Manager lưu trạng thái vào IndexedDB; disable/uninstall không phá project snapshots; kiểm tra tương thích World Forge version; chạy ST-10/11.
+4. Phase 6: Asset Pack Studio tối thiểu, validate ảnh bằng decoder, đóng gói/export \`.wfpack\`; tạo hai Pack mẫu Natural Terrain và World Symbols.
+5. Phase 7: E2E trên profile độc lập: cài hai Pack → dùng asset → save/close/reopen → export/import → xác minh snapshot/offline và không mất dữ liệu.
+
+**Nguyên tắc thực thi:** mỗi đợt chỉ làm một lát cắt nhỏ; kiểm tra code trước khi giao việc; không tự ý thay đổi định dạng archive hoặc kiến trúc persistence đang pass 95/95 automated tests nếu chưa có lỗi tái hiện và kế hoạch regression tương ứng. Con số 95/95 là kết quả được ghi nhận ngày 14/11/2026, cần chạy lại trên commit mới trước khi báo cáo trạng thái hiện tại.
+
 ---
 
 ## 14. Nhật ký quyết định và cập nhật
@@ -1884,6 +1935,7 @@ File này là nguồn Markdown tổng hợp chuẩn duy nhất ở repository ro
 | 13/11/2026 | Bổ sung định hướng World Environment Studio: lục địa, địa chất, khí hậu, thời tiết, gió mùa, hải lưu, thủy văn và biome. |
 | 13/11/2026 | Hợp nhất tài liệu Markdown tổng hợp thành file master duy nhất; loại bỏ các bản trùng lặp và lịch sử roadmap lặp lại. |
 | 14/11/2026 | Bổ sung mục 2.7 về năm hợp đồng nền tảng: Data Transaction & Change, Spatial & Measurement, Generation & Provenance, Project Security & Portability, Collaboration & Publication; thêm Architecture Discovery gate, UX gaps, acceptance criteria và thứ tự triển khai nhưng giữ nguyên ưu tiên Phase 4.4 → 5 → 6 → 7. Đây là đặc tả/roadmap, chưa xác nhận đã triển khai trong code. |
+| 14/11/2026 | Chủ dự án chọn Lean Hardening trước Phase 5: storage persistence request và safe-save, unknown-field preservation, asset snapshot pinning, kiểm tra minWorldForgeVersion, layer safety, một AssetPackApplicationService, CURRENT_PHASE_CONTEXT ngắn và sáu P0 gates ST-02/03/04/05/10/11. Hoãn Transaction Journal, Storage Health framework, streaming/multi-worker rewrite, dependency graph, Pack Update Preview phức tạp, tổng quát hóa Undo/Redo/Repository và bộ 18 test; đây là quyết định phạm vi, chưa xác nhận code/test đã triển khai. |
 
 
 ---
