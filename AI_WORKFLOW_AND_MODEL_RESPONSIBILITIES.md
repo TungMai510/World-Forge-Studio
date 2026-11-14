@@ -204,6 +204,24 @@ Không đảo thứ tự Phase 5 và Phase 6; không tạo Pack mẫu trước k
 
 **Đóng băng roadmap tương lai:** cho đến khi Phase 7 hoàn tất, không tự ý mở rộng hoặc viết lại các mục Phase 8–16+ trong Master Document. Chỉ cập nhật các mục vận hành hiện tại (Mục 3, 6, 13.3, 14, 15) khi cần phản ánh code, quyết định hoặc trạng thái đã xác minh; thay đổi kiến trúc tương lai chỉ được đề xuất khi có xung đột nghiêm trọng ảnh hưởng trực tiếp đến First Usable Build.
 
+
+### 7.1. Bốn bước trước Architecture Freeze Gate
+
+Coding agent và reviewer phải tuân thủ trạng thái quản trị kiến trúc hiện tại:
+
+**Design Baseline Mature / Scope Expansion Frozen / Architecture Evidence Pending.**
+
+Tài liệu đặc tả và quy trình vận hành đã được đồng bộ để triển khai First Usable Build; điều đó không chứng minh kiến trúc Phase 8–16+ đã được kiểm chứng. Không gọi trạng thái hiện tại là Architecture Freeze.
+
+1. **Hoàn thành First Usable Build:** thực hiện đúng năm batch tại Mục 7 và Master Mục 13.3. Không mở rộng Phase 8–16+, không tạo hai Pack mẫu trước khi exporter `.wfpack` hoạt động. Mọi P0 gate và E2E phải có kết quả thực chạy.
+2. **Architecture Discovery sau Phase 7:** chỉ phân tích code/runtime thực tế; tạo Module Inventory, Static/Runtime Dependency Graph, Data Ownership Map, Persistence/Archive Map và Performance Baseline. Mọi kết luận phải trỏ tới file, symbol, test, trace hoặc số đo cụ thể.
+3. **Reference Vertical Slice:** triển khai một luồng World → Spatial/Location → Timeline Event có causal link → Save/Reopen → `.wforge` v2 Export/Import. Luồng phải đi qua UI, Application Service, Domain Contract, Persistence và Archive; kiểm tra stable IDs, schema/versioning, transaction boundary và unknown-field preservation.
+4. **Architecture Freeze Gate:** đối chiếu bằng chứng Bước 2–3 với Master Mục 2.5–2.7; quyết định contract/schema nào accepted, provisional, deferred hoặc rejected. Chỉ đề nghị Phase 8 sau khi có integration/browser evidence, migration/export-import integrity và phê duyệt của chủ dự án.
+
+**Quy tắc trong scope freeze:** không tự viết thêm đặc tả dài hạn hoặc khóa schema/contract chỉ từ suy luận. Chỉ đề xuất sửa Mục 2.5–2.7 khi phát hiện mâu thuẫn/lỗ hổng trực tiếp cản First Usable Build; nêu bằng chứng và tác động. Ý tưởng khác để backlog, không triển khai.
+
+**Báo cáo gate:** phải tách rõ tài liệu đã đồng bộ, code đã triển khai, automated tests đã chạy, browser/clean-profile acceptance, performance measurements và các giả định chưa được kiểm chứng. Không dùng từ “100% verified” nếu chưa có bằng chứng tương ứng.
+
 ## 8. Quy tắc tránh phân tán và xung đột
 
 - Không tìm thêm model AI mới trong giai đoạn hiện tại trừ khi xuất hiện một nhu cầu cụ thể mà bộ công cụ hiện có không đáp ứng được.
