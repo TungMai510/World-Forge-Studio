@@ -78,6 +78,17 @@ After at most **3 unsuccessful fix attempts** for the same issue, stop retrying.
 
 Agent report must separate: files changed; implementation; commands/tests actually run and results; tests not run; browser/clean-profile evidence; risks/remaining work; commit SHA if committed. Do not equate code written, automated tests, browser acceptance and CI verification.
 
+## 7. Architecture freeze status and four-step gate
+
+**Status:** Design Baseline Mature / Scope Expansion Frozen / Architecture Evidence Pending. Documentation alignment is not proof that long-term architecture is validated. Do not call Phase 8–16+ architecture frozen.
+
+1. **First Usable Build:** finish Batches 1–5 exactly as listed in Section 1; no Phase 8+ expansion. Phase 4.4 P0 gates and Phase 7 E2E require actual evidence.
+2. **Architecture Discovery (after Phase 7):** produce Module Inventory, static/runtime dependency graphs, Data Ownership Map, persistence/archive map and reproducible performance baseline from actual source/runtime.
+3. **Reference Vertical Slice:** World identity → spatial coordinates/location → causal Timeline Event → save/reopen → .wforge v2 export/import. Exercise UI → Application Service → Domain Contract → IndexedDB → archive; verify IDs, versioning, integrity and unknown fields.
+4. **Architecture Freeze Gate:** review Master Sections 2.5–2.7 against discovery and vertical-slice evidence. Mark contracts accepted/provisional/deferred/rejected; approve Phase 8 only after integration/browser evidence and owner approval.
+
+Until Phase 7 exits, do not expand Phase 8–16+ specifications or lock schemas from assumptions. Modify future architecture sections only to resolve a blocker or serious contradiction affecting First Usable Build, with evidence and bounded scope.
+
 ## 7. Immediate task
 
 **Batch 1 — Phase 4.4:** inspect current code and tests first; establish baseline; implement only storage persistence request, safe-save/quota behavior and unknown-field preservation; add/run ST-02, ST-03, ST-04; execute ST-05 in a genuinely independent clean browser profile if the environment supports it. Do not start Batch 2/Phase 5 work in this task.
