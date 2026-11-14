@@ -83,6 +83,113 @@ Các Studio tương lai không được xem là đã triển khai chỉ vì xu�
 - Dữ liệu dẫn xuất có thể tái tạo từ dữ liệu gốc và tham số/seed.
 - Chưa triển khai cloud sync/collaboration trước khi local persistence, schema migration và conflict model đủ ổn định.
 
+
+### 2.5 Kiến trúc Modular — quyết định kiến trúc chủ đạo
+
+**Quyết định:** World Forge Studio sẽ được xây dựng theo hướng Modular từ nền tảng đến các Studio chuyên biệt. Modular là nguyên tắc kiến trúc bắt buộc, không chỉ là cách chia thư mục hoặc chia giao diện.
+
+Mục tiêu là để sản phẩm có thể mở rộng nhiều miền worldbuilding mà không buộc mọi hệ thống phải tải, tính toán hoặc phụ thuộc lẫn nhau. Modular cũng phải giúp một cá nhân phát triển và kiểm thử từng phần mà không cần xây toàn bộ nền tảng cùng lúc.
+
+#### 2.5.1 Các lớp kiến trúc
+
+| Lớp | Trách nhiệm | Quy tắc |
+|---|---|---|
+| Application Shell | Khởi chạy ứng dụng, điều hướng, project lifecycle, module registry, settings và global commands | Không chứa logic chuyên ngành của từng Studio |
+| Shared Platform Services | Persistence, archive, asset runtime, event dispatch, validation framework, logging, job scheduler, permissions | Cung cấp API ổn định; không sở hữu quy tắc nghiệp vụ của domain |
+| World Data Core | Identity, schema/versioning, relationships, canonical state, migrations, snapshots/patches | Là nguồn dữ liệu chuẩn; không phụ thuộc UI hoặc một Studio cụ thể |
+| Domain Modules | Geography, Environment, Biology, Civilization, Nations, Timeline, Story, Power... | Mỗi module sở hữu schema và quy tắc miền; giao tiếp qua contract |
+| Studio UI Modules | Map Studio, Environment Studio, Character Studio... | UI là client của domain services; không tự ý truy cập storage nội bộ module khác |
+| Extension Layer | Asset Packs, templates, plugins và integrations được hỗ trợ | Chỉ dùng capability/API đã công bố; không thực thi code tùy ý trong Core |
+| Presentation & Export | Views, rendering, reports, publication snapshots và export adapters | Đọc dữ liệu qua query/projection; không trở thành nguồn dữ liệu canonical thứ hai |
+
+Các lớp này là ranh giới logic. Không bắt buộc tách thành microservices, nhiều repository, nhiều tiến trình hoặc nhiều ứng dụng. Trong giai đoạn hiện tại, ưu tiên **modular monolith** trong cùng ứng dụng và codebase; chỉ tách tiến trình/dịch vụ khi có lý do kỹ thuật và bằng chứng tải thực tế.
+
+#### 2.5.2 Quy tắc sở hữu dữ liệu và phụ thuộc
+
+1. Mỗi domain module có quyền sở hữu schema, validation và nghiệp vụ của miền đó.
+2. Module khác chỉ đọc/ghi thông qua public contract hoặc application service được công bố; không import sâu file nội bộ hoặc sửa trực tiếp object state của module khác.
+3. World Data Core cung cấp identity, relationship, persistence primitives và versioning; không biến thành một “god module” chứa toàn bộ logic địa lý, khí hậu, sinh học hay xã hội.
+4. Quan hệ giữa các miền ưu tiên stable ID và reference; tránh sao chép cùng một dữ liệu canonical ở nhiều nơi.
+5. Dữ liệu chưa được module hiện tại hiểu phải được bảo toàn khi load/save/export/import nếu schema và policy cho phép; không âm thầm xóa trường lạ.
+6. Module có thể khai báo dependency bắt buộc/tùy chọn, phiên bản contract tối thiểu và capability cần thiết. Dependency cycle phải bị từ chối hoặc xử lý bằng contract trung gian.
+7. Module có thể chưa được cài/khởi tạo mà project vẫn giữ nguyên dữ liệu của miền đó. UI có thể báo “module chưa khả dụng”, nhưng không được coi dữ liệu là rác.
+8. Không để module UI phụ thuộc lẫn nhau. Tương tác liên Studio đi qua Application Shell, shared services hoặc domain API.
+
+#### 2.5.3 Module manifest và lifecycle
+
+Khi hệ thống module được triển khai, mỗi module nên khai báo tối thiểu:
+- moduleId ổn định, tên hiển thị và mô tả;
+- moduleVersion và contract/API version;
+- schemaVersion riêng cho dữ liệu do module sở hữu;
+- entry point/registration metadata được Core cho phép;
+- dependencies và compatibility range;
+- capabilities, commands, navigation entries và data contributions;
+- trạng thái khả dụng: registered, available, enabled, loaded, disabled, incompatible hoặc failed;
+- migration handlers và cách bảo toàn dữ liệu khi module bị disable/unavailable.
+
+Không đồng nhất “disable module” với “xóa dữ liệu”. Disable chỉ ngừng cung cấp UI/processing của module; dữ liệu canonical vẫn được giữ. Uninstall module chỉ được hỗ trợ khi có chính sách rõ ràng, backup/export và xác nhận tác động dữ liệu.
+
+Không cho phép plugin/module bên thứ ba chạy JavaScript tùy ý trong cùng quyền với Core. Plugin runtime/sandbox, permission model và signing chỉ được thiết kế khi có nhu cầu thực tế; trước mắt ưu tiên declarative extensions và capability allowlist.
+
+#### 2.5.4 Tải module và quản lý tài nguyên
+
+- Application Shell chỉ khởi tạo module thiết yếu khi mở ứng dụng/project.
+- Studio và domain services khác được lazy-load khi người dùng mở hoặc khi một workflow thực sự cần chúng.
+- Mỗi module phải có lifecycle rõ: initialize, activate, suspend/deactivate, dispose; đăng ký listener, worker, cache và object URL phải được thu hồi đúng lúc.
+- Module không hoạt động không được giữ timer, polling, listener hoặc tính toán nền không cần thiết.
+- Dùng query/projection và cache có giới hạn cho màn hình tổng quan; không tải toàn bộ entity/assets chỉ để hiển thị một danh sách.
+- Dữ liệu lớn dùng pagination/virtualization và streaming/chunking khi phù hợp.
+- Asset loader và rendering chỉ nạp tài nguyên cần cho viewport/layer/Studio hiện tại; hỗ trợ eviction và release.
+- Tác vụ nặng nên chạy trong Web Worker hoặc background job khi phù hợp, có progress, cancel, error state và giới hạn tài nguyên.
+
+#### 2.5.5 Quy tắc tính toán: không mô phỏng toàn bộ thế giới liên tục
+
+World Forge Studio **không mô phỏng toàn bộ thế giới mọi lúc**. Nó cung cấp công cụ để creator xây dựng, thay đổi, mô phỏng và khám phá thế giới theo nhu cầu.
+
+Chọn chiến lược theo loại tác vụ:
+- **On-demand:** chỉ tính khi creator mở công cụ, yêu cầu preview hoặc chạy một mô phỏng.
+- **Event-driven / incremental:** chỉ tính lại miền và thực thể bị ảnh hưởng bởi thay đổi đã xác nhận; lan truyền phụ thuộc có kiểm soát.
+- **Background job:** dùng cho tác vụ dài như tiến hóa địa chất, batch validation hoặc tạo preview lớn; phải có tiến độ, hủy và kết quả có thể kiểm tra.
+- **Cached / derived:** lưu kết quả dẫn xuất có khóa theo input, version, ruleset và seed; cache không bao giờ thay canonical data.
+- **Deterministic where possible:** cùng input, version, ruleset và seed phải tạo kết quả tái lập được; nếu dùng heuristic/randomness thì phải ghi rõ.
+
+Một lần tiến thời gian dài không cần tính từng giây. Engine có thể xử lý các mốc, sự kiện và thay đổi có ý nghĩa, sau đó tạo state transition và Timeline records. Không được tuyên bố mô phỏng vật lý chính xác nếu thực tế chỉ là rule-based/heuristic.
+
+#### 2.5.6 UI Modular và progressive disclosure
+
+- Người mới nhìn thấy các thao tác cơ bản theo ngữ cảnh; tùy chọn nâng cao chỉ xuất hiện khi cần.
+- Advanced/Expert controls không được làm giao diện mặc định quá tải.
+- Mỗi Studio có workspace và navigation riêng nhưng tuân theo shared design system, command patterns, selection/context panels và feedback conventions.
+- World Overview là điểm tổng hợp; không biến thành màn hình buộc tất cả module phải hoạt động.
+- Creator có thể bỏ qua một miền, dùng template hoặc custom ruleset; không ép đi qua toàn bộ milestone/wizard.
+- Module không khả dụng phải có empty/disabled state giải thích rõ nguyên nhân và cách khắc phục, không tạo dead-end.
+
+#### 2.5.7 Hiệu năng và ngân sách tài nguyên
+
+Các mức phần cứng hiện chỉ là mục tiêu thiết kế sơ bộ, chưa phải benchmark hoặc cam kết cấu hình:
+- 8 GB RAM: mục tiêu cho thao tác bản đồ, project nhỏ và asset cơ bản.
+- 16 GB RAM: mục tiêu trải nghiệm phổ thông với world/project trung bình.
+- 32 GB RAM: hướng tới project lớn, nhiều asset và nhiều view/module cùng lúc.
+- GPU rời có thể cải thiện rendering/presentation nhưng Core không được yêu cầu GPU rời để thao tác dữ liệu cơ bản.
+
+Không đặt giới hạn entity cố định tùy tiện trước khi có benchmark. Thay vào đó xây performance budgets và benchmark theo workload đại diện: mở project, chuyển Studio, render viewport, tìm entity, chạy validation, save/load và export. Khi số lượng entity/asset tăng, đo memory, CPU, I/O và thời gian phản hồi; tối ưu bottleneck có bằng chứng.
+
+#### 2.5.8 Kiểm thử và tiêu chí chấp nhận Modular
+
+Một module mới chỉ được xem là tích hợp đúng khi:
+1. Có contract, owner và dependency được khai báo.
+2. Có thể khởi tạo/đóng module mà không làm hỏng Application Shell.
+3. Không truy cập trực tiếp storage/state nội bộ của module khác.
+4. Dữ liệu của module được bảo toàn khi module disable/unavailable hoặc chưa được mở.
+5. Có schema versioning/migration và test tương ứng.
+6. Có automated tests cho contract, lifecycle, error handling và dependency.
+7. Có browser acceptance cho luồng người dùng và regression ở các Studio liên quan.
+8. Có đo/kiểm tra tải tài nguyên: không tải module/asset không cần thiết trong workflow kiểm thử.
+9. Tác vụ dài có progress/cancel/failure recovery phù hợp.
+10. Module có thể phát triển độc lập trong giới hạn contract mà không làm gãy các module không liên quan.
+
+Đây là kiến trúc mục tiêu được áp dụng tăng dần. Không tái cấu trúc toàn bộ codebase chỉ để đạt mô hình lý tưởng trước First Usable Build; chỉ tạo abstraction khi có use case thực, tránh framework tổng quát hóa quá sớm.
+
 ---
 
 ## 3. Hiện trạng kỹ thuật
@@ -381,6 +488,38 @@ Không cần triển khai tất cả giao diện cùng lúc: ưu tiên data cont
 | Phase 16+ — Showcase & Creator Ecosystem | Published snapshots, Showcase MVP, creator profiles, community, marketplace/plugin ecosystem | Chỉ phát triển khi publication contract, quyền riêng tư, moderation và dữ liệu world ổn định |
 
 Các số Phase 8+ là **đề xuất roadmap mới**, không phải cam kết lịch hoặc tuyên bố đã bắt đầu. Có thể gộp các Phase liền kề nếu cùng một vertical slice và dependency đã ổn định; không nên chia nhỏ thành nhiều Studio chỉ vì khác tên miền.
+
+
+#### Đánh giá hướng đi dưới góc độ Modular
+
+Hướng phát triển hiện tại **đúng về thứ tự dependency và định hướng sản phẩm**, nhưng cần chuyển cách tư duy từ “xây lần lượt nhiều Studio” sang “xây nền tảng modular, sau đó hoàn thiện từng vertical slice qua các Studio”. Các phase không nên trở thành những ứng dụng con tách rời hoặc tạo ra các data store riêng biệt.
+
+Điều chỉnh và cải tiến đã chốt:
+- **Giữ nguyên First Usable Build:** Phase 4.4 → 5 → 6 → 7. Không chen World Environment, AI, Showcase hoặc marketplace vào trước cổng này.
+- **Giữ Modular Monolith ở giai đoạn đầu:** module boundary rõ trong cùng ứng dụng/codebase; chưa tách microservices, nhiều backend hoặc nhiều repository.
+- **Xây World Data Core theo nhu cầu thực:** Phase 8 tập trung stable IDs, schema ownership, references, migrations, validation và persistence contract; không xây một framework plugin tổng quát quá sớm.
+- **Không phát triển Studio theo silo:** ví dụ Environment vertical slice phải đi xuyên từ tạo dữ liệu địa lý/khí hậu → liên kết bản đồ → ghi event → save/reopen → export/import.
+- **History & Timeline là shared capability:** các domain phát sự kiện qua contract; Timeline không được trở thành nơi mỗi Studio tự lưu một bản lịch sử không đồng bộ.
+- **Tách canonical state khỏi derived state:** climate preview, ecosystem analysis, map render và advisor findings là dữ liệu dẫn xuất có thể tính lại; chỉ kết quả được creator Apply mới tạo canonical transition.
+- **Tính toán theo nhu cầu:** on-demand, event-driven/incremental, background jobs và cache; không chạy mô phỏng toàn thế giới liên tục.
+- **Module có lifecycle và resource ownership:** load khi cần, release listener/worker/cache khi đóng, tránh rò rỉ bộ nhớ và trạng thái ẩn.
+- **Tăng khả năng phục hồi:** module lỗi hoặc chưa sẵn sàng không được làm hỏng project hay ngăn người dùng mở các miền không liên quan; dữ liệu chưa hiểu phải được bảo toàn.
+- **Đưa hiệu năng vào acceptance sớm:** đo workload đại diện ở từng vertical slice; không đợi đến khi có hàng nghìn entity mới nghĩ đến virtualization, indexing, workers hoặc incremental computation.
+- **UI theo progressive disclosure:** Quick/Beginner path trước, Advanced/Expert controls theo ngữ cảnh; người dùng không phải học mọi hệ thống để tạo được một world.
+- **Không ép milestone:** milestone là hướng dẫn/challenge tùy chọn; Creative Mode và custom rulesets vẫn được hỗ trợ.
+
+#### Cổng kiến trúc trước khi bắt đầu Phase 8
+
+Trước khi triển khai World Data Core Foundation, cần thực hiện một đợt architecture discovery ngắn trên codebase hiện tại:
+1. Lập inventory các module/lớp hiện có trong Map, Asset, Project, Persistence và Archive.
+2. Vẽ dependency graph thực tế, xác định import xuyên tầng, vòng phụ thuộc và các singleton/state dùng chung.
+3. Chỉ ra canonical data, derived/cache data và nơi sở hữu từng schema.
+4. Định nghĩa contract tối thiểu cho module registration, lifecycle, domain API, events và migration.
+5. Chọn một vertical slice nhỏ làm mẫu để chứng minh contract; không đại tu mọi module cùng lúc.
+6. Đặt baseline performance cho mở project, render map, load asset, save/load và archive import/export.
+7. Ghi lại những phần cần refactor ngay và những phần có thể giữ nguyên đến khi có nhu cầu.
+
+**Tiêu chí chuyển sang Phase 8:** First Usable Build đã đạt; architecture discovery có dependency map và data ownership map; có kế hoạch migration không làm mất dữ liệu; và có ít nhất một module boundary được chứng minh bằng test. Đây là cổng kiểm soát kiến trúc, không phải yêu cầu phải hoàn tất toàn bộ modular refactor trước Phase 8.
 
 #### Quy tắc triển khai theo vertical slice
 
@@ -1316,6 +1455,19 @@ Validator hiện kiểm tra cấu trúc raster tối thiểu, kích thước và
 7. Chỉ cập nhật trạng thái hoàn tất khi có bằng chứng.
 8. Cập nhật các mục hiện trạng, tiến độ và changelog tại đây.
 
+### 13.2.1 Quy trình phát triển Modular
+
+- Trước khi thêm module, xác định domain ownership, public contract, dependency và lifecycle.
+- Ưu tiên module nội bộ (modular monolith); không thêm network boundary hoặc service deployment nếu chưa có yêu cầu đo được.
+- Một task chỉ nên thay đổi một domain/module chính cùng các contract liên quan tối thiểu; nếu phải chạm nhiều module, giải thích dependency và bổ sung integration tests.
+- Không tạo shared utility chỉ vì hai nơi có vài dòng code giống nhau; abstraction phải có ý nghĩa ổn định và owner rõ ràng.
+- Không để module import private implementation của nhau. Nếu contract thiếu, mở rộng contract có version/test thay vì truy cập đường tắt.
+- Mọi event cần định danh, schema/version, nguồn phát và semantics rõ; không dùng event bus như một global state tùy tiện.
+- Mọi background job cần cancel/error/progress và phải tránh ghi canonical state khi chưa có xác nhận.
+- Khi sửa schema, ghi rõ migration, backward compatibility và cách bảo toàn dữ liệu module chưa được mở.
+- Mỗi vertical slice kiểm thử cả module riêng lẫn luồng xuyên module, persistence và archive.
+- Refactor theo từng lát cắt có regression tests; không làm “big bang rewrite” để đạt kiến trúc lý tưởng.
+
 ### 13.2 Nguyên tắc kỹ thuật và tài liệu
 
 - Ưu tiên thay đổi nhỏ, tương thích ngược.
@@ -1347,6 +1499,7 @@ File này là nguồn Markdown tổng hợp chuẩn duy nhất ở repository ro
 | 14/11/2026 | Phase 4.4 automated QA đạt: corruption, missing/undeclared snapshot, stale project checksum và all-or-nothing import đều có regression tests. |
 | 14/11/2026 | Browser QA Phase 4.4 xác nhận mở project không có Pack nguồn và save/export khi offline; clean browser profile độc lập còn chờ môi trường browser context phù hợp. |\n| 14/11/2026 | Bổ sung đặc tả World Genesis & Evolution: Genesis Wizard, nhiều thang thời gian, Era Constraints/Asset unlock, World State Manager, Evolution Engine, World Survival Validation và Catastrophe Events; xác định rõ đây là định hướng dài hạn, chưa triển khai và không thuộc First Usable Build. |\n| 14/11/2026 | Bổ sung đặc tả World Evolution Milestones: milestone-specific workspaces, Origin of Life/biochemistry configuration, milestone gates, Creative/Guided/Challenge modes, branching evolution và Milestone Configuration Schema/Engine; xác định là định hướng tương lai, chưa triển khai và không thuộc First Usable Build. |
 | 14/11/2026 | Tái cấu trúc World Evolution Milestones thành bốn giai đoạn mặc định: Year 0/World Formation, Life Forms, Intelligent Life và Nations; quy định History & Timeline/Event System khả dụng từ đầu, Power System Studio mở ở Milestone 3, Story & Event Studio mở ở Milestone 4 và Free World Mode sau Milestone 4. |\n| 14/11/2026 | Đánh giá roadmap: giữ nguyên thứ tự Phase 4.4 → 5 → 6 → 7 cho First Usable Build, nhưng đưa QA vào từng phase; đề xuất roadmap sau đó theo World Data Core → Time/History/Event → Milestone/Genesis → bốn milestone → Free World Mode → Showcase. |\n| 14/11/2026 | Bổ sung trải nghiệm World Completion & Return: World Overview, Consistency Advisor, Evolution Preview, World Presentation, World Bible Export, Templates, World/Branch Comparison và Finish World không khóa chỉnh sửa; xác định ưu tiên, acceptance criteria và các giới hạn chống quá tải. |
+| 14/11/2026 | Chốt Modular là nguyên tắc kiến trúc chủ đạo: modular monolith trước, domain ownership/contracts/lifecycle rõ, lazy loading, on-demand/event-driven/background computation, progressive disclosure và architecture discovery trước Phase 8; giữ nguyên ưu tiên First Usable Build và tránh đại tu sớm. |
 | 14/11/2026 | Bổ sung đặc tả ý tưởng World Forge Showcase: trải nghiệm triển lãm thế giới, Animated World Presentation, World Page, published snapshot/data contract, quyền riêng tư, community và lộ trình MVP phụ thuộc First Usable Build. |
 | 13/11/2026 | Browser QA Phase 4.3 xác nhận export/import round-trip qua UI và snapshot fallback sau khi tắt/gỡ Pack; clean-profile/offline/security QA còn lại. |
 | 14/11/2026 | Chủ dự án xác nhận Phase 4.2 hoàn tất sau khi chạy kiểm thử; chuyển trọng tâm sang Phase 4.4 QA acceptance. |
