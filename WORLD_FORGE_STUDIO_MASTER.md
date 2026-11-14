@@ -694,11 +694,11 @@ Chỉ embed asset thực sự được map object tham chiếu; deduplicate refe
 
 ### 6.3 Thứ tự resolve khi render
 
-1. Asset từ Pack enabled và tương thích version.
-2. Project embedded snapshot đã xác minh.
+1. **Project embedded snapshot đã xác minh** — ưu tiên tuyệt đối để bảo toàn hình ảnh lịch sử của project.
+2. Asset từ Pack enabled và tương thích version — chỉ dùng khi project không có snapshot phù hợp hoặc khi creator chủ động thực hiện thao tác cập nhật/relink có xác nhận.
 3. Missing-asset fallback cùng trạng thái có thể khôi phục.
 
-Không thay canonical assetRef chỉ vì dùng snapshot; không âm thầm thay bằng version khác.
+Không thay canonical assetRef chỉ vì dùng snapshot; không âm thầm thay bằng version khác. Pack update/enable không được tự làm thay đổi nội dung đã pin. Manual refresh là hành động rõ ràng của người dùng, không phải cơ chế resolve tự động.
 
 ### 6.4 Archive v2
 
@@ -1866,10 +1866,10 @@ File này là nguồn Markdown tổng hợp chuẩn duy nhất ở repository ro
 1. **Storage protection tối thiểu:** yêu cầu persistent storage bằng \`navigator.storage.persist()\` khi khởi động nếu API khả dụng; ghi nhận kết quả nhưng không coi đây là bảo đảm tuyệt đối. Có thể lấy \`navigator.storage.estimate()\` để hỗ trợ cảnh báo/backup nếu bổ sung được với chi phí nhỏ; không xây Storage Health state machine.
 2. **Safe save:** bắt lỗi lưu IndexedDB, nhận diện \`QuotaExceededError\`, thông báo rõ và giữ nguyên bản lưu trước đó. Không xóa project/asset tự động để giải phóng dung lượng. IndexedDB transaction bảo đảm tính nguyên tử trong phạm vi transaction; không thêm Transaction Journal riêng cho thao tác ghi hiện tại nếu chưa có bằng chứng cần thiết.
 3. **Unknown-field preservation:** bảo toàn dữ liệu chưa nhận diện khi validate/migrate/round-trip. Dùng spread có chủ đích chỉ khi các lớp con cũng giữ trường lạ; không giả định spread ở cấp project tự động bảo vệ field trong entity con. Bổ sung round-trip regression trước khi kết luận đạt.
-4. **Asset snapshot pinning:** project snapshot đã nhúng là nguồn ưu tiên; không tự thay nội dung bằng Pack mới. Giữ lại snapshot khi Pack bị disable/uninstall nếu project còn tham chiếu.
+4. **Asset snapshot pinning + manual refresh:** project snapshot đã nhúng là nguồn render ưu tiên và bất biến theo project; không tự thay nội dung bằng Pack mới. Giữ snapshot khi Pack bị disable/uninstall nếu project còn tham chiếu. Phase 5 bổ sung hành động tùy chọn **“Cập nhật ảnh từ Pack hiện tại”** cho creator chủ động làm mới asset đã pin: chỉ cập nhật đối tượng được chọn (hoặc nhóm được người dùng chỉ định), hiển thị asset/version nguồn trước khi xác nhận, không chạy tự động khi Pack update và không ghi đè snapshot nếu người dùng chưa chấp thuận.
 5. **Pack compatibility tối thiểu:** kiểm tra \`minWorldForgeVersion\` khi inspect/install Pack. Chưa xây dependency graph cho các Pack độc lập của First Usable Build.
 6. **Ảnh ở Phase 6:** giữ giới hạn archive/ảnh hiện có; dùng \`createImageBitmap()\` hoặc decoder tương đương để xác nhận giải mã thành công trước khi đăng ký asset, có xử lý lỗi và giải phóng bitmap. Không tự động giải mã toàn bộ tài nguyên ngay trong luồng import nếu chưa cần.
-7. **Layer safety:** thao tác chỉnh sửa và Undo/Redo phải tôn trọng layer \`locked\`/\`hidden\`; ưu tiên sửa policy hiện có, chưa viết lại history thành command framework tổng quát.
+7. **Layer safety + active tool reset:** thao tác chỉnh sửa, xóa và Undo/Redo phải tôn trọng layer \`locked\`/\`hidden\`; ưu tiên sửa policy hiện có, chưa viết lại history thành command framework tổng quát. Khi Pack đang chứa asset của công cụ hiện hành bị disable/uninstall, tự chuyển Active Tool về Select/default tool an toàn và thông báo cho người dùng; không xóa map object hoặc project snapshot đã lưu.
 8. **Một lát cắt Application Service:** trước UI Phase 5, tách \`AssetPackApplicationService\` làm facade/use-case boundary cho workflow quản lý Pack. Không tách hàng loạt Repository/Domain services; không đại tu \`layout.js\`.
 9. **AI workflow:** duy trì file ngữ cảnh vận hành ngắn \`CURRENT_PHASE_CONTEXT.md\` (mục tiêu dưới 150 dòng), cập nhật từ code thực tế. Sau tối đa 3 lần thử sửa cùng một lỗi mà chưa giải quyết, dừng retry và chuyển sang phân tích nguyên nhân/thu hẹp giả thuyết. Task nhỏ không bắt buộc review chéo nhiều model.
 
@@ -1936,6 +1936,7 @@ Các mục trên có thể được xem xét lại khi xuất hiện bằng ch�
 | 13/11/2026 | Hợp nhất tài liệu Markdown tổng hợp thành file master duy nhất; loại bỏ các bản trùng lặp và lịch sử roadmap lặp lại. |
 | 14/11/2026 | Bổ sung mục 2.7 về năm hợp đồng nền tảng: Data Transaction & Change, Spatial & Measurement, Generation & Provenance, Project Security & Portability, Collaboration & Publication; thêm Architecture Discovery gate, UX gaps, acceptance criteria và thứ tự triển khai nhưng giữ nguyên ưu tiên Phase 4.4 → 5 → 6 → 7. Đây là đặc tả/roadmap, chưa xác nhận đã triển khai trong code. |
 | 14/11/2026 | Chủ dự án chọn Lean Hardening trước Phase 5: storage persistence request và safe-save, unknown-field preservation, asset snapshot pinning, kiểm tra minWorldForgeVersion, layer safety, một AssetPackApplicationService, CURRENT_PHASE_CONTEXT ngắn và sáu P0 gates ST-02/03/04/05/10/11. Hoãn Transaction Journal, Storage Health framework, streaming/multi-worker rewrite, dependency graph, Pack Update Preview phức tạp, tổng quát hóa Undo/Redo/Repository và bộ 18 test; đây là quyết định phạm vi, chưa xác nhận code/test đã triển khai. |
+| 14/11/2026 | Chủ dự án chốt Lean Hardening, 10 giải pháp cốt lõi, sáu P0 gates và thứ tự 5 đợt Phase 4.4 → chuẩn bị Phase 5 → Phase 5 → Phase 6 → Phase 7; bổ sung manual refresh có xác nhận cho asset đã pin và reset Active Tool an toàn khi Pack chứa tool bị disable/uninstall. Phase 8–16+ tiếp tục đóng băng đến sau Phase 7. |
 
 
 ---
