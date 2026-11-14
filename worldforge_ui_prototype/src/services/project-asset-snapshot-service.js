@@ -1,5 +1,22 @@
 const MAX_SNAPSHOT_BYTES = 20 * 1024 * 1024;
 const SNAPSHOT_SCHEMA_VERSION = 1;
+const MAX_IMAGE_DIMENSION = 8192;
+const MAX_IMAGE_PIXELS = 64 * 1024 * 1024;
+
+export function decodeBase64Bytes(value) {
+    if (typeof value !== 'string' || !/^[A-Za-z0-9+/]*={0,2}$/.test(value) || value.length % 4 === 1) {
+        throw new Error('Project snapshot data is not valid base64.');
+    }
+    let binary;
+    try {
+        binary = atob(value);
+    } catch {
+        throw new Error('Project snapshot data is not valid base64.');
+    }
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+    return bytes;
+}
 
 function toBase64(bytes) {
     let binary = '';
@@ -8,6 +25,105 @@ function toBase64(bytes) {
         binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
     }
     return btoa(binary);
+}
+
+function readUint32BE(bytes, offset) {
+    return ((bytes[offset] << 24) | (bytes[offset + 1] << 16) |
+        (bytes[offset + 2] << 8) | bytes[offset + 3]) >>> 0;
+}
+
+function validateDimensions(width, height, context) {
+    if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 ||
+        width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION || width * height > MAX_IMAGE_PIXELS) {
+        throw new Error(`${context} has invalid or oversized image dimensions.`);
+    }
+}
+
+export function validateImageBytes(bytes, mimeType, context = 'Project snapshot') {
+    if (!(bytes instanceof Uint8Array)) throw new Error(`${context} data is invalid.`);
+    if (mimeType === 'image/png') {
+        const signature = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+        if (bytes.length < 33 || !signature.every((value, index) => bytes[index] === value)) {
+            throw new Error(`${context} failed its PNG signature or structure check.`);
+        }
+        let offset = 8;
+        let hasHeader = false;
+        let hasData = false;
+        let hasEnd = false;
+        while (offset + 12 <= bytes.length) {
+            const length = readUint32BE(bytes, offset);
+            const type = String.fromCharCode(...bytes.subarray(offset + 4, offset + 8));
+            const end = offset + 12 + length;
+            if (end > bytes.length) throw new Error(`${context} contains a truncated PNG chunk.`);
+            if (type === 'IHDR') {
+                if (hasHeader || length !== 13) throw new Error(`${context} contains an invalid PNG header.`);
+                validateDimensions(readUint32BE(bytes, offset + 8), readUint32BE(bytes, offset + 12), context);
+                hasHeader = true;
+            } else if (type === 'IDAT' && length > 0) {
+                hasData = true;
+            } else if (type === 'IEND') {
+                if (length !== 0 || end !== bytes.length) throw new Error(`${context} contains an invalid PNG end chunk.`);
+                hasEnd = true;
+                break;
+            }
+            offset = end;
+        }
+        if (!hasHeader || !hasData || !hasEnd) throw new Error(`${context} is not a complete PNG image.`);
+        return true;
+    }
+    if (mimeType === 'image/gif') {
+        if (bytes.length < 14 || !['GIF87a', 'GIF89a'].includes(String.fromCharCode(...bytes.subarray(0, 6))) || bytes[bytes.length - 1] !== 0x3b) {
+            throw new Error(`${context} failed its GIF structure check.`);
+        }
+        validateDimensions(bytes[6] | (bytes[7] << 8), bytes[8] | (bytes[9] << 8), context);
+        return true;
+    }
+    if (mimeType === 'image/jpeg') {
+        if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8 || bytes[bytes.length - 2] !== 0xff || bytes[bytes.length - 1] !== 0xd9) {
+            throw new Error(`${context} failed its JPEG structure check.`);
+        }
+        for (let offset = 2; offset + 9 < bytes.length;) {
+            if (bytes[offset] !== 0xff) { offset += 1; continue; }
+            const marker = bytes[offset + 1];
+            if ([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf].includes(marker)) {
+                const length = (bytes[offset + 2] << 8) | bytes[offset + 3];
+                if (length >= 7 && offset + 8 < bytes.length) {
+                    validateDimensions((bytes[offset + 7] << 8) | bytes[offset + 8], (bytes[offset + 5] << 8) | bytes[offset + 6], context);
+                    return true;
+                }
+            }
+            if (marker === 0xd8 || marker === 0xd9) offset += 2;
+            else if (offset + 3 < bytes.length) offset += 2 + ((bytes[offset + 2] << 8) | bytes[offset + 3]);
+            else break;
+        }
+        throw new Error(`${context} does not contain a valid JPEG frame.`);
+    }
+    if (mimeType === 'image/webp') {
+        if (bytes.length < 16 || String.fromCharCode(...bytes.subarray(0, 4)) !== 'RIFF' || String.fromCharCode(...bytes.subarray(8, 12)) !== 'WEBP') {
+            throw new Error(`${context} failed its WebP structure check.`);
+        }
+        const chunk = String.fromCharCode(...bytes.subarray(12, 16));
+        if (chunk === 'VP8X' && bytes.length >= 30) {
+            const width = 1 + bytes[24] + (bytes[25] << 8) + (bytes[26] << 16);
+            const height = 1 + bytes[27] + (bytes[28] << 8) + (bytes[29] << 16);
+            validateDimensions(width, height, context);
+        } else if (!['VP8 ', 'VP8L'].includes(chunk) || bytes.length <= 20) {
+            throw new Error(`${context} does not contain a valid WebP frame.`);
+        }
+        return true;
+    }
+    throw new Error(`${context} has an unsupported MIME type.`);
+}
+
+export function verifySnapshotIntegrity(snapshot, context = 'Project snapshot') {
+    const bytes = decodeBase64Bytes(snapshot?.data);
+    if (!snapshot || !['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(snapshot.mimeType) ||
+        !Number.isInteger(snapshot.size) || snapshot.size !== bytes.length || bytes.length > MAX_SNAPSHOT_BYTES ||
+        typeof snapshot.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(snapshot.sha256) || sha256Fallback(bytes) !== snapshot.sha256) {
+        throw new Error(`${context} failed its metadata or SHA-256 integrity check.`);
+    }
+    validateImageBytes(bytes, snapshot.mimeType, context);
+    return bytes;
 }
 
 function snapshotKey(ref) {

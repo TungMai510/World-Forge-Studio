@@ -6,10 +6,11 @@ import { captureProjectAssetSnapshots, sha256Fallback } from '../../src/services
 import { createEmptyMap } from '../../src/engine/MapCanvasEngine.js';
 import { createZipArchive, readZipArchive } from '../../src/services/archive-service.js';
 import { ProjectService } from '../../src/services/project-service.js';
+import { createFixturePng } from '../assets/fixture-png.js';
 
 function fixtureRegistry() {
     const registry = new AssetRegistry();
-    const bytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+    const bytes = createFixturePng(8, 8, 'mountain');
     registry.registerPack({
         manifest: {
             id: 'test-pack',
@@ -87,7 +88,7 @@ function archiveProjectService() {
 }
 
 function projectWithSnapshot() {
-    const bytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+    const bytes = createFixturePng(8, 8, 'mountain');
     let binary = '';
     for (const byte of bytes) binary += String.fromCharCode(byte);
     return {
@@ -143,6 +144,43 @@ test('imports formatVersion 2 and reconstructs embedded snapshot data', () => {
         assert.equal(result.project.data.assetSnapshots[0].data.length > 0, true);
         assert.equal(result.project.data.assetSnapshots[0].sha256, project.data.assetSnapshots[0].sha256);
     });
+});
+
+test('round-trips formatVersion 2 with Data URL assets and Pack snapshots together', async () => {
+    const service = archiveProjectService();
+    const { project, bytes } = projectWithSnapshot();
+    const dataUrl = `data:image/png;base64,${Buffer.from(bytes).toString('base64')}`;
+    project.coverImage = dataUrl;
+    const archive = service.exportProjectPackage(project);
+    const files = readZipArchive(archive);
+    const manifest = JSON.parse(new TextDecoder().decode(files.get('manifest.json')));
+    assert.equal(manifest.embeddedAssetCount, 1);
+    assert.equal(manifest.snapshotEntryCount, 1);
+    assert.ok(files.has('assets/000000.png'));
+    assert.ok(files.has(`assets/${sha256Fallback(bytes)}.png`));
+    const result = await service.importProjectPackage(archive);
+    assert.equal(result.project.coverImage, dataUrl);
+    assert.equal(result.project.data.assetSnapshots.length, 1);
+});
+
+test('counts snapshot, embedded asset and metadata entries against the archive file limit', () => {
+    const service = archiveProjectService();
+    const { project, bytes } = projectWithSnapshot();
+    const dataUrl = `data:image/png;base64,${Buffer.from(bytes).toString('base64')}`;
+    project.data.embeddedAssets = Array.from({ length: 9998 }, () => dataUrl);
+    assert.throws(() => service.exportProjectPackage(project), /10,000 file limit/i);
+});
+
+test('rejects a same-size snapshot mutation during project validation and loader activation', () => {
+    const { project } = projectWithSnapshot();
+    const corrupted = structuredClone(project);
+    const original = corrupted.data.assetSnapshots[0].data;
+    corrupted.data.assetSnapshots[0].data = `${original[0] === 'A' ? 'B' : 'A'}${original.slice(1)}`;
+    const service = archiveProjectService();
+    assert.throws(() => service.validateProject(corrupted), /SHA-256 integrity/i);
+    const { registry } = fixtureRegistry();
+    const loader = new AssetLoader(registry);
+    assert.throws(() => loader.setProjectSnapshots(corrupted.data.assetSnapshots), /SHA-256 integrity/i);
 });
 
 test('rejects a formatVersion 2 snapshot whose binary is corrupted', () => {
@@ -221,13 +259,13 @@ test('rejects snapshot export with unsupported MIME or invalid image signature',
     const service = archiveProjectService();
     const { project } = projectWithSnapshot();
     project.data.assetSnapshots[0].mimeType = 'image/svg+xml';
-    assert.throws(() => service.exportProjectPackage(project), /invalid byte length or MIME type/i);
+    assert.throws(() => service.exportProjectPackage(project), /metadata|invalid byte length or MIME type/i);
 
     const invalid = projectWithSnapshot();
     invalid.project.data.assetSnapshots[0].data = btoa('not-an-image');
     invalid.project.data.assetSnapshots[0].size = 12;
     invalid.project.data.assetSnapshots[0].sha256 = sha256Fallback(new TextEncoder().encode('not-an-image'));
-    assert.throws(() => service.exportProjectPackage(invalid.project), /image signature/i);
+    assert.throws(() => service.exportProjectPackage(invalid.project), /signature|structure/i);
 });
 
 test('rejects an archive larger than the project import limit before parsing', () => {

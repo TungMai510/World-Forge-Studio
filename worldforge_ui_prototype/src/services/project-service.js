@@ -3,7 +3,7 @@ import { ENTITY_TYPES, GeographyService } from './geography-service.js';
 import { CivilizationService } from './civilization-service.js';
 import { MapCanvasEngine, createEmptyMap } from '../engine/MapCanvasEngine.js';
 import { createZipArchive, decodeAssetDataUrl, encodeDataUrlAsset, readZipArchive } from './archive-service.js';
-import { sha256Fallback } from './project-asset-snapshot-service.js';
+import { decodeBase64Bytes, sha256Fallback, validateImageBytes, verifySnapshotIntegrity } from './project-asset-snapshot-service.js';
 
 export const SCHEMA_VERSION = 2;
 const MAX_NAME_LENGTH = 80;
@@ -16,6 +16,14 @@ const MAX_PROJECT_SNAPSHOT_BYTES = 20 * 1024 * 1024;
 const MAX_PROJECT_SNAPSHOT_FILE_BYTES = 15 * 1024 * 1024;
 const PROJECT_ARCHIVE_FORMAT = 'WorldForgeStudioProject';
 const PROJECT_ARCHIVE_VERSION = 2;
+const EMBEDDED_ASSET_TYPES = Object.freeze({
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    webp: 'image/webp',
+    gif: 'image/gif',
+    svg: 'image/svg+xml'
+});
 
 const SNAPSHOT_TYPES = Object.freeze({
     'image/png': 'png',
@@ -23,29 +31,6 @@ const SNAPSHOT_TYPES = Object.freeze({
     'image/webp': 'webp',
     'image/gif': 'gif'
 });
-
-function bytesFromBase64(value) {
-    if (typeof value !== 'string' || !/^[A-Za-z0-9+/]*={0,2}$/.test(value) || value.length % 4 === 1) {
-        throw new Error('Project snapshot data is not valid base64.');
-    }
-    let binary;
-    try {
-        binary = atob(value);
-    } catch {
-        throw new Error('Project snapshot data is not valid base64.');
-    }
-    const bytes = new Uint8Array(binary.length);
-    for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
-    return bytes;
-}
-
-function hasImageSignature(bytes, mimeType) {
-    if (mimeType === 'image/png') return bytes.length >= 8 && [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].every((value, index) => bytes[index] === value);
-    if (mimeType === 'image/jpeg') return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
-    if (mimeType === 'image/gif') return bytes.length >= 6 && new TextDecoder().decode(bytes.subarray(0, 6)) === 'GIF87a' || new TextDecoder().decode(bytes.subarray(0, 6)) === 'GIF89a';
-    if (mimeType === 'image/webp') return bytes.length >= 12 && new TextDecoder().decode(bytes.subarray(0, 4)) === 'RIFF' && new TextDecoder().decode(bytes.subarray(8, 12)) === 'WEBP';
-    return false;
-}
 
 function snapshotPath(snapshot) {
     const extension = SNAPSHOT_TYPES[snapshot.mimeType];
@@ -61,7 +46,7 @@ function validateSnapshotBytes(snapshot, bytes, context = 'Project snapshot') {
     if (typeof snapshot.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(snapshot.sha256) || sha256Fallback(bytes) !== snapshot.sha256) {
         throw new Error(`${context} failed its SHA-256 integrity check.`);
     }
-    if (!hasImageSignature(bytes, snapshot.mimeType)) throw new Error(`${context} failed its image signature check.`);
+    validateImageBytes(bytes, snapshot.mimeType, context);
     return extension;
 }
 
@@ -207,7 +192,7 @@ export class ProjectService {
         for (const snapshot of snapshots) {
             if (snapshotKeys.has(snapshot?.key)) throw new Error(`Project contains duplicate asset snapshot "${snapshot?.key}".`);
             snapshotKeys.add(snapshot?.key);
-            const bytes = bytesFromBase64(snapshot?.data);
+            const bytes = decodeBase64Bytes(snapshot?.data);
             validateSnapshotBytes(snapshot, bytes);
             snapshotBytes += bytes.length;
             if (snapshotBytes > MAX_PROJECT_SNAPSHOT_BYTES) throw new Error('Project asset snapshots exceed the 20 MB archive limit.');
@@ -231,13 +216,14 @@ export class ProjectService {
         }
         exportedProject.data.assetSnapshots = snapshots.map(({ data, ...snapshot }) => snapshot);
         const files = {};
+        const embeddedAssetManifest = [];
         let assetIndex = 0;
         let totalAssetBytes = 0;
         const externalizeAssets = value => {
             if (typeof value === 'string') {
                 const asset = encodeDataUrlAsset(value);
                 if (!asset) return value;
-                if (assetIndex >= MAX_PROJECT_ARCHIVE_ENTRIES - 2) {
+                if (assetIndex + snapshotFiles.size + 2 >= MAX_PROJECT_ARCHIVE_ENTRIES) {
                     throw new Error('Project package exceeds the 10,000 file limit.');
                 }
                 totalAssetBytes += asset.bytes.length;
@@ -247,6 +233,12 @@ export class ProjectService {
                 const path = `assets/${String(assetIndex).padStart(6, '0')}.${asset.extension}`;
                 assetIndex += 1;
                 files[path] = asset.bytes;
+                embeddedAssetManifest.push({
+                    path,
+                    mimeType: EMBEDDED_ASSET_TYPES[asset.extension],
+                    byteLength: asset.bytes.length,
+                    sha256: sha256Fallback(asset.bytes)
+                });
                 return `wforge-asset:${path}`;
             }
             if (Array.isArray(value)) return value.map(externalizeAssets);
@@ -261,6 +253,9 @@ export class ProjectService {
         if (totalAssetBytes + snapshotBytes + projectJsonBytes.length > MAX_PROJECT_ARCHIVE_SIZE) {
             throw new Error('Project package exceeds the 100 MB export limit.');
         }
+        if (assetIndex + snapshotFiles.size + 2 > MAX_PROJECT_ARCHIVE_ENTRIES) {
+            throw new Error('Project package exceeds the 10,000 file limit.');
+        }
         files['project.json'] = projectJsonBytes;
         for (const [path, bytes] of snapshotFiles) files[path] = bytes;
         files['manifest.json'] = JSON.stringify({
@@ -268,6 +263,8 @@ export class ProjectService {
             formatVersion: PROJECT_ARCHIVE_VERSION,
             projectEntry: 'project.json',
             assetCount: assetIndex,
+            embeddedAssetCount: embeddedAssetManifest.length,
+            embeddedAssets: embeddedAssetManifest,
             snapshotCount: snapshotManifest.length,
             snapshotEntryCount: snapshotFiles.size,
             projectSha256: sha256Fallback(projectJsonBytes),
@@ -298,6 +295,11 @@ export class ProjectService {
                 manifest.projectEntry !== 'project.json' || !Number.isInteger(manifest.assetCount) || manifest.assetCount < 0) {
                 throw new Error('Unsupported WorldForge project package format.');
             }
+            if (manifest.formatVersion === PROJECT_ARCHIVE_VERSION &&
+                (!Number.isInteger(manifest.embeddedAssetCount) || manifest.embeddedAssetCount < 0 ||
+                    !Array.isArray(manifest.embeddedAssets) || manifest.embeddedAssets.length !== manifest.embeddedAssetCount)) {
+                throw new Error('Project embedded asset metadata does not match its manifest.');
+            }
             const projectBytes = files.get(manifest.projectEntry);
             if (manifest.formatVersion === PROJECT_ARCHIVE_VERSION &&
                 (typeof manifest.projectSha256 !== 'string' || sha256Fallback(projectBytes) !== manifest.projectSha256)) {
@@ -307,6 +309,8 @@ export class ProjectService {
         } catch (error) {
             throw new Error(`Could not read project package: ${error.message}`);
         }
+        let embeddedPaths = new Set();
+        let snapshotManifestPaths = new Set();
         if (manifest.formatVersion === PROJECT_ARCHIVE_VERSION) {
             if (!Number.isInteger(manifest.snapshotCount) || manifest.snapshotCount < 0 ||
                 !Number.isInteger(manifest.snapshotEntryCount) || manifest.snapshotEntryCount < 0 ||
@@ -316,11 +320,10 @@ export class ProjectService {
             }
             const snapshotByKey = new Map(project.data.assetSnapshots.map(snapshot => [snapshot?.key, snapshot]));
             const snapshotKeys = new Set();
-            const snapshotPaths = new Set();
             const snapshotFiles = new Set();
             let totalSnapshotBytes = 0;
             for (const entry of manifest.snapshots) {
-                if (!entry || typeof entry.key !== 'string' || snapshotKeys.has(entry.key) || snapshotFiles.has(entry.path) || snapshotPaths.has(entry.path) ||
+                if (!entry || typeof entry.key !== 'string' || snapshotKeys.has(entry.key) || snapshotFiles.has(entry.path) || snapshotManifestPaths.has(entry.path) ||
                     entry.path !== snapshotPath(entry) || !Number.isInteger(entry.byteLength)) {
                     throw new Error('Project snapshot manifest contains invalid or duplicate metadata.');
                 }
@@ -336,7 +339,7 @@ export class ProjectService {
                 validateSnapshotBytes({ ...entry, size: entry.byteLength }, file, `Project snapshot "${entry.key}"`);
                 totalSnapshotBytes += file.length;
                 if (totalSnapshotBytes > MAX_PROJECT_SNAPSHOT_BYTES) throw new Error('Project asset snapshots exceed the 20 MB import limit.');
-                snapshotPaths.add(entry.path);
+                snapshotManifestPaths.add(entry.path);
                 snapshotFiles.add(entry.path);
                 snapshotKeys.add(entry.key);
                 snapshot.data = (() => {
@@ -345,10 +348,35 @@ export class ProjectService {
                     return btoa(binary);
                 })();
             }
-            const actualSnapshotFiles = [...files.keys()].filter(path => path.startsWith('assets/'));
-            if (snapshotFiles.size !== manifest.snapshotEntryCount || actualSnapshotFiles.length !== snapshotFiles.size ||
-                actualSnapshotFiles.some(path => !snapshotFiles.has(path))) {
+            if (snapshotFiles.size !== manifest.snapshotEntryCount) {
                 throw new Error('Project package snapshot entries do not match its manifest.');
+            }
+
+            for (const entry of manifest.embeddedAssets) {
+                if (!entry || typeof entry.path !== 'string' ||
+                    !/^assets\/\d{6,}\.(png|jpg|jpeg|webp|gif|svg)$/.test(entry.path) ||
+                    embeddedPaths.has(entry.path) || snapshotManifestPaths.has(entry.path) ||
+                    !Object.prototype.hasOwnProperty.call(EMBEDDED_ASSET_TYPES, entry.path.split('.').pop().toLowerCase()) ||
+                    entry.mimeType !== EMBEDDED_ASSET_TYPES[entry.path.split('.').pop().toLowerCase()] ||
+                    !Number.isInteger(entry.byteLength) || entry.byteLength < 0 ||
+                    typeof entry.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(entry.sha256)) {
+                    throw new Error('Project embedded asset manifest contains invalid or duplicate metadata.');
+                }
+                const file = files.get(entry.path);
+                if (!file) throw new Error(`Project package is missing embedded asset "${entry.path}".`);
+                if (file.length !== entry.byteLength || sha256Fallback(file) !== entry.sha256) {
+                    throw new Error(`Embedded project asset "${entry.path}" failed its SHA-256 integrity check.`);
+                }
+                if (entry.mimeType !== 'image/svg+xml') validateImageBytes(file, entry.mimeType, `Embedded project asset "${entry.path}"`);
+                embeddedPaths.add(entry.path);
+            }
+            if (manifest.assetCount !== embeddedPaths.size || manifest.embeddedAssetCount !== embeddedPaths.size) {
+                throw new Error('Project package embedded asset count does not match its manifest.');
+            }
+            const actualAssetFiles = [...files.keys()].filter(path => path.startsWith('assets/'));
+            const expectedAssetFiles = new Set([...snapshotManifestPaths, ...embeddedPaths]);
+            if (actualAssetFiles.length !== expectedAssetFiles.size || actualAssetFiles.some(path => !expectedAssetFiles.has(path))) {
+                throw new Error('Project package asset entries do not match its manifest.');
             }
         }
         const referencedAssets = new Set();
@@ -358,6 +386,9 @@ export class ProjectService {
                 const file = files.get(path);
                 if (!file || !/^assets\/[A-Za-z0-9._/-]+$/.test(path) || path.split('/').includes('..')) {
                     throw new Error(`Project asset "${path}" is missing or has an invalid path.`);
+                }
+                if (manifest.formatVersion === PROJECT_ARCHIVE_VERSION && !embeddedPaths.has(path)) {
+                    throw new Error(`Project asset "${path}" is not declared as an embedded asset.`);
                 }
                 referencedAssets.add(path);
                 const extension = path.split('.').pop().toLowerCase();
@@ -382,7 +413,7 @@ export class ProjectService {
         const legacyAssetEntries = assetEntries.filter(path => /^assets\/\d{6,}\.(png|jpg|webp|gif|svg)$/.test(path));
         if ([...files.keys()].some(path => !['manifest.json', 'project.json'].includes(path) &&
             (manifest.formatVersion === PROJECT_ARCHIVE_VERSION
-                ? !/^assets\/[a-f0-9]{64}\.(png|jpg|webp|gif)$/.test(path)
+                ? !embeddedPaths.has(path) && !snapshotManifestPaths.has(path)
                 : !/^assets\/\d{6,}\.(png|jpg|webp|gif|svg)$/.test(path)))) {
             throw new Error('Project package contains an unexpected file entry.');
         }
@@ -392,6 +423,10 @@ export class ProjectService {
         const restoredProject = restoreAssets(project);
         if (manifest.formatVersion === 1 && referencedAssets.size !== assetEntries.length) {
             throw new Error('Project package contains missing or unreferenced assets.');
+        }
+        if (manifest.formatVersion === PROJECT_ARCHIVE_VERSION &&
+            (referencedAssets.size !== manifest.embeddedAssetCount || [...embeddedPaths].some(path => !referencedAssets.has(path)))) {
+            throw new Error('Project package contains missing or unreferenced embedded assets.');
         }
         return this.importProject(restoredProject);
     }
@@ -436,6 +471,21 @@ export class ProjectService {
     }
 
     validateProjectData(data) {
+        if (data.assetSnapshots !== undefined) {
+            if (!Array.isArray(data.assetSnapshots)) throw new Error('Project asset snapshots must be an array.');
+            const keys = new Set();
+            let totalBytes = 0;
+            for (const snapshot of data.assetSnapshots) {
+                if (!snapshot || typeof snapshot.key !== 'string' || keys.has(snapshot.key) ||
+                    typeof snapshot.packId !== 'string' || typeof snapshot.assetId !== 'string') {
+                    throw new Error('Project asset snapshots contain duplicate or invalid references.');
+                }
+                const bytes = verifySnapshotIntegrity(snapshot, `Project asset snapshot "${snapshot.key}"`);
+                totalBytes += bytes.length;
+                if (totalBytes > MAX_PROJECT_SNAPSHOT_BYTES) throw new Error('Project asset snapshots exceed the 20 MB limit.');
+                keys.add(snapshot.key);
+            }
+        }
         const map = data.map === undefined ? createEmptyMap() : validateMap(data.map);
         const geography = new GeographyService(data.geography || {});
         const civilization = new CivilizationService(data.civilization || {}, geography.data);

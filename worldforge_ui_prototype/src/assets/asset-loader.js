@@ -1,3 +1,5 @@
+import { verifySnapshotIntegrity } from '../services/project-asset-snapshot-service.js';
+
 const MIME={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp',gif:'image/gif'};
 export class AssetLoader {
     constructor(registry,{maxCacheEntries=200}={}){
@@ -19,6 +21,7 @@ export class AssetLoader {
         this.projectSnapshots = new Map();
         for (const snapshot of snapshots) {
             if (!snapshot || typeof snapshot.packId !== 'string' || typeof snapshot.assetId !== 'string') continue;
+            verifySnapshotIntegrity(snapshot, `Project asset snapshot "${snapshot.packId}::${snapshot.assetId}"`);
             this.projectSnapshots.set(snapshot.packId + '::' + (snapshot.packVersion || 'latest') + '::' + snapshot.assetId, snapshot);
             this.projectSnapshots.set(snapshot.packId + '::latest::' + snapshot.assetId, snapshot);
         }
@@ -45,12 +48,7 @@ export class AssetLoader {
         }
         const key='snapshot::'+packId+'::'+snapshot.packVersion+'::'+assetId;
         if(this.cache.has(key))return this.cache.get(key);
-        const binary=atob(snapshot.data || '');
-        const bytes=new Uint8Array(binary.length);
-        for(let index=0;index<binary.length;index+=1)bytes[index]=binary.charCodeAt(index);
-        if(bytes.length!==snapshot.size || !/^[a-f0-9]{64}$/i.test(snapshot.sha256 || '')) {
-            throw new Error('Embedded asset snapshot failed its metadata integrity check.');
-        }
+        const bytes = verifySnapshotIntegrity(snapshot, `Embedded asset snapshot "${packId}::${assetId}"`);
         const blob=new Blob([bytes],{type:snapshot.mimeType});
         const loaded={key,packId,packVersion:snapshot.packVersion,assetId,name:snapshot.name,mimeType:snapshot.mimeType,blob,url:URL.createObjectURL(blob),source:'project-snapshot'};
         this.cache.set(key,loaded);this.evictOverflow();return loaded;
