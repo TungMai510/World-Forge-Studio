@@ -192,6 +192,154 @@ Một module mới chỉ được xem là tích hợp đúng khi:
 
 ---
 
+
+### 2.6 Các hợp đồng nền tảng còn thiếu và giải pháp kiến trúc
+
+Phần này chuyển các khoảng trống kiến trúc đã được rà soát thành quyết định thiết kế và tiêu chí triển khai. Đây là **đặc tả định hướng**, không xác nhận các hệ thống dưới đây đã tồn tại trong code.
+
+#### 2.6.1 World Entity & Relationship Model
+
+Mọi đối tượng có ý nghĩa trong world phải có stable ID độc lập với tên hiển thị. Entity tối thiểu cần có: `id`, `type`, `name`, `schemaVersion`, `moduleOwner`, `lifecycleStatus`, metadata và dấu thời gian phù hợp. Không dùng tên hoặc vị trí UI làm định danh.
+
+- Quan hệ lưu `sourceId`, `targetId`, `relationshipType`, thuộc tính và thời hạn hiệu lực nếu có.
+- Quan hệ địa lý, sinh học, chính trị, nhân vật, lịch sử, kinh tế và văn hóa phải dùng contract có type; không tạo chuỗi tên tự do làm liên kết canonical.
+- Entity lifecycle cần phân biệt active, inactive, destroyed, extinct, merged, transformed và archived. Không đồng nhất thao tác xóa khỏi view với xóa lịch sử.
+- Thay đổi tên không được làm gãy references. Merge/transform cần lưu mapping từ entity cũ sang entity đích.
+- Xóa vĩnh viễn chỉ được phép sau khi kiểm tra inbound references, lịch sử, branch/snapshot và có xác nhận rõ; ưu tiên tombstone/archive khi dữ liệu còn ý nghĩa lịch sử.
+- Mỗi domain module sở hữu schema canonical của entity thuộc miền đó; World Data Core sở hữu identity/reference primitives, không ôm logic nghiệp vụ của mọi miền.
+
+**Acceptance:** ID ổn định qua rename/save/reopen/export/import; quan hệ không phụ thuộc tên; entity đã destroyed/extinct vẫn truy vấn được trong lịch sử; thao tác xóa không âm thầm phá references; dữ liệu module chưa khả dụng được bảo toàn.
+
+#### 2.6.2 Canonical Data, Derived Data và World State Manager
+
+Phân loại dữ liệu bắt buộc:
+- **Canonical:** dữ liệu do creator tạo/xác nhận, là nguồn sự thật của world.
+- **Derived:** kết quả tính toán, phân tích, preview hoặc projection; có thể tái tạo.
+- **Cache:** dữ liệu tối ưu hiệu năng; có thể loại bỏ và tạo lại.
+
+Derived/cache phải ghi rõ input/version/ruleset/seed hoặc cache key phù hợp; không được ghi đè canonical state. Khi input thay đổi, đánh dấu kết quả liên quan stale và tính lại khi cần.
+
+World State Manager quản lý trạng thái tại một thời điểm/branch. Thiết kế ban đầu dùng mô hình kết hợp **snapshot + event/change records**, không bắt buộc Event Sourcing toàn phần:
+1. Chọn snapshot gần nhất trước thời điểm cần xem.
+2. Lấy các transition đã xác nhận tiếp theo theo thứ tự.
+3. Tái dựng state qua reducer/transition có version.
+4. Kiểm tra integrity và báo lỗi nếu thiếu event hoặc schema không tương thích.
+
+Snapshot cần có ID, branch, world/time reference, schema version, creation source, integrity/checksum và quan hệ với snapshot cha nếu có. Có thể lưu full snapshot ban đầu; tối ưu delta/patch chỉ sau khi đo được lợi ích và có chiến lược compaction/recovery.
+
+**Acceptance:** tạo và kiểm tra snapshot; tái dựng được trạng thái tại mốc đã lưu; so sánh hai trạng thái; derived data không bị coi là canon; lỗi replay không làm hỏng snapshot gốc.
+
+#### 2.6.3 Event System và History Timeline Contract
+
+Event System là lớp ghi nhận sự kiện/transition; Timeline là lớp tổ chức, truy vấn và trình bày. World State là trạng thái được tạo ra bởi các thay đổi đã áp dụng. Không gộp ba trách nhiệm này.
+
+Event contract tối thiểu:
+- event ID, event type, schema version, title/description;
+- world ID, branch ID và thời gian;
+- timescale/calendar reference;
+- source/actor (creator, module, simulation, import hoặc AI);
+- cause/parent event và causal links;
+- affected entity IDs, location/extent;
+- proposed effects và applied effects được phân biệt;
+- status (draft/proposed/confirmed/rejected/superseded);
+- provenance, ruleset/version và metadata cần thiết.
+
+Hỗ trợ geological, astronomical, biological, civilization, local calendar và relative time. Không ép mọi thời điểm vào JavaScript Date hoặc lịch Trái Đất. Time model cần biểu diễn được khoảng thời gian, độ chính xác/độ bất định và các lịch địa phương. Chuyển đổi lịch phải đi qua calendar adapter có contract.
+
+Event do AI hoặc engine sinh ra mặc định là proposal nếu chưa được creator xác nhận. Timeline không được tự ý sửa canonical state.
+
+**Acceptance:** event từ ít nhất hai domain có thể hiển thị chung; truy vấn theo thời gian/entity/type/branch; hỗ trợ nhiều timescale; causal references còn hợp lệ; event proposal không làm thay đổi world state.
+
+#### 2.6.4 Change & Impact Engine
+
+Mọi thay đổi liên miền quan trọng đi qua pipeline thống nhất:
+
+`Change Request → Validation → Dependency Resolution → Impact Analysis → Preview → Approval → Apply → State Transition → Event Record → Module Notifications`.
+
+- Change Request mô tả actor, target, field/operation, input, expected base version và lý do.
+- Dependency graph mô tả module/data provider, consumer và loại phụ thuộc; tránh hardcode chuỗi if/else rải rác.
+- Impact result phân biệt computed, rule-inferred, heuristic, unknown và creator-authored.
+- Preview phải hiển thị dữ liệu bị ảnh hưởng, mức chắc chắn, giả định và các đề xuất; không mutate canonical state.
+- Apply dùng transaction/atomic change set hoặc cơ chế bù trừ rõ ràng; kiểm tra base version để phát hiện stale edits.
+- Chỉ sau khi Apply thành công mới cập nhật state và ghi event/changeset đã xác nhận.
+- Người dùng có thể accept, edit, reject hoặc ignore cảnh báo theo policy; không tự động áp đặt kết luận khoa học lên world hư cấu.
+
+**Acceptance:** preview không làm thay đổi canon; reject không để lại partial mutation; apply thất bại có thể rollback/recover; affected modules được xác định qua contract; mọi thay đổi đã xác nhận truy vết được.
+
+#### 2.6.5 Branch, Snapshot và Version Manager
+
+Branch tham chiếu một base snapshot/commit và lưu changeset khác biệt; không mặc định sao chép toàn bộ project. Các loại gợi ý: Main, Draft, Experimental, What-if và Recovery. Tên branch có thể do creator tùy chỉnh.
+
+- Mỗi changeset ghi base version, actor, timestamp, affected entities và schema/ruleset version.
+- Branch comparison hiển thị khác biệt theo entity, relation, event và view.
+- Merge là tính năng sau này: cần conflict detection, preview, lựa chọn từng xung đột và tạo commit/snapshot mới; không auto-merge xung đột canonical.
+- Branch không được tham chiếu mù quáng tới dữ liệu đã bị garbage-collect; cần reference counting/retention policy và integrity checks.
+
+**Acceptance:** tạo branch từ snapshot; chỉnh sửa branch không đổi Main; so sánh được; xóa branch không làm mất dữ liệu đang được Main/branch khác tham chiếu.
+
+#### 2.6.6 Ruleset Manager và Validation Engine
+
+Ruleset hỗ trợ kết hợp nhiều lớp, không chỉ một lựa chọn duy nhất: physics, chemistry, biology, climate, magic/fictional, civilization và narrative. Một world có thể dùng vật lý gần thực tế nhưng sinh học hoặc ma thuật tùy biến.
+
+Ruleset có ID/version, scope, precedence, constraints, parameters, provenance và compatibility. Khi đổi ruleset/version, hệ thống đánh dấu kết quả dẫn xuất cần đánh giá lại; không âm thầm diễn giải lại canon.
+
+Scientific/Consistency Advisor phải phân loại căn cứ: established knowledge, scientific model, hypothesis, heuristic, fictional rule hoặc unknown. Với mỗi finding cần chỉ ra dữ liệu đầu vào, quy tắc đã áp dụng, mức chắc chắn và cách khắc phục/override.
+
+Validation severity:
+- Error: vi phạm cấu trúc/integrity bắt buộc.
+- Critical: mâu thuẫn nghiêm trọng theo ruleset đang bật.
+- Warning: khả năng thiếu nhất quán.
+- Suggestion: cơ hội cải thiện.
+- Information: thông tin tham khảo.
+
+Validation phải có scope (entity, module, world, branch), thời điểm chạy và phiên bản ruleset. Người dùng có thể override warning/fictional conflict với lý do; không được override lỗi integrity làm hỏng dữ liệu.
+
+**Acceptance:** cùng dữ liệu và ruleset/version cho kết quả tái lập; findings giải thích được căn cứ; custom ruleset không bị ép theo Earth-like; thay ruleset không tự sửa canon.
+
+#### 2.6.7 Shared Platform Services bổ sung
+
+Các service cần được chuẩn hóa theo nhu cầu thực, không xây framework khổng lồ trước MVP:
+
+- **Module/Dependency Manager:** manifest, compatibility, lifecycle, capability và dependency resolution.
+- **Job Manager:** queued/running/completed/failed/cancelled, progress, cancellation, error, result và resource limits; tác vụ ghi canon phải có approval/commit boundary.
+- **Search & Query:** tìm theo text, entity type, relation, time, location, status, branch và module; bắt đầu bằng index/filter phù hợp, chưa cần query language phức tạp.
+- **World Activity/Change Log:** tổng hợp event, changeset, recent activity, unresolved findings và job status; không tạo nguồn dữ liệu lịch sử thứ hai.
+- **Backup & Recovery:** autosave, checkpoint trước thao tác rủi ro, backup thủ công/tự động, export backup, restore và recovery report.
+- **Schema Migration:** migration có version, preflight, backup, transaction/rollback hoặc recovery plan, post-migration validation và compatibility warning.
+- **Permission/Capability:** API rõ ràng cho extension; quyền tối thiểu, có thể thu hồi, không cho plugin truy cập tùy tiện project/account/files.
+- **Localization/Accessibility:** UI strings tách khỏi canonical names; keyboard navigation, semantic labels, contrast, zoom và screen-reader support ở luồng chính.
+
+#### 2.6.8 Offline, portability và conflict readiness
+
+Local-first tiếp tục là nguyên tắc. Không triển khai cloud sync sớm, nhưng định dạng dữ liệu cần chuẩn bị cho khả năng portability:
+- Project export phải tự mô tả schema/version và dependency/asset references.
+- Import cần preflight, conflict report và all-or-nothing semantics khi có thể.
+- Không giả định file system, IndexedDB hoặc cloud là nguồn duy nhất; persistence adapters phải giữ cùng contract.
+- Nếu sau này có sync/collaboration, cần explicit conflict model (same-entity concurrent edits, delete-vs-update, branch divergence), actor/version metadata và user-visible resolution. Không dùng “last write wins” âm thầm cho canonical world data.
+
+#### 2.6.9 Performance, resource lifecycle và scale
+
+- Lazy-load module/data theo workflow; query projection thay vì tải toàn world.
+- Dùng pagination/virtualization cho danh sách lớn và Timeline.
+- Incremental recomputation theo dependency graph; cache có key/version/invalidation rõ.
+- Tác vụ nặng chuyển background/worker khi phù hợp, có progress/cancel/error/retry policy.
+- Giải phóng listener, worker, timer, object URL, cache và GPU resources khi module/view đóng.
+- Đo workload đại diện (open project, switch Studio, render viewport, search, validate, save/load, export/import) trước khi đặt giới hạn cứng.
+- Không tuyên bố hiệu năng theo cấu hình RAM/GPU nếu chưa có benchmark lặp lại.
+
+#### 2.6.10 Asset provenance, licensing và extension security
+
+Asset/Pack metadata cần creator, source, license identifier/text hoặc URL, attribution, commercial-use, modification, redistribution permissions, version, stable asset IDs và provenance. Không suy diễn quyền phân phối lại từ quyền sử dụng.
+
+Trước marketplace cần có:
+- quyền sử dụng/chỉnh sửa/phân phối tách biệt;
+- kiểm tra metadata và quy trình báo cáo/gỡ nội dung vi phạm;
+- permission/capability allowlist cho extension;
+- sandbox phù hợp, giới hạn I/O/network và không thực thi code tùy ý trong Core;
+- version compatibility, signing/trust policy và audit trail theo mức rủi ro.
+
+Đây là yêu cầu nền tảng cho hệ sinh thái tương lai, không phải lý do trì hoãn First Usable Build.
+
 ## 3. Hiện trạng kỹ thuật
 
 > Trạng thái phản ánh tài liệu và xác nhận gần nhất ngày 13/11/2026. Khi code thay đổi, cần kiểm tra repository và QA trước khi cập nhật.
@@ -310,6 +458,13 @@ Thumbnail, MIME type, tags, usages/capabilities và default dimensions là tùy 
 - Đây là yêu cầu tương lai, không phải AI support hiện tại.
 
 ---
+
+
+### 4.6 Provenance và quyền sử dụng tài nguyên
+
+Mỗi Pack/Asset được phân phối cần khai báo provenance tối thiểu: creator/owner, source, license ID hoặc license text, attribution requirement, version, stable asset IDs và modification history khi có. Quyền **use**, **modify** và **redistribute** phải được biểu diễn riêng; cho phép sử dụng trong project không mặc nhiên cho phép đóng gói/bán lại asset độc lập.
+
+Asset Pack Manager/Studio cần hiển thị license trước khi import/install và bảo toàn metadata qua export/import. Trước khi mở cộng đồng đóng góp hoặc marketplace, cần có reporting/takedown workflow, audit trail và chính sách xử lý tài nguyên bị khiếu nại. Không xác nhận tính hợp pháp chỉ dựa trên metadata do uploader tự khai; cần quy trình review phù hợp với mức độ mở của nền tảng.
 
 ## 5. Tool–Asset Integration
 
@@ -1367,6 +1522,38 @@ Acceptance cho trải nghiệm tổng kết ở phiên bản đầu:
 
 ---
 
+
+#### 10.5.10 Ba workflow khởi đầu — Map Creator, Worldbuilder và Story Creator
+
+World Forge Studio dùng chung một project model/World Data Core nhưng cung cấp các điểm bắt đầu khác nhau:
+- **Map Creator:** Create World → chọn map style/template → tạo geography → thêm location/symbol/decoration → save/export. Không bắt buộc tạo climate, biology, civilization hoặc timeline.
+- **Worldbuilder:** Genesis hoặc template → geography/environment → life/ecosystem → intelligent life/civilization → nations/history; có thể dùng milestone nhưng không bắt buộc.
+- **Story Creator:** tạo/import setting → characters/locations/relationships → events → story arcs/scenes. Có thể bắt đầu từ nhân vật hoặc cốt truyện, không bị ép bắt đầu từ địa chất.
+
+Ba workflow chỉ là onboarding/navigation presets, không phải ba định dạng project tách rời. Người dùng có thể chuyển workflow, mở bất kỳ Studio khả dụng nào và bổ sung module về sau. Quick Start không được khóa Advanced/Expert capability.
+
+#### 10.5.11 World Activity và Change Log
+
+World Overview nên có Activity feed tổng hợp từ Event System, confirmed changesets, jobs và validation findings. Các nhóm hiển thị:
+- Recent changes: entity tạo/sửa/đổi trạng thái.
+- Timeline highlights: sự kiện quan trọng trong world time.
+- Needs attention: validation findings, unresolved impact, compatibility/migration warning.
+- Background jobs: import/export/validation/simulation progress và kết quả.
+- Branch activity: branch mới, snapshot, merge/restore nếu được hỗ trợ.
+
+Activity là read model/projection có thể tái tạo, không phải nguồn canon thứ hai. Mỗi mục cần deep-link về entity, event, branch hoặc Studio tương ứng; hỗ trợ lọc theo thời gian thực, actor, module và branch. Không hiển thị private/draft content trong publication view nếu creator chưa chọn.
+
+#### 10.5.12 World Overview Dashboard và quản lý mức độ phức tạp
+
+Dashboard đề xuất gồm World Identity, map preview, world time/current snapshot, Timeline highlights, module availability, recent activity, validation summary, asset/storage status và branches. Chỉ hiển thị khu vực có dữ liệu hoặc có ích cho workflow hiện tại; module chưa cài phải có trạng thái giải thích được.
+
+Progressive disclosure:
+- Beginner/Quick Start: thao tác tối thiểu theo mục tiêu.
+- Advanced: thuộc tính, quan hệ, filters và công cụ chuyên sâu.
+- Expert: schema/contract diagnostics, dependency graph, ruleset configuration và advanced data tools.
+
+Đây là các mức trình bày, không phải quyền hạn khác nhau. Người dùng không bị mất quyền truy cập dữ liệu khi chuyển mức UI.
+
 ## 11. Sản phẩm đồng hành dài hạn: WorldForge Multiverse Conflict
 
 Ý tưởng là sản phẩm độc lập sử dụng dữ liệu thế giới do WorldForge Studio tạo ra để tổ chức các cuộc xung đột bất đồng bộ giữa thế giới của người dùng.
@@ -1442,6 +1629,25 @@ Validator hiện kiểm tra cấu trúc raster tối thiểu, kích thước và
 
 ---
 
+
+### 12.6 Kiểm thử hợp đồng nền tảng cho các phase worldbuilding
+
+Khi các hệ thống nền tảng được triển khai, bổ sung contract/integration tests tối thiểu:
+- Entity identity: stable ID, rename, tombstone, merge/transform và reference integrity.
+- Relationship: dangling references, cycles theo policy, temporal validity và query.
+- State/snapshot: snapshot integrity, deterministic replay theo version, missing event và recovery.
+- Event/Timeline: multi-timescale, calendar conversion, causal links, branch scope và proposal-vs-confirmed.
+- Change Engine: preview immutability, stale base version, atomic apply, rollback và notification.
+- Branch/version: isolation, diff, reference retention và conflict detection.
+- Ruleset/Validation: reproducibility, provenance, severity, override policy và custom/fictitious rules.
+- Module lifecycle: unavailable/disabled/incompatible/failure không làm mất dữ liệu; cleanup listener/worker/resource.
+- Job Manager: progress, cancellation, failure, retry và không commit dở dang.
+- Migration: backup trước migration, success path, interrupted migration, rollback/recovery và unknown-field preservation.
+- Import/export: portability, compatibility report, malicious/corrupt input và all-or-nothing behavior.
+- Performance: benchmark có dataset/workload/version/hardware ghi rõ; không dùng một con số đơn lẻ làm cam kết tổng quát.
+
+Mỗi test report phải ghi commit, môi trường, lệnh, số test pass/fail và phạm vi chưa kiểm tra. Không đánh đồng unit test với browser acceptance hoặc CI.
+
 ## 13. Quy trình làm việc và cập nhật tài liệu
 
 ### 13.1 Quy trình triển khai
@@ -1499,6 +1705,7 @@ File này là nguồn Markdown tổng hợp chuẩn duy nhất ở repository ro
 | 14/11/2026 | Phase 4.4 automated QA đạt: corruption, missing/undeclared snapshot, stale project checksum và all-or-nothing import đều có regression tests. |
 | 14/11/2026 | Browser QA Phase 4.4 xác nhận mở project không có Pack nguồn và save/export khi offline; clean browser profile độc lập còn chờ môi trường browser context phù hợp. |\n| 14/11/2026 | Bổ sung đặc tả World Genesis & Evolution: Genesis Wizard, nhiều thang thời gian, Era Constraints/Asset unlock, World State Manager, Evolution Engine, World Survival Validation và Catastrophe Events; xác định rõ đây là định hướng dài hạn, chưa triển khai và không thuộc First Usable Build. |\n| 14/11/2026 | Bổ sung đặc tả World Evolution Milestones: milestone-specific workspaces, Origin of Life/biochemistry configuration, milestone gates, Creative/Guided/Challenge modes, branching evolution và Milestone Configuration Schema/Engine; xác định là định hướng tương lai, chưa triển khai và không thuộc First Usable Build. |
 | 14/11/2026 | Tái cấu trúc World Evolution Milestones thành bốn giai đoạn mặc định: Year 0/World Formation, Life Forms, Intelligent Life và Nations; quy định History & Timeline/Event System khả dụng từ đầu, Power System Studio mở ở Milestone 3, Story & Event Studio mở ở Milestone 4 và Free World Mode sau Milestone 4. |\n| 14/11/2026 | Đánh giá roadmap: giữ nguyên thứ tự Phase 4.4 → 5 → 6 → 7 cho First Usable Build, nhưng đưa QA vào từng phase; đề xuất roadmap sau đó theo World Data Core → Time/History/Event → Milestone/Genesis → bốn milestone → Free World Mode → Showcase. |\n| 14/11/2026 | Bổ sung trải nghiệm World Completion & Return: World Overview, Consistency Advisor, Evolution Preview, World Presentation, World Bible Export, Templates, World/Branch Comparison và Finish World không khóa chỉnh sửa; xác định ưu tiên, acceptance criteria và các giới hạn chống quá tải. |
+| 14/11/2026 | Chủ dự án đồng ý bộ giải pháp khắc phục khoảng trống kiến trúc: Entity/Relationship, canonical-vs-derived data, World State, Event/Timeline, Change & Impact, Branch/Version, Ruleset/Validation, shared services, workflow/dashboard, backup/migration, performance, offline conflict readiness, licensing và extension security. Đặc tả được tích hợp vào master; tất cả là thiết kế/roadmap, chưa được coi là code đã triển khai. |
 | 14/11/2026 | Chốt Modular là nguyên tắc kiến trúc chủ đạo: modular monolith trước, domain ownership/contracts/lifecycle rõ, lazy loading, on-demand/event-driven/background computation, progressive disclosure và architecture discovery trước Phase 8; giữ nguyên ưu tiên First Usable Build và tránh đại tu sớm. |
 | 14/11/2026 | Bổ sung đặc tả ý tưởng World Forge Showcase: trải nghiệm triển lãm thế giới, Animated World Presentation, World Page, published snapshot/data contract, quyền riêng tư, community và lộ trình MVP phụ thuộc First Usable Build. |
 | 13/11/2026 | Browser QA Phase 4.3 xác nhận export/import round-trip qua UI và snapshot fallback sau khi tắt/gỡ Pack; clean-profile/offline/security QA còn lại. |
