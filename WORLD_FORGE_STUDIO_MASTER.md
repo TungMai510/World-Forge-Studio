@@ -401,6 +401,230 @@ Xây dựng môi trường tự nhiên của thế giới, không chỉ vẽ hì
 - Tách simulation engine khỏi UI; kiểm thử quy luật cốt lõi bằng test dữ liệu.
 - Chưa đưa vào scope trước khi World Data Core và Persistence đủ ổn định.
 
+
+### 8.6 World Genesis & Evolution System
+
+Đây là lớp kiến trúc dài hạn kết nối World Environment, Planetary Physics, History & Timeline và World Data Core. Mục tiêu là cho phép creator định nghĩa thế giới ở thời điểm khởi nguyên, theo dõi quá trình hình thành/phát triển/biến đổi và mô tả cả khả năng suy thoái hoặc hủy diệt. **Đây là đặc tả tương lai, chưa được triển khai và không thuộc First Usable Build.**
+
+#### 8.6.1 World Genesis — thiết lập thế giới ban đầu
+
+Khi tạo world mới, người dùng có thể chọn một trong các luồng:
+- **Quick Start:** bắt đầu bằng preset hoặc cấu hình tối giản; có thể bổ sung thông số sau.
+- **Guided Genesis:** wizard từng bước để thiết lập nguồn gốc, mốc thời gian khởi đầu, cấu trúc hành tinh và trạng thái ban đầu.
+- **Advanced Custom:** tự định nghĩa các tham số, quy luật và giả định của thế giới.
+
+Wizard có thể gồm các nhóm:
+1. **Origin & Initial State:** nguồn gốc thế giới, trạng thái ban đầu, epoch/time zero, điều kiện hình thành và giả định canon.
+2. **Time Model:** hệ lịch, độ dài ngày/năm, đơn vị thời gian, mùa, vệ tinh và các mốc epoch.
+3. **Planetary Physics:** khối lượng/bán kính, trọng lực, tốc độ tự quay, độ nghiêng trục, quỹ đạo, ngôi sao chủ, vệ tinh, lõi, lớp vỏ và từ trường.
+4. **Geology & Tectonics:** cấu trúc vỏ, mảng kiến tạo, trạng thái ban đầu, núi lửa, địa chấn và chu trình địa chất.
+5. **World Environment:** khí quyển, nhiệt độ, áp suất, độ ẩm, gió, mưa, đại dương, dòng hải lưu, thủy văn và biome.
+6. **Hazards & Life Conditions:** thiên tai tự nhiên, rủi ro thiên văn, điều kiện cho sự sống và mức độ ổn định ban đầu.
+
+Các nhóm nâng cao phải có thể bỏ qua hoặc cấu hình về sau. Không bắt mọi creator hoàn thành một bảng thông số khoa học phức tạp trước khi được tạo bản đồ. Preset chỉ là điểm khởi đầu, không phải luật bắt buộc.
+
+#### 8.6.2 Time Model — nhiều thang thời gian
+
+Phải phân biệt rõ:
+- **Planetary/Geological Time:** hình thành hành tinh, nguội đi, kiến tạo, hình thành lục địa và đại dương; có thể kéo dài hàng triệu hoặc hàng tỷ năm.
+- **Biological/Evolutionary Time:** nguồn gốc sự sống, tiến hóa, tuyệt chủng và biến đổi hệ sinh thái.
+- **Civilizational/Historical Time:** kỷ nguyên, thời kỳ, triều đại, chiến tranh và sự kiện xã hội.
+- **Local Calendar Time:** ngày, tháng, năm và cách ghi ngày theo lịch riêng của thế giới.
+
+Không được mặc định một năm lịch của nền văn minh tương đương một năm địa chất. Timeline cần hỗ trợ đơn vị tùy chỉnh, giá trị thời gian lớn, độ chính xác khác nhau và chuyển đổi giữa các thang khi người dùng định nghĩa được quy tắc. Ví dụ “năm 0–100 triệu” phải được hiểu là khoảng thời gian địa chất theo đơn vị đã chọn, không phải 100 triệu năm lịch dân sự nếu chưa có quy ước tương ứng.
+
+#### 8.6.3 Historical Era Constraints — điều kiện tồn tại theo giai đoạn
+
+Mỗi Era/Period có thể khai báo:
+- Khoảng thời gian và thang thời gian áp dụng.
+- Điều kiện môi trường/địa chất tối thiểu hoặc tối đa.
+- Nhóm entity/asset được phép xuất hiện, bị khóa hoặc chỉ được phép khi có điều kiện.
+- Điều kiện mở khóa theo sự kiện, trạng thái thế giới hoặc tiến trình tiến hóa.
+- Quy tắc ngoại lệ do creator tự định nghĩa.
+
+Ví dụ bộ preset minh họa:
+- **Genesis / Early Geological:** địa hình, lục địa, biển, hồ, sông, núi, núi lửa; chưa mở khóa cây cối, động vật, dân cư, nhà cửa hay thành quách.
+- **Primitive Life:** cho phép các dạng sống sơ khai và hệ sinh thái đơn giản khi điều kiện phù hợp.
+- **Biological Diversification:** mở rộng thực vật, động vật và biome.
+- **Prehistoric:** cho phép các nhóm sinh vật tiền sử theo canon của thế giới.
+- **Civilization:** mở khóa settlement, dân cư, công trình, quốc gia và tổ chức khi có điều kiện nền tảng.
+- **Industrial/Modern/Future:** mở khóa công nghệ và asset theo tiến trình do creator định nghĩa.
+
+Đây là preset tùy biến, không phải dòng tiến hóa bắt buộc hay mô hình lịch sử phổ quát. Mỗi Asset Pack asset/asset definition trong tương lai có thể khai báo metadata như earliest/latest era, prerequisites, required environment, entity category và compatibility tags. Runtime kiểm tra metadata này với thời điểm/trạng thái hiện tại để cảnh báo hoặc ngăn đặt asset theo policy của project.
+
+Cần có các chế độ:
+- **Enforce:** chặn thao tác vi phạm quy tắc.
+- **Warn:** cho phép nhưng hiển thị cảnh báo.
+- **Creative Override:** creator chủ động bỏ qua giới hạn và ghi nhận ngoại lệ.
+
+Không được khóa asset chỉ dựa vào tên category hoặc giả định cứng trong Core; dùng metadata có schema, validation và versioning.
+
+#### 8.6.4 World State Evolution — sự kiện làm thay đổi thế giới
+
+History & Timeline không chỉ lưu văn bản mô tả. Một event có thể mang thay đổi trạng thái có cấu trúc:
+- thời điểm, thời lượng và time scale;
+- nguyên nhân, điều kiện kích hoạt và quan hệ nhân quả;
+- entity/region/layer bị ảnh hưởng qua stable IDs;
+- loại thao tác thay đổi (thêm, cập nhật, xóa/đánh dấu tuyệt chủng, biến đổi thuộc tính, thay đổi quan hệ);
+- tham số và phạm vi ảnh hưởng;
+- tham chiếu trạng thái trước/sau hoặc patch có thể đảo ngược;
+- hậu quả tức thời, hậu quả dây chuyền và mức độ chắc chắn;
+- nguồn tạo: manual, assisted hoặc simulation; seed và phiên bản quy tắc nếu có.
+
+Ví dụ chuỗi địa chất: hình thành hành tinh → vỏ nguội và ổn định → mảng kiến tạo phân tách/dịch chuyển → hình thành lục địa, núi và bồn đại dương → thay đổi khí hậu/hải lưu. Event có thể được creator viết thủ công, tạo bằng công cụ hỗ trợ hoặc sinh từ mô phỏng. Hệ thống không được tự giả định kết quả mô phỏng là canon cho tới khi creator chấp nhận.
+
+#### 8.6.5 World State Manager — trạng thái, snapshot và nhánh lịch sử
+
+Mô hình khái niệm:
+
+**World State(t) = Initial State + các Event/Patch có hiệu lực đến t + các Derived Results được tính từ tham số và quy tắc có version.**
+
+Yêu cầu:
+- Không phá hủy dữ liệu gốc khi áp dụng event; lưu patch/delta có thể kiểm tra và hoàn tác.
+- Snapshot theo mốc quan trọng để tăng tốc truy xuất trạng thái.
+- Có thể xem/so sánh before–after, tua timeline và tái dựng trạng thái tại một thời điểm.
+- Undo/redo cho thao tác chỉnh sửa; event đã công bố/được tham chiếu phải có chính sách sửa đổi minh bạch.
+- Versioning cho schema, simulation rules và snapshot.
+- Hỗ trợ branch/alternate timeline trong tương lai mà không ghi đè canon chính.
+- Dữ liệu dẫn xuất phải có provenance, tham số và seed để tái lập; không nhầm cache với canonical data.
+
+#### 8.6.6 Evolution Engine — ba chế độ điều khiển
+
+1. **Manual:** creator tự chỉnh sửa trạng thái và ghi nhận event; engine chỉ kiểm tra hợp lệ.
+2. **Assisted:** hệ thống đề xuất hậu quả, event liên quan, điều kiện mở khóa hoặc cảnh báo; creator duyệt trước khi áp dụng.
+3. **Simulation:** engine tính kết quả dựa trên rule set, tham số, độ phân giải và seed được chọn; creator có thể chấp nhận, chỉnh sửa hoặc loại bỏ kết quả.
+
+Không yêu cầu mọi event đều được mô phỏng tự động. Các quy luật fantasy/sci-fi tùy chỉnh phải được hỗ trợ; quy tắc vật lý Trái Đất chỉ là preset tùy chọn.
+
+#### 8.6.7 Temporal UI — trải nghiệm theo thời gian
+
+Định hướng UI:
+- Genesis Wizard khi tạo world, có thể bỏ qua cấu hình nâng cao.
+- Era/Period selector và trạng thái khóa/mở asset trong Asset Library/Tool.
+- Timeline scrubber hoặc time navigator để chọn mốc và xem bản đồ ở trạng thái tương ứng.
+- Lớp hiển thị bật/tắt cho địa chất, khí hậu, thủy văn, sinh thái và văn minh.
+- Before/After comparison, danh sách event, cảnh báo và preview thay đổi trước khi commit.
+- Chế độ xem lịch sử và hiện tại; nhánh timeline thay thế là tính năng tương lai.
+
+#### 8.6.8 Phụ thuộc và nguyên tắc dữ liệu
+
+- World Data Core quản lý stable IDs, schema, relation và temporal references; không nhúng toàn bộ logic mô phỏng vào UI.
+- History & Timeline sở hữu event/time records; World Environment sở hữu dữ liệu môi trường; Planetary Configuration sở hữu tham số hành tinh; World State Manager điều phối trạng thái theo thời gian.
+- Mở rộng event schema hiện có bằng affected entity IDs, typed state operations, causal links, time scale, before/after references và simulation metadata.
+- Validation phải phân biệt lỗi cấu trúc, mâu thuẫn vật lý theo preset, cảnh báo rủi ro và ngoại lệ sáng tạo.
+- Kết quả mô phỏng cần deterministic khi cùng input/rule version/seed; nếu dùng yếu tố ngẫu nhiên phải có seed và hiển thị rõ.
+- Không để import/export, snapshot hoặc migration làm mất lịch sử, branch hay liên kết temporal.
+
+### 8.7 World Survival & Catastrophe System
+
+Hệ thống đánh giá khả năng duy trì trạng thái của hành tinh, môi trường, sinh quyển và nền văn minh theo bộ quy tắc của world. Đây là công cụ cảnh báo/hỗ trợ sáng tác, không phải chứng nhận khoa học tuyệt đối.
+
+#### 8.7.1 World State Validation
+
+Khi creator thiết lập thông số hoặc thêm event, validator đánh giá:
+- Giá trị ngoài giới hạn schema hoặc đơn vị không hợp lệ.
+- Mâu thuẫn giữa các thông số và điều kiện tồn tại đã khai báo.
+- Mâu thuẫn giữa môi trường với entity/asset đang tồn tại.
+- Điều kiện tiên quyết của event không được đáp ứng.
+- Rủi ro có thể dẫn đến suy thoái môi trường, tuyệt chủng hoặc mất ổn định.
+
+Ví dụ: creator khai báo nhiệt độ bề mặt cực cao, không có khí quyển nhưng đồng thời muốn duy trì hệ sinh thái phong phú. Validator cần chỉ ra mâu thuẫn theo rule set hiện hành, nhưng vẫn cho phép ngoại lệ nếu creator xác định đây là thế giới có quy luật giả tưởng.
+
+Ba lựa chọn xử lý:
+1. **Accept Anyway / Creative Override:** giữ thông số và ghi nhận ngoại lệ.
+2. **Auto Adjust:** xem đề xuất thay đổi thông số; không tự áp dụng nếu chưa được duyệt.
+3. **Simulate Consequences:** giữ nguyên đầu vào và xem chuỗi hậu quả có thể xảy ra.
+
+#### 8.7.2 Survival indicators
+
+Có thể cung cấp các chỉ báo độc lập, không gộp bắt buộc thành một điểm duy nhất:
+- Planetary Stability — ổn định tổng thể của hành tinh.
+- Orbital Stability — ổn định quỹ đạo và hệ vệ tinh.
+- Geological Stability — trạng thái địa chất/kiến tạo.
+- Climate Stability — mức ổn định khí hậu.
+- Atmospheric Stability — khả năng duy trì khí quyển theo rule set.
+- Magnetic Field Status — trạng thái từ trường.
+- Biological Viability — khả năng duy trì sự sống.
+- Civilization Viability — khả năng duy trì nền văn minh.
+
+Mỗi chỉ báo cần định nghĩa thang đo, phạm vi áp dụng, độ tin cậy và dữ liệu đầu vào. Không tạo ra con số phần trăm có vẻ chính xác nếu mô hình chưa đủ căn cứ. Một thế giới có thể ổn định về địa chất nhưng nguy hiểm về khí hậu; cần hiển thị từng chiều riêng.
+
+#### 8.7.3 Catastrophe & Extinction Events
+
+Nhóm event tiềm năng:
+- **Astronomical:** thiên thạch/comet va chạm, thay đổi quỹ đạo, bất ổn vệ tinh, nguy cơ vệ tinh va chạm hoặc bị phá hủy.
+- **Geological:** siêu phun trào, động đất lớn, hoạt động kiến tạo cực đoan, tái cấu trúc bề mặt.
+- **Magnetic:** suy giảm/biến đổi từ trường, đảo cực địa từ.
+- **Climatic:** băng hà, nóng lên cực đoan, đóng băng hoặc mất cân bằng khí hậu.
+- **Oceanic/Hydrological:** thay đổi mực nước biển, đại hồng thủy, suy giảm/bốc hơi đại dương, biến đổi dòng hải lưu.
+- **Biological:** dịch bệnh, sụp đổ hệ sinh thái, đại tuyệt chủng.
+- **Civilizational:** chiến tranh, sụp đổ xã hội, thảm họa công nghệ hoặc hạt nhân theo bối cảnh thế giới.
+
+Hậu quả phải phụ thuộc vào thời điểm và World State khi event xảy ra. Cùng một vụ va chạm thiên thạch có thể chỉ thay đổi địa hình ở thế giới chưa có sự sống, gây tuyệt chủng sinh học ở thế giới có hệ sinh thái, hoặc làm sụp đổ nền văn minh ở thế giới có xã hội phát triển.
+
+Ví dụ rủi ro như hành tinh quá gần sao chủ, quỹ đạo không ổn định, vệ tinh mất ổn định hoặc trọng lực/khí quyển không phù hợp phải được đánh giá bằng rule set có phạm vi và giả định rõ. Đảo cực địa từ không được mặc định là tận thế; chỉ tạo các hậu quả tương ứng với mô hình từ trường, khí quyển và môi trường đã chọn. Tương tự, không suy diễn một vệ tinh chắc chắn rơi vào hành tinh chỉ từ một thông số khoảng cách đơn lẻ nếu chưa có mô hình quỹ đạo.
+
+#### 8.7.4 Severity và World Failure
+
+Mức trạng thái tham khảo:
+- **Stable:** chưa phát hiện rủi ro vượt ngưỡng.
+- **Warning:** có bất thường hoặc rủi ro cần theo dõi.
+- **Critical:** nguy cơ nghiêm trọng, một số hệ thống có thể mất ổn định.
+- **Catastrophic:** thảm họa đang diễn ra hoặc nhiều hệ thống suy sụp.
+- **Extinction:** nhóm sự sống được theo dõi đã tuyệt chủng hoặc không còn khả năng tồn tại theo tiêu chí đã chọn.
+- **World Failure:** thế giới không còn đáp ứng điều kiện tồn tại/khả năng mô phỏng do creator định nghĩa.
+
+World Failure không nhất thiết xóa project hoặc chặn người dùng tiếp tục sáng tác. Đó là trạng thái của thế giới trong mô hình; creator vẫn có thể xem lịch sử, tạo nhánh thay thế, sửa canon hoặc tiếp tục sau thảm họa. Cần phân biệt “không thể duy trì sự sống”, “nền văn minh sụp đổ” và “hành tinh bị phá hủy hoàn toàn”.
+
+#### 8.7.5 Causal chain và Timeline integration
+
+Khi simulation tạo thảm họa, quy trình khái niệm:
+1. Engine phát hiện điều kiện kích hoạt hoặc creator yêu cầu event.
+2. Tạo event và chuỗi hậu quả dự kiến có quan hệ nhân quả.
+3. Preview phạm vi, mức độ, đối tượng bị ảnh hưởng và độ tin cậy.
+4. Creator duyệt hoặc chỉnh sửa.
+5. World State Manager áp dụng patch và tạo snapshot phù hợp.
+6. Environment/Biological/Civilization modules tính lại các dữ liệu dẫn xuất liên quan.
+7. Era Constraints đánh giá lại asset/entity có còn thỏa điều kiện.
+8. History & Timeline ghi nhận event, hậu quả và trạng thái sinh tồn mới.
+
+Chuỗi hậu quả phải có thể truy vết và hoàn tác/điều chỉnh theo chính sách dữ liệu. Không tự động biến một cảnh báo thành thảm họa đã xảy ra nếu creator chưa chọn chế độ simulation tự động và chưa chấp thuận policy tương ứng.
+
+### 8.8 Lộ trình triển khai riêng cho Genesis, Evolution và Survival
+
+Các cấp độ phát triển đề xuất, chỉ bắt đầu sau khi First Usable Build và các dependency dữ liệu đã đủ ổn định:
+
+| Level | Phạm vi | Kết quả mong muốn |
+|---|---|---|
+| 1 | Era Constraints | Metadata điều kiện theo Era/Period; cảnh báo/khóa asset có thể cấu hình |
+| 2 | World Genesis & Planetary Configuration | Wizard, time model, preset và lưu tham số hành tinh ban đầu |
+| 3 | World Validation | Phát hiện dữ liệu không hợp lệ, mâu thuẫn và rủi ro; override có kiểm soát |
+| 4 | Catastrophe Events | Event thảm họa thủ công/assisted, hậu quả có cấu trúc và liên kết Timeline |
+| 5 | World State Manager | Patch, snapshot, before/after, rewind và versioning |
+| 6 | Assisted Evolution | Đề xuất thay đổi môi trường, sinh học, địa chất và văn minh để creator duyệt |
+| 7 | Deterministic Simulation | Mô phỏng từng miền với rule set, độ phân giải, seed và phạm vi được giới hạn |
+| 8 | Advanced Simulation | Mô hình chuyên sâu cho quỹ đạo, kiến tạo, khí hậu, thủy văn và sinh thái |
+
+Không xây mô phỏng vật lý toàn diện ngay từ đầu. Tách rõ:
+- **Authored evolution:** creator tự mô tả và áp dụng thay đổi.
+- **Rule-based/assisted evolution:** hệ thống kiểm tra hoặc đề xuất hậu quả theo quy tắc.
+- **Scientific simulation:** mô hình tính toán chuyên dụng có giới hạn, dữ liệu và validation riêng.
+
+Các ví dụ “năm 0–100 triệu, các mảng kiến tạo phân tách” là kịch bản minh họa. Kết quả địa chất thực tế phụ thuộc mô hình và điều kiện đầu vào; không hard-code một trình tự duy nhất cho mọi world.
+
+**Acceptance criteria dài hạn**
+- Tạo world bằng Quick Start mà không bắt buộc cấu hình nâng cao.
+- Lưu được time scale, genesis parameters và trạng thái ban đầu có version.
+- Era constraints có thể khóa/cảnh báo asset theo metadata và có Creative Override.
+- Timeline event có thể mô tả thay đổi state có cấu trúc, nguyên nhân và hậu quả.
+- Xem được trạng thái trước/sau và tái dựng một mốc thời gian từ snapshot + patches.
+- Validation phân biệt lỗi dữ liệu, cảnh báo rủi ro và ngoại lệ do creator chủ động.
+- Thảm họa có thể được ghi nhận thành event, hậu quả liên kết và có thể kiểm tra/hoàn tác.
+- Cùng input, rule version và seed cho kết quả deterministic trong phạm vi engine đã công bố.
+- Import/export và schema migration bảo toàn temporal data, stable IDs và snapshot references.
+
+**Scope note:** Toàn bộ mục 8.6–8.8 là định hướng và đặc tả tương lai. History & Timeline hiện tại mới lưu calendars, eras, periods, records, events và một số quan hệ tham chiếu; chưa có Genesis Wizard, Era Constraint enforcement, planetary physics, survival scoring, world-state patching hay catastrophe/evolution simulation. Không được mô tả các tính năng này là đã triển khai. First Usable Build vẫn là ưu tiên hiện tại.
+
 ---
 
 ## 9. WorldForge AI Layer — kiến trúc dài hạn
@@ -702,7 +926,7 @@ File này là nguồn Markdown tổng hợp chuẩn duy nhất ở repository ro
 | 14/11/2026 | Phase 4.4 browser acceptance: clean-origin import không có Pack nguồn vẫn giữ 1 snapshot/1 image object; offline save/export đạt; corrupt archive bị từ chối theo checksum và project count không đổi. Clean browser profile độc lập thật sự vẫn pending. |
 | 14/11/2026 | Bổ sung SHA-256 revalidation khi validate/open project và khi AssetLoader kích hoạt snapshot; thêm kiểm tra cấu trúc ảnh, dimension/pixel limit và regression same-size mutation. |
 | 14/11/2026 | Phase 4.4 automated QA đạt: corruption, missing/undeclared snapshot, stale project checksum và all-or-nothing import đều có regression tests. |
-| 14/11/2026 | Browser QA Phase 4.4 xác nhận mở project không có Pack nguồn và save/export khi offline; clean browser profile độc lập còn chờ môi trường browser context phù hợp. |\n| 14/11/2026 | Bổ sung đặc tả ý tưởng World Forge Showcase: trải nghiệm triển lãm thế giới, Animated World Presentation, World Page, published snapshot/data contract, quyền riêng tư, community và lộ trình MVP phụ thuộc First Usable Build. |
+| 14/11/2026 | Browser QA Phase 4.4 xác nhận mở project không có Pack nguồn và save/export khi offline; clean browser profile độc lập còn chờ môi trường browser context phù hợp. |\n| 14/11/2026 | Bổ sung đặc tả World Genesis & Evolution: Genesis Wizard, nhiều thang thời gian, Era Constraints/Asset unlock, World State Manager, Evolution Engine, World Survival Validation và Catastrophe Events; xác định rõ đây là định hướng dài hạn, chưa triển khai và không thuộc First Usable Build. |\n| 14/11/2026 | Bổ sung đặc tả ý tưởng World Forge Showcase: trải nghiệm triển lãm thế giới, Animated World Presentation, World Page, published snapshot/data contract, quyền riêng tư, community và lộ trình MVP phụ thuộc First Usable Build. |
 | 13/11/2026 | Browser QA Phase 4.3 xác nhận export/import round-trip qua UI và snapshot fallback sau khi tắt/gỡ Pack; clean-profile/offline/security QA còn lại. |
 | 14/11/2026 | Chủ dự án xác nhận Phase 4.2 hoàn tất sau khi chạy kiểm thử; chuyển trọng tâm sang Phase 4.4 QA acceptance. |
 | 13/11/2026 | Bổ sung định hướng World Environment Studio: lục địa, địa chất, khí hậu, thời tiết, gió mùa, hải lưu, thủy văn và biome. |
