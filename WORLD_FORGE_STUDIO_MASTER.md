@@ -66,10 +66,10 @@ Studio sở hữu quy tắc nghiệp vụ của miền mình; không để Studi
 | Asset Pack Studio | Tạo Pack, batch import, metadata, preview, validator, export | Phase 6 |
 | Character Studio | Nhân vật, hồ sơ, quan hệ, thuộc tính | Tương lai |
 | Civilization Studio | Chủng tộc, văn hóa, tôn giáo, quốc gia, tổ chức, xã hội | Tương lai |
-| History & Timeline Studio | Lịch, kỷ nguyên, thời kỳ, sự kiện, timeline | Tương lai |
+| History & Timeline / Event System | Lịch, time scales, kỷ nguyên, thời kỳ, sự kiện và timeline; nền tảng khả dụng từ lúc tạo world | Tương lai |
 | World Environment Studio | Lục địa, địa chất, khí hậu, thời tiết, gió, mùa, thủy văn, sinh thái | Định hướng tương lai |
 | Power System Studio | Sức mạnh, phép thuật, công nghệ và quy tắc | Tương lai |
-| Story Studio | Cốt truyện, tuyến truyện, sự kiện, liên kết nhân vật/thế giới | Tương lai |
+| Story & Event Studio | Authoring cốt truyện, tuyến truyện, nhân vật, quan hệ và xung đột; mặc định mở khóa ở Milestone 4 | Tương lai |
 | Plugin Studio / Soundscape Studio | Mở rộng công cụ, âm thanh môi trường | Định hướng dài hạn |
 | World Forge Showcase | Xuất bản, trưng bày, khám phá và trải nghiệm các thế giới do creator tạo | Định hướng dài hạn; đặc tả sản phẩm ban đầu tại mục 10.4 |\n| Creator Hub | Hồ sơ creator, đóng góp, showcase và cộng đồng | Định hướng dài hạn |
 
@@ -338,19 +338,65 @@ Sau khi Asset System ổn định:
 
 Giữ semantic geometry, deterministic procedural generation, offline font support, export parity và Undo/Redo. Không raster hóa làm mất khả năng chỉnh sửa. Không thực hiện merge/split bằng thuật toán clipping tự chế thiếu kiểm chứng.
 
-### 7.3 World Data Core và Studio kế tiếp
+### 7.3 World Data Core và các Studio kế tiếp
 
-Sau Beta Core, theo nhu cầu:
-1. Củng cố World Data Core, entity IDs, schema/versioning, relation validation.
-2. Character Studio.
-3. Civilization Studio.
-4. History & Timeline Studio.
-5. World Environment Studio.
-6. Power System Studio.
-7. Story Studio.
-8. Tối ưu UX, plugin/creator infrastructure và ecosystem.
+Sau First Usable Build, phát triển theo miền dữ liệu và dependency thay vì mở nhiều Studio độc lập cùng lúc:
 
-Thứ tự cụ thể có thể điều chỉnh theo dependency; không xây nhiều Studio cùng lúc khi Core data contracts chưa ổn định.
+1. Củng cố World Data Core: stable IDs, schema/versioning, quan hệ, validation, event hooks, snapshot/patch và migration.
+2. History & Timeline + Event System ở mức nền tảng; phải có từ đầu và ghi nhận được các thang thời gian/sự kiện trước khi có civilization.
+3. World Environment / Planetary Systems cho Milestone 1.
+4. Biology, Organism và Ecosystem cho Milestone 2.
+5. Species, Civilization Foundations và Power System cho Milestone 3.
+6. Nations, Politics, Conflict và Story & Event Studio cho Milestone 4.
+7. Free World Mode, sau đó mới mở rộng mô phỏng chuyên sâu, Showcase và creator ecosystem.
+
+Không cần triển khai tất cả giao diện cùng lúc: ưu tiên data contract, một vertical slice chạy xuyên suốt, rồi mở rộng capability. History & Timeline/Event System là nền tảng xuyên suốt, không phải một Studio chỉ xuất hiện ở giai đoạn cuối.
+
+
+### 7.4 Đề xuất roadmap sau khi đánh giá dependency
+
+Đánh giá: chuỗi Phase 3D → 4 → 5 → 6 → 7 hiện tại **vẫn phù hợp cho giai đoạn hoàn thiện First Usable Build**. Không nên đảo thứ tự Phase 5 và Phase 6: Asset Pack Manager cần có trước hoặc có một phần tối thiểu để Asset Pack Studio có thể cài/kiểm tra Pack an toàn. Tuy nhiên, cần điều chỉnh cách tổ chức Phase 7 và roadmap dài hạn:
+
+- QA không nên dồn toàn bộ đến cuối Phase 7. Mỗi Phase 5/6 cần automated tests, browser acceptance và regression tương ứng; Phase 7 là vòng E2E/stability tổng thể.
+- Sau Phase 4.4, Phase 5 và Phase 6 vẫn là ưu tiên hợp lý để hoàn thành trải nghiệm Asset Library. Nhưng cần chốt **First Usable Build acceptance** ngay từ đầu: người dùng có thể quản lý/import ít nhất hai Asset Libraries/Pack, dùng tài nguyên trong Map Studio, save/reopen và export/import project mà không mất asset.
+- Phase 7 nên đóng vai trò **Release Readiness & First Usable Build QA**, không phải lần đầu mới kiểm thử tích hợp.
+- Chỉ sau khi First Usable Build đạt mới chuyển sang các hệ thống worldbuilding lớn. Trước khi tạo các Studio chuyên biệt, phải xây World Data Core contracts và một vertical slice xuyên suốt.
+
+#### Roadmap đề xuất
+
+| Giai đoạn đề xuất | Phạm vi | Kết quả cần đạt / cổng chuyển tiếp |
+|---|---|---|
+| Current — Phase 4.4 | Kết thúc Persistence/Archive acceptance, gồm clean browser profile độc lập | Save/reopen/export/import/offline và archive safety đạt; không còn phụ thuộc Pack nguồn |
+| Phase 5 — Asset Pack Management | Pack Manager, install/disable/uninstall/update, version/dependency, trạng thái thư viện được lưu bền vững | Hai hoặc nhiều Pack/Asset Libraries được quản lý ổn định; uninstall không làm mất project snapshots |
+| Phase 6 — Asset Pack Studio | Tạo Pack, batch import, metadata, preview, validator, exporter và license fields | Creator có thể tạo Pack hợp lệ, export/import lại và dùng ngay trong Map Studio |
+| Phase 7 — First Usable Build QA & Release Readiness | E2E xuyên suốt, clean profile, offline, accessibility cơ bản, regression, lỗi dữ liệu và usability | Đạt First Usable Build acceptance; không mở rộng sang world simulation trước khi workflow cốt lõi đáng tin cậy |
+| Phase 8 — World Data Core Foundation | Chuẩn hóa World/Continent/Location/Entity IDs, relations, schema migrations, domain boundaries, validation và event/state interfaces | Một world có dữ liệu cấu trúc nhất quán; modules có thể đọc/ghi qua contract; project cũ được bảo toàn |
+| Phase 9 — Time, History & Event Foundation | Time Scale, Calendar, Timeline, Era/Period, Event schema, causal links, event-to-world references | Ghi nhận được planetary, biological và historical events từ Year 0; timeline không phụ thuộc Story Studio |
+| Phase 10 — Milestone Engine + World Genesis MVP | Bốn milestone definitions, dependency/gate engine, wizard khởi tạo, state preview/patch, override và checkpoint cơ bản | Có thể tạo world từ Year 0, xem trạng thái và chuyển milestone theo ruleset cấu hình; chưa cần mô phỏng vật lý chính xác |
+| Phase 11 — Milestone 1 Environment | Planetary/star settings, map/geology authoring, atmosphere, climate presets, hazards và natural cycles | Creator tạo được một hành tinh có thông số và môi trường nhất quán ở mức rule-based/authoring |
+| Phase 12 — Milestone 2 Life & Ecosystem | Organism/Flora Creator, population, habitat, food web, ecosystem validation, tectonic movement | Tạo và theo dõi hệ sinh thái; cảnh báo minh bạch, có thể sửa/branch/recover |
+| Phase 13 — Milestone 3 Intelligent Life | Species/Race, civilization foundations, knowledge/culture, Location Advisor và Power System Studio | Có thể tạo loài có trí tuệ và các hệ thống xã hội/năng lượng phù hợp với canon |
+| Phase 14 — Milestone 4 Nations & Story | Nation/political map, flags, national history, diplomacy/conflict, Story & Event Studio | Lịch sử xã hội và câu chuyện liên kết được với world entities và timeline |
+| Phase 15 — Free World Mode & Advanced Evolution | Tự do chỉnh sửa, alternate timelines, simulation depth, catastrophe/recovery và branch comparison | Creator không bị giới hạn bởi milestone sequence; mọi thay đổi có thể truy vết |
+| Phase 16+ — Showcase & Creator Ecosystem | Published snapshots, Showcase MVP, creator profiles, community, marketplace/plugin ecosystem | Chỉ phát triển khi publication contract, quyền riêng tư, moderation và dữ liệu world ổn định |
+
+Các số Phase 8+ là **đề xuất roadmap mới**, không phải cam kết lịch hoặc tuyên bố đã bắt đầu. Có thể gộp các Phase liền kề nếu cùng một vertical slice và dependency đã ổn định; không nên chia nhỏ thành nhiều Studio chỉ vì khác tên miền.
+
+#### Quy tắc triển khai theo vertical slice
+
+Mỗi đợt phát triển worldbuilding nên hoàn thiện một luồng xuyên suốt, ví dụ:
+
+**Create world → configure time scale → create/edit entity → record event → preview state change → apply transition → save/reopen → export/import → verify relationships.**
+
+Không phát triển riêng UI của tất cả milestone trước rồi mới xây data model. Mỗi vertical slice cần:
+1. Data schema và stable IDs.
+2. Validation/ruleset có version.
+3. UI tối thiểu để tạo/chỉnh sửa.
+4. Liên kết map/timeline/entity.
+5. Persistence và archive compatibility.
+6. Automated tests + browser acceptance.
+7. Migration và recovery path nếu schema thay đổi.
+
 
 ---
 
@@ -638,30 +684,86 @@ History & Timeline tiếp tục là hệ thống ghi nhận thời gian và sự
 
 Đây là đặc tả tương lai, chưa được triển khai và không thuộc First Usable Build.
 
-#### 8.9.2 Bộ milestone mặc định
+#### 8.9.2 Bộ milestone mặc định — mô hình bốn giai đoạn
 
-Có thể cung cấp một chuỗi gợi ý ban đầu, nhưng không áp đặt thành trình tự bắt buộc cho mọi thể loại thế giới:
+World Forge Studio sử dụng bốn milestone lớn làm **lộ trình mặc định dễ hiểu**, thay cho chuỗi mười milestone nhỏ. Các công đoạn khoa học/kỹ thuật chi tiết vẫn tồn tại dưới dạng bước con, workspace hoặc checklist bên trong milestone tương ứng. Bốn milestone không phải quy luật tiến hóa bắt buộc: creator có thể tùy chỉnh, bỏ qua, thêm nhánh hoặc bắt đầu từ một trạng thái có sẵn.
 
-| Milestone | Mục tiêu | Công cụ/chế độ sáng tạo tiêu biểu |
-|---|---|---|
-| 0. Planetary Genesis | Hình thành hành tinh và hệ thiên thể | Ngôi sao, quỹ đạo, khối lượng, bán kính, trọng lực, chu kỳ quay, độ nghiêng trục, vệ tinh |
-| 1. Geological Formation | Hình thành cấu trúc địa chất | Mảng kiến tạo, chuyển động, núi, núi lửa, đáy biển, độ cao/độ sâu, lục địa |
-| 2. Atmospheric Formation | Xây dựng khí quyển | Thành phần khí, tỷ lệ/áp suất riêng phần, áp suất, nhiệt độ và điều kiện giữ khí |
-| 3. Ocean and Solvent Formation | Hình thành đại dương hoặc môi trường dung môi | Nước/chất lỏng/dung môi giả tưởng, lưu vực, biển, hồ và chu trình liên quan |
-| 4. Origin of Life | Thiết lập nền tảng hóa sinh và nguồn gốc sự sống | Hóa sinh, thành phần môi trường, nguồn năng lượng, môi trường sống và mô hình sự sống sơ khai |
-| 5. Biological Evolution | Tiến hóa sinh học | Sinh vật sơ khai, hệ sinh thái, thích nghi, tuyệt chủng và đa dạng sinh học |
-| 6. Complex Life | Xuất hiện sự sống phức tạp | Hệ sinh thái đa tầng, sinh vật lớn, chuỗi thức ăn và môi trường sống |
-| 7. Civilization Emergence | Hình thành nền văn minh | Loài có trí tuệ, nơi định cư, tài nguyên, xã hội và công nghệ ban đầu |
-| 8. Historical Development | Phát triển lịch sử | Thời kỳ, sự kiện, lãnh thổ, văn hóa và biến động xã hội |
-| 9. Technological Era | Phát triển công nghệ | Năng lực khoa học, công nghiệp, năng lượng và các mốc công nghệ |
+| Milestone | Giai đoạn | Mục tiêu chính | Công cụ được mở khóa / phạm vi |
+|---|---|---|---|
+| 1 | **Year 0 — World Formation** | Hình thành hành tinh, hệ thiên thể và môi trường tự nhiên ban đầu | Planetary/Star System, collision & celestial-body tools, địa hình/lục địa/đại dương, địa chất, khí quyển, khí hậu, thiên tai và chu kỳ tự nhiên |
+| 2 | **Life Forms — Sự sống xuất hiện và phát triển** | Hình thành sinh vật, thực vật và hệ sinh thái | Tectonic Movement, Organism/Creature Creator, Flora & Biome tools, population/habitat placement, food webs và ecosystem advisor |
+| 3 | **Intelligent Life — Sự sống có trí tuệ** | Phát triển loài có trí tuệ, xã hội sơ khai, văn hóa và các hệ thống năng lượng/sức mạnh | Species & Race tools, Civilization foundations, Location Advisor, **Power System Studio**, kiến thức và truyền thừa |
+| 4 | **Nations — Các quốc gia và lịch sử xã hội** | Hình thành quốc gia, thể chế, lãnh thổ, xung đột và câu chuyện | Nation/Political Map tools, flags, national history, conflict tools, **Story & Event Studio** và công cụ nhân vật/cốt truyện nâng cao |
 
-Creator có thể:
-- Bỏ qua, thêm, đổi tên, sắp xếp lại hoặc gộp milestone.
-- Tạo milestone tùy chỉnh cho fantasy, sci-fi, alternate evolution hoặc worldbuilding phi tuyến.
-- Chọn checkpoint/điểm bắt đầu khác nhau.
-- Chuyển sang chế độ tự do mà không cần hoàn thành toàn bộ chuỗi.
+##### Milestone 1 — Year 0: World Formation
 
-Milestone mặc định chỉ là template; không phải một tuyên bố rằng mọi hành tinh phải trải qua cùng một lịch sử.
+Creator có thể bắt đầu từ một đám mây bụi, hệ sao, hành tinh sơ khai hoặc preset/custom initial state. Các nhóm công cụ gồm:
+
+- **Astronomical & Planetary Formation:** tạo/chỉnh sửa ngôi sao, hành tinh, vệ tinh và thiên thể; mô tả va chạm, bồi tụ bụi/vật chất và các sự kiện hình thành. Tham số có thể gồm khối lượng, bán kính, mật độ, trọng lực, quỹ đạo, khoảng cách tới sao, chu kỳ tự quay, độ nghiêng trục, số lượng/vai trò vệ tinh và cấu trúc hệ sao.
+- **Geography & Geological Authoring:** vẽ/chỉnh sửa lục địa, đảo, biển, đại dương, núi, cao nguyên, sông, hồ, núi lửa và các vùng địa chất. Công cụ mô phỏng va chạm thiên thể hoặc kiến tạo phải có preview và cho phép creator sửa kết quả.
+- **Planetary Environment:** cấu hình khí quyển theo hỗn hợp khí/phân tử, tỷ lệ, áp suất riêng phần và tổng áp suất; cấu hình nhiệt độ, độ ẩm, gió, mưa, mùa và các yếu tố môi trường.
+- **Climate & Natural Cycles:** thiết lập vĩ độ/đới khí hậu, hoàn lưu khí quyển, gió mùa, dòng hải lưu, chu kỳ mùa, thủy văn và các chu kỳ tự nhiên có tính định kỳ.
+- **Geophysical & Catastrophe Settings:** từ trường, hoạt động địa chất, núi lửa, động đất, bão, va chạm thiên thể và các thiên tai khác theo rule set.
+
+UI cần trực quan: bản đồ và sơ đồ thiên thể là trung tâm; tham số nâng cao nằm trong panel theo ngữ cảnh, có preset, giải thích và preview. Không buộc người mới phải nhập toàn bộ thông số vật lý trước khi bắt đầu.
+
+Scientific Advisor phải phân biệt nguyên tố với khí/phân tử/hợp chất và giải thích hệ quả theo giả định. Không được kết luận “không có oxygen thì không thể có sự sống”: sự sống kỵ khí có thể tồn tại; điều kiện sống phải được đánh giá theo hóa sinh, dung môi, nguồn năng lượng và ruleset creator chọn. Cảnh báo không tự động trở thành điều kiện chặn, trừ khi được khai báo là Required Condition trong ruleset.
+
+##### Milestone 2 — Life Forms: Origin, Evolution & Ecosystems
+
+Milestone này mở công cụ dịch chuyển mảng kiến tạo qua các khoảng thời gian địa chất và xây dựng sinh quyển:
+
+- **Tectonic Movement:** cấu hình mảng kiến tạo, hướng/tốc độ dịch chuyển, va chạm/tách giãn và preview thay đổi lục địa qua thời gian. Timeline phải xử lý khoảng thời gian hàng triệu hoặc hàng tỷ năm.
+- **Flora & Organism Creator:** tạo thực vật, vi sinh vật, động vật và sinh vật custom; có thư viện loài mặc định lẫn loài do creator thiết kế.
+- **Species Parameters:** hình thái, kích thước, môi trường sống, nhu cầu năng lượng/dinh dưỡng, khả năng sinh sản, tuổi thọ, di chuyển, thích nghi và các đặc tính sinh học liên quan.
+- **Population & Habitat Placement:** xác định quần thể, mật độ/phạm vi, điểm xuất hiện, vùng cư trú, sức chứa môi trường và biến động theo thời gian.
+- **Ecosystem & Food Web:** mô tả quan hệ săn mồi, con mồi, cạnh tranh, cộng sinh, ký sinh, nguồn thức ăn, phân bố sinh khối và tác động môi trường.
+- **Evolution Advisor:** cảnh báo hệ quả có thể xảy ra với quần thể, con mồi, đối thủ cạnh tranh, môi trường sống, tuyệt chủng cục bộ và độ ổn định hệ sinh thái.
+
+Không được mặc định một đặc điểm như móng vuốt, sức mạnh săn mồi hoặc vai trò predator tự động ngăn cản trí tuệ xuất hiện. Advisor phải đánh giá tác động sinh thái theo dữ liệu, giả định và ruleset; không dùng quy tắc đạo đức hóa hoặc một chỉ số đơn giản để kết luận đường tiến hóa. Nếu một hệ sinh thái mất ổn định, hệ thống có thể cảnh báo, đánh dấu không đủ điều kiện theo Challenge Mode hoặc gợi ý phục hồi. Creator có thể thay đổi môi trường, điều chỉnh quần thể, tạo sự kiện thảm họa, quay về checkpoint, tạo nhánh hoặc bắt đầu thế giới khác; không bao giờ xóa world/project tự động.
+
+##### Milestone 3 — Intelligent Life: Species, Society & Power Systems
+
+Khi creator xác nhận xuất hiện loài có trí tuệ theo định nghĩa/ruleset của thế giới, các công cụ sau được mở khóa:
+
+- **Species & Race Studio:** mô tả giải phẫu, giác quan, khả năng vận động, vòng đời, sinh sản, thích nghi và các đặc điểm sinh học của loài/chủng tộc.
+- **Civilization Foundations:** mô tả tổ chức xã hội sơ khai, hình thức cư trú, ngôn ngữ, tri thức, tập quán, văn hóa, giáo dục và phương thức truyền thừa kiến thức.
+- **Location Advisor:** đề xuất khu vực phù hợp để định cư/phát triển dựa trên khí hậu, địa hình, nguồn nước, tài nguyên, rủi ro, khả năng tiếp cận và đặc điểm sinh học. Mỗi đề xuất phải nêu lý do và mức độ chắc chắn; creator luôn có thể chọn vị trí khác hoặc override.
+- **Power System Studio:** mở khóa công cụ thiết kế hệ thống sức mạnh, năng lượng hoặc phép thuật của thế giới. Có thể cấu hình nguồn, quy tắc tiếp nhận, chuyển đổi, lưu trữ, truyền tải, tiêu thụ, giới hạn, chi phí, rủi ro và tương tác với môi trường/sinh vật.
+- **Energy & Technology Progression:** với thế giới không có phép thuật, Power System Studio vẫn có thể mô tả việc khai thác và kiểm soát năng lượng: lửa/sinh khối, sức nước/gió, nhiên liệu, hơi nước, điện, hạt nhân, tái tạo hoặc công nghệ giả tưởng. Mở khóa công cụ không đồng nghĩa mọi nền văn minh phải lập tức sử dụng công nghệ đó.
+- **World Objects & Structures:** mở rộng công cụ đặt nơi cư trú, nhà cửa, công trình, vật dụng, trang phục và nhân vật phù hợp với thời đại.
+
+Phân biệt đặc điểm sinh học của loài với văn hóa, hành vi học được và tính cách cá nhân. Không gán một tính cách duy nhất cho toàn bộ một chủng loài. “Intelligent life” không bắt buộc phải phát triển thành nền văn minh giống con người; tiêu chí trí tuệ, xã hội và công nghệ phải do creator định nghĩa hoặc chọn preset.
+
+##### Milestone 4 — Nations: Politics, Conflict & Storytelling
+
+Khi các cộng đồng phát triển thành thực thể chính trị/xã hội theo canon của creator, mở khóa:
+
+- **Nation & Political Map:** quốc gia, lãnh thổ, biên giới, thủ đô, đơn vị hành chính, biểu tượng và cờ.
+- **National History:** nguồn gốc quốc gia, hình thành thể chế, thay đổi lãnh thổ, triều đại/chính quyền, liên minh, phân tách và các mốc lịch sử.
+- **Conflict & Diplomacy:** tranh chấp, chiến tranh, xung đột nội bộ, ngoại giao, chinh phục, hiệp ước và hậu quả theo thời gian.
+- **Story & Event Studio:** công cụ sáng tác cốt truyện, tuyến truyện, nhân vật, quan hệ, động cơ, xung đột, arc, chương/cảnh và nhánh lựa chọn.
+- **Character & Narrative Tools:** tạo nhân vật, nguồn gốc/tuổi thơ, quê hương, hành trình, quan hệ và liên kết với sự kiện, địa điểm, tổ chức, quốc gia.
+
+Sau khi đạt hoặc chủ động bỏ qua Milestone 4, creator có thể bật **Free World Mode**: không còn milestone gate bắt buộc; có thể chỉnh sửa mọi miền dữ liệu đã mở khóa, quay lại thời kỳ trước, thêm sự kiện, viết lịch sử thay thế hoặc tiếp tục phát triển thế giới theo bất kỳ hướng nào. Free World Mode không xóa milestone, lịch sử hay các nhánh trước đó.
+
+##### History & Timeline và Event System — khả dụng từ đầu
+
+History & Timeline không bị khóa đến Milestone 4. Hệ thống lịch sử/thời gian phải tồn tại ngay từ lúc tạo project/world để ghi nhận toàn bộ quá trình, kể cả khi chưa có sự sống hoặc nền văn minh:
+
+- **History & Timeline:** tạo timeline từ đầu; hỗ trợ planetary/geological, biological/evolutionary và civilizational/historical time scales cùng local calendar. Người dùng có thể tạo, đặt tên, sắp xếp và liên kết các mốc.
+- **Event System:** khả dụng xuyên suốt mọi milestone. Có thể ghi nhận va chạm thiên thể, hình thành đại dương, dịch chuyển mảng, phun trào núi lửa, biến đổi khí hậu, xuất hiện/tuyệt chủng loài, di cư, phát minh, chiến tranh hoặc sự kiện cá nhân tùy giai đoạn.
+- **Story & Event Studio:** là bộ công cụ authoring nâng cao, chỉ mở khóa mặc định ở Milestone 4. Nó tiêu thụ và tạo dữ liệu Event/Timeline, nhưng không phải điều kiện để Event System ghi nhận sự kiện ở các milestone trước.
+
+Sự kiện cần lưu thời điểm/thời lượng theo time scale, loại, nguyên nhân, thực thể liên quan, vị trí/phạm vi, tác động, nguồn dữ liệu và quan hệ nhân quả nếu có. Không ép sự kiện địa chất vào lịch dân sự hoặc giả định mọi event đều do nhân vật tạo ra.
+
+##### Quy tắc tuyến tiến hóa và quyền tự do
+
+- Milestone mặc định là hướng dẫn; creator có thể đổi thứ tự, thêm/bỏ/gộp milestone, tạo milestone tùy chỉnh, chọn alternate starting point hoặc bật Creative Mode.
+- Milestone mở capability/tool phù hợp; không tự động bắt creator sử dụng toàn bộ công cụ đã mở.
+- Gate phân biệt Required Conditions, Recommended Conditions và Warnings; chỉ Required Conditions trong ruleset hiện hành mới có thể chặn chuyển tiếp.
+- Có thể đánh dấu Skipped/Overridden và ghi lại quyết định; mọi override phải có thể truy vết.
+- Không có giả định phổ quát rằng mọi thế giới phải có nước, oxygen, sự sống carbon, loài người, quốc gia hoặc phép thuật.
 
 #### 8.9.3 Milestone Mode và bản đồ chuyên biệt
 
@@ -1109,7 +1211,7 @@ File này là nguồn Markdown tổng hợp chuẩn duy nhất ở repository ro
 | 14/11/2026 | Bổ sung SHA-256 revalidation khi validate/open project và khi AssetLoader kích hoạt snapshot; thêm kiểm tra cấu trúc ảnh, dimension/pixel limit và regression same-size mutation. |
 | 14/11/2026 | Phase 4.4 automated QA đạt: corruption, missing/undeclared snapshot, stale project checksum và all-or-nothing import đều có regression tests. |
 | 14/11/2026 | Browser QA Phase 4.4 xác nhận mở project không có Pack nguồn và save/export khi offline; clean browser profile độc lập còn chờ môi trường browser context phù hợp. |\n| 14/11/2026 | Bổ sung đặc tả World Genesis & Evolution: Genesis Wizard, nhiều thang thời gian, Era Constraints/Asset unlock, World State Manager, Evolution Engine, World Survival Validation và Catastrophe Events; xác định rõ đây là định hướng dài hạn, chưa triển khai và không thuộc First Usable Build. |\n| 14/11/2026 | Bổ sung đặc tả World Evolution Milestones: milestone-specific workspaces, Origin of Life/biochemistry configuration, milestone gates, Creative/Guided/Challenge modes, branching evolution và Milestone Configuration Schema/Engine; xác định là định hướng tương lai, chưa triển khai và không thuộc First Usable Build. |
-| 14/11/2026 | Bổ sung đặc tả ý tưởng World Forge Showcase: trải nghiệm triển lãm thế giới, Animated World Presentation, World Page, published snapshot/data contract, quyền riêng tư, community và lộ trình MVP phụ thuộc First Usable Build. |
+| 14/11/2026 | Tái cấu trúc World Evolution Milestones thành bốn giai đoạn mặc định: Year 0/World Formation, Life Forms, Intelligent Life và Nations; quy định History & Timeline/Event System khả dụng từ đầu, Power System Studio mở ở Milestone 3, Story & Event Studio mở ở Milestone 4 và Free World Mode sau Milestone 4. |\n| 14/11/2026 | Đánh giá roadmap: giữ nguyên thứ tự Phase 4.4 → 5 → 6 → 7 cho First Usable Build, nhưng đưa QA vào từng phase; đề xuất roadmap sau đó theo World Data Core → Time/History/Event → Milestone/Genesis → bốn milestone → Free World Mode → Showcase. |\n| 14/11/2026 | Bổ sung đặc tả ý tưởng World Forge Showcase: trải nghiệm triển lãm thế giới, Animated World Presentation, World Page, published snapshot/data contract, quyền riêng tư, community và lộ trình MVP phụ thuộc First Usable Build. |
 | 13/11/2026 | Browser QA Phase 4.3 xác nhận export/import round-trip qua UI và snapshot fallback sau khi tắt/gỡ Pack; clean-profile/offline/security QA còn lại. |
 | 14/11/2026 | Chủ dự án xác nhận Phase 4.2 hoàn tất sau khi chạy kiểm thử; chuyển trọng tâm sang Phase 4.4 QA acceptance. |
 | 13/11/2026 | Bổ sung định hướng World Environment Studio: lục địa, địa chất, khí hậu, thời tiết, gió mùa, hải lưu, thủy văn và biome. |
@@ -1134,7 +1236,7 @@ Việc cần làm trong Phase 4.4:
 5. Chạy clean browser profile độc lập thật sự và ghi nhận kết quả cuối cùng.
 6. Đóng Phase 4 chỉ khi toàn bộ acceptance criteria đạt; sau đó mới chuyển sang Phase 5 — Asset Pack Management.
 
-**Chưa chuyển trọng tâm sang:** marketplace, payment, AI generation, cloud sync, multiverse conflict hoặc World Environment simulation trước khi các nền tảng ưu tiên hoàn tất.
+**Chưa chuyển trọng tâm sang:** marketplace, payment, AI generation, cloud sync, multiverse conflict hoặc World Environment simulation trước khi First Usable Build hoàn tất. Roadmap worldbuilding bốn milestone tại mục 7.4 là định hướng sau First Usable Build, chưa phải phase đang triển khai.
 
 ---
 
