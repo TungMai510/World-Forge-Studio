@@ -1909,6 +1909,76 @@ Các mục trên có thể được xem xét lại khi xuất hiện bằng ch�
 
 ---
 
+
+### 13.4 Lộ trình 4 bước trước Architecture Freeze Gate
+
+**Quyết định quản trị kiến trúc:** World Forge Studio hiện có bộ đặc tả và quy trình vận hành đã được đồng bộ ở mức tài liệu, đủ trưởng thành để triển khai First Usable Build. Tuy nhiên, dự án **chưa có đủ bằng chứng từ codebase, benchmark và vertical slice để khóa cứng kiến trúc nền tảng cho Phase 8–16+**.
+
+Cần phân biệt:
+- **Documentation alignment:** các tài liệu vận hành thống nhất về phạm vi, thứ tự công việc và quy tắc bàn giao.
+- **Scope freeze:** tạm dừng mở rộng/viết thêm đặc tả Phase 8–16+ để tập trung hoàn tất First Usable Build.
+- **Architecture freeze:** chỉ được thông qua sau Architecture Discovery và Reference Vertical Slice, dựa trên bằng chứng thực tế. Scope freeze hiện tại **không đồng nghĩa** với architecture freeze.
+
+Các hợp đồng ở Mục 2.5–2.7 được giữ làm **design baseline/hypotheses cần kiểm chứng**, không mặc định là kiến trúc cuối cùng. Không viết thêm lý thuyết hoặc chốt schema/contract chi tiết trong giai đoạn First Usable Build, trừ khi phát hiện mâu thuẫn nghiêm trọng trực tiếp cản trở Batch 1–5.
+
+#### Bước 1 — Hoàn thành First Usable Build (ưu tiên tuyệt đối)
+
+Thực hiện đủ năm batch theo Mục 13.3:
+1. **Batch 1 / Phase 4.4:** storage persistence request; Safe Save và xử lý `QuotaExceededError`; bảo toàn unknown fields ở cấp project và entity con; chạy ST-02, ST-03, ST-04; nghiệm thu ST-05 trên browser profile độc lập thật sự.
+2. **Batch 2 / chuẩn bị Phase 5:** lập Dependency/Import Map từ source thật; tách một `AssetPackApplicationService` có phạm vi hẹp; cập nhật context vận hành theo code đã xác minh.
+3. **Batch 3 / Phase 5:** Pack Registry bền vững trong IndexedDB, Pack Manager và lifecycle; bảo vệ snapshot; chạy ST-10/ST-11.
+4. **Batch 4 / Phase 6:** Asset Pack Studio và exporter `.wfpack`; chỉ sau khi exporter hoạt động mới tạo Natural Terrain và World Symbols bằng workflow thật.
+5. **Batch 5 / Phase 7:** E2E trên profile độc lập/sạch và offline: cài Pack → dùng asset → save/close/reopen → export/import `.wforge` → xác minh dữ liệu và snapshot.
+
+**Exit gate:** từng batch có automated test, browser acceptance phù hợp và báo cáo bằng chứng; Phase 7 chỉ đóng khi toàn bộ luồng First Usable Build được nghiệm thu. Không dùng kết quả lịch sử thay cho lần chạy trên commit hiện tại.
+
+#### Bước 2 — Architecture Discovery trên codebase sau Phase 7
+
+Chỉ bắt đầu sau khi Batch 5 được nghiệm thu. Thu thập bằng chứng từ source/runtime, không suy luận kiến trúc chỉ từ tài liệu:
+- **Module Inventory:** liệt kê module, entry point, public API, trách nhiệm, owner và trạng thái.
+- **Static Dependency Graph:** phân tích import/export toàn bộ `src/`, xác định vòng phụ thuộc, private implementation leakage và chiều phụ thuộc sai.
+- **Runtime Dependency/Initialization Map:** xác minh thứ tự khởi tạo, service wiring, lifecycle, listener/worker/object URL và đường đi thực tế qua UI.
+- **Data Ownership Map:** phân loại canonical state, derived data, cache, nơi lưu trữ, module sở hữu, đường đọc/ghi và chính sách migration.
+- **Persistence/Archive Map:** mô tả luồng dữ liệu từ UI/service qua IndexedDB đến `.wforge` export/import, bao gồm versioning và compatibility.
+- **Performance Baseline:** đo RAM/memory, thời gian mở/lưu project, render viewport, tìm kiếm/validation nếu có, export/import; ghi commit, browser/runtime, thiết bị, dataset và phương pháp đo. Không biến một lần đo thành cam kết hiệu năng tổng quát.
+
+**Đầu ra bắt buộc:** inventory, graph, ownership map, baseline report, danh sách vấn đề có bằng chứng và đề xuất xử lý theo mức độ rủi ro. Không mặc định phải refactor mọi điểm chưa lý tưởng; ưu tiên vấn đề ảnh hưởng tính đúng đắn, dữ liệu, khả năng mở rộng hoặc khả năng kiểm thử.
+
+#### Bước 3 — Reference Vertical Slice cho World Data Core
+
+Sau Architecture Discovery, chọn một lát cắt dọc tối thiểu nhưng chạy xuyên suốt:
+1. Tạo một World với stable identity.
+2. Gán tọa độ và địa danh qua Spatial Contract đã được kiểm tra ở mức tối thiểu.
+3. Tạo một Timeline Event có ít nhất một quan hệ nhân quả và reference tới entity.
+4. Save, đóng và reopen để xác minh identity, relation và event.
+5. Export/import bằng `.wforge` v2; xác minh round-trip, schema/version metadata và unknown-field preservation.
+6. Chạy validation/integrity checks và chứng minh thao tác lỗi không làm hỏng dữ liệu đã lưu.
+
+Lát cắt này phải đi qua **UI → Application Service → Domain Contract → Persistence → Export/Import**. Chỉ triển khai phần tối thiểu cần để kiểm chứng; chưa xây toàn bộ Environment, Civilization, Branching hoặc Milestone Engine.
+
+**Exit gate:** có automated integration tests, browser evidence, dữ liệu fixture có thể tái lập, báo cáo các contract đã xác minh/chưa xác minh và các sai khác giữa design baseline với code thực tế. Nếu một contract không phù hợp, sửa đặc tả trước khi mở rộng Studio phụ thuộc.
+
+#### Bước 4 — Architecture Freeze Gate trước Phase 8
+
+Chỉ triệu tập gate sau khi Bước 2 và Bước 3 có đủ bằng chứng. Rà soát Mục 2.5–2.7, không mặc định giữ nguyên mọi đề xuất trên giấy. Quyết định rõ:
+- **World Data Core schema:** Entity, Relationship, World identity, Timeline Event và Snapshot/Branch ở mức đã được vertical slice chứng minh hoặc có lý do rõ ràng để chấp thuận.
+- **Studio contracts:** module ownership, capability registration, application/domain boundary, query/read và command/write, event semantics; cấm truy cập state nội bộ module khác.
+- **Persistence & migration:** schema versioning, IndexedDB ownership/transaction boundaries, migration/rollback/recovery, unknown-field policy và `.wforge` compatibility.
+- **Spatial & time contracts:** hệ tọa độ, đơn vị, calendar/timescale và chuyển đổi; chốt những phần được vertical slice/benchmark hỗ trợ, ghi rõ phần còn mở.
+- **Performance & lifecycle constraints:** workload baseline, resource lifecycle, lazy loading và tiêu chí khi nào cần worker/partitioning; không đặt cam kết chưa đo.
+- **Decision register:** mỗi quyết định ghi trạng thái accepted / provisional / deferred / rejected, căn cứ, phạm vi ảnh hưởng và điều kiện xem xét lại.
+
+**Điều kiện thông qua:** không còn mâu thuẫn nghiêm trọng giữa contract; vertical slice chạy được và có test; migration/export-import bảo toàn dữ liệu; dependency/data ownership đủ rõ để phát triển Studio độc lập; các rủi ro chưa giải quyết có owner và điều kiện chấp nhận minh bạch.
+
+Architecture Freeze không có nghĩa là kiến trúc bất biến vĩnh viễn. Sau khi thông qua, thay đổi nền tảng phải qua Architecture Decision Record, nêu bằng chứng, tác động tương thích, migration và kế hoạch regression. Phase 8 chỉ bắt đầu sau khi gate được chủ dự án chấp thuận dựa trên báo cáo thực tế.
+
+#### Kỷ luật trong thời gian scope freeze
+
+- Từ nay đến khi Phase 7 hoàn tất: không mở rộng đặc tả Phase 8–16+, không thiết kế trước các module tương lai và không refactor diện rộng để “đón đầu”.
+- Chỉ sửa Mục 2.5–2.7 nếu có mâu thuẫn hoặc lỗ hổng trực tiếp chặn First Usable Build; mọi sửa đổi phải nêu lý do và phạm vi.
+- Ý tưởng mới được ghi vào backlog ngắn hoặc decision note, không biến thành cam kết kiến trúc.
+- Không gọi tài liệu hiện tại là “architecture frozen”; trạng thái đúng là **Design Baseline Mature / Scope Expansion Frozen / Architecture Evidence Pending**.
+
 ## 14. Nhật ký quyết định và cập nhật
 
 | Ngày | Quyết định / cập nhật |
@@ -1938,10 +2008,13 @@ Các mục trên có thể được xem xét lại khi xuất hiện bằng ch�
 | 14/11/2026 | Chủ dự án chọn Lean Hardening trước Phase 5: storage persistence request và safe-save, unknown-field preservation, asset snapshot pinning, kiểm tra minWorldForgeVersion, layer safety, một AssetPackApplicationService, CURRENT_PHASE_CONTEXT ngắn và sáu P0 gates ST-02/03/04/05/10/11. Hoãn Transaction Journal, Storage Health framework, streaming/multi-worker rewrite, dependency graph, Pack Update Preview phức tạp, tổng quát hóa Undo/Redo/Repository và bộ 18 test; đây là quyết định phạm vi, chưa xác nhận code/test đã triển khai. |
 | 14/11/2026 | Chủ dự án chốt Lean Hardening, 10 giải pháp cốt lõi, sáu P0 gates và thứ tự 5 đợt Phase 4.4 → chuẩn bị Phase 5 → Phase 5 → Phase 6 → Phase 7; bổ sung manual refresh có xác nhận cho asset đã pin và reset Active Tool an toàn khi Pack chứa tool bị disable/uninstall. Phase 8–16+ tiếp tục đóng băng đến sau Phase 7. |
 
+| 14/11/2026 | Chốt lộ trình 4 bước trước Architecture Freeze Gate: hoàn thành First Usable Build (5 batch) → Architecture Discovery trên codebase → Reference Vertical Slice cho World Data Core → Architecture Freeze Gate dựa trên bằng chứng. Phân biệt documentation alignment, scope freeze và architecture freeze; Phase 8–16+ tiếp tục đóng băng mở rộng, chưa khóa cứng kiến trúc. |
 
 ---
 
 ## 15. Trạng thái hiện tại và việc tiếp theo
+
+**Trạng thái thiết kế:** Design Baseline Mature / Scope Expansion Frozen / Architecture Evidence Pending. Bộ tài liệu và quy trình đã được đồng bộ; chưa thông qua Architecture Freeze Gate cho Phase 8–16+.
 
 **Milestone đang hoạt động: Phase 4.4 — Final Persistence/Archive Acceptance QA.**
 
