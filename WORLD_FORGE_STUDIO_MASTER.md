@@ -340,6 +340,177 @@ Trước marketplace cần có:
 
 Đây là yêu cầu nền tảng cho hệ sinh thái tương lai, không phải lý do trì hoãn First Usable Build.
 
+
+### 2.7 Năm hợp đồng nền tảng bổ sung và kế hoạch xử lý các khoảng trống
+
+Mục 2.6 đã xác định các contract về Entity/Relationship, World State, Event/Timeline, Change/Impact, Branch/Version, Ruleset/Validation và Shared Platform Services. Mục 2.7 **bổ sung các ràng buộc triển khai xuyên suốt** cho năm nhóm vấn đề: giao dịch và thay đổi liên module; không gian và đơn vị đo; sinh dữ liệu và truy xuất nguồn gốc; bảo mật và tính di động của project; cộng tác và xuất bản. Các mục có giao nhau phải dùng chung contract đã định nghĩa ở 2.6, không tạo hai nguồn sự thật hoặc hai service cạnh tranh.
+
+Toàn bộ nội dung dưới đây là **đặc tả/roadmap**, không xác nhận code hiện tại đã đáp ứng. Chỉ chuyển trạng thái sang Implemented/Verified khi có code, automated tests và browser/CI evidence tương ứng theo mục 12.1.
+
+#### 2.7.1 Data Transaction & Change Contract — P0
+
+Mọi thay đổi có ảnh hưởng đến nhiều domain phải có một ranh giới commit rõ ràng. Không cho phép một workflow cập nhật một phần canonical state rồi thất bại mà không có rollback hoặc recovery có thể kiểm chứng.
+
+**Transaction lifecycle đề xuất:**
+
+`Create → Validate → Resolve Dependencies → Prepare → Preview/Approve → Commit → Record → Notify`
+
+- Transaction có `transactionId`, `worldId`, `branchId`, actor, initiating module, base version, danh sách Change Set, trạng thái và error/recovery metadata.
+- Chuẩn bị và validation không được mutate canonical state.
+- Commit phải kiểm tra base version để phát hiện stale write; kiểm tra dependency và integrity trước khi áp dụng.
+- Trong một storage boundary có thể dùng atomic transaction. Với thao tác xuyên nhiều persistence boundary, dùng staged commit, journal/outbox hoặc compensating action có idempotency và recovery policy; không tuyên bố atomicity nếu backend không cung cấp.
+- Ghi nhận trạng thái rõ: prepared, committed, aborted, failed-recoverable hoặc recovery-required. Không gửi thông báo “đã thay đổi” trước khi commit thành công.
+- Notification/event phát sinh sau commit phải có khả năng retry mà không tạo tác dụng phụ trùng lặp.
+
+**World Change Set** là đơn vị mô tả thay đổi, dùng chung với Change & Impact Engine ở 2.6.4. Tối thiểu gồm: change ID, world/branch, actor, module owner, target entity/property, operation, before/after hoặc patch, base version, schema/ruleset version, timestamp, reason/provenance và liên kết event/job liên quan. Không bắt buộc lưu bản sao before/after đầy đủ nếu patch/version reference an toàn và có thể phục hồi.
+
+**Cross-module Undo/Redo:**
+- Undo tạo một transition đảo ngược mới hoặc restore có kiểm soát; không xóa Change Set/Event lịch sử.
+- Redo chỉ áp dụng khi base version và dependency còn phù hợp; nếu dữ liệu đã thay đổi tiếp, yêu cầu preview/resolve conflict thay vì ghi đè mù quáng.
+- Nhóm thao tác thành một user-level command khi người dùng xem chúng là một hành động.
+- Undo phải phục hồi trạng thái canonical và đánh dấu/recompute derived data phụ thuộc; không chỉ đảo giá trị ở UI.
+- Không triển khai global undo engine trước khi có ít nhất một vertical slice liên module chứng minh được contract.
+
+**Acceptance:** thao tác nhiều module có thể commit; lỗi trước commit không để lại partial mutation; lỗi sau commit có recovery/reconciliation rõ; stale base version bị phát hiện; Undo/Redo giữ nguyên audit history và không phá reference.
+
+#### 2.7.2 Spatial & Measurement Contract — P0 trước các domain mô phỏng không gian
+
+Tọa độ lưu trữ chuẩn phải độc lập với pixel, zoom, viewport và phép chiếu đang dùng để render. Geography, Climate, Ocean, Astronomy và các domain liên quan phải dùng chung spatial/measurement contract.
+
+**Coordinate layers:**
+- **World coordinates:** hệ tọa độ canonical của world, có thể là hệ tùy chỉnh hoặc không gian giả tưởng.
+- **Geographic coordinates:** vĩ độ/kinh độ/độ cao khi world sử dụng mô hình hành tinh phù hợp; khai báo datum/reference system, ví dụ WGS84 khi thực sự tương thích.
+- **Canvas/screen coordinates:** pixel và transform chỉ phục vụ hiển thị/tương tác; không được lưu làm vị trí canonical.
+- Chuyển đổi giữa các hệ phải thông qua adapter có khai báo CRS/datum, đơn vị, trục, miền hợp lệ và sai số; không tự giả định mọi world là Trái Đất hình cầu.
+
+**Geometry contract:** hỗ trợ theo nhu cầu Point, LineString, Polygon, MultiPolygon; raster/grid cho elevation, temperature, precipitation và các trường phân bố; spatial volume/3D là mở rộng tương lai. Geometry phải khai báo hệ tọa độ, đơn vị, độ phân giải, extent và quy tắc topology/validity thích hợp. Cần có chiến lược multi-scale/LOD để xem toàn hành tinh đến khu vực mà không buộc mọi view tải toàn bộ dữ liệu.
+
+**Projection Manager:** projection chỉ là cách biểu diễn dữ liệu trên mặt phẳng. Có thể hỗ trợ Equirectangular, Mercator, Robinson, Orthographic và custom projection theo nhu cầu; lựa chọn projection không được âm thầm biến đổi canonical geometry. Mọi thao tác đo/diện tích/khoảng cách phải xác định phép tính và giới hạn sai số phù hợp với projection/geometry.
+
+**Measurement & Unit System:**
+- Mỗi đại lượng có quantity/dimension, canonical unit, precision policy và display unit.
+- Phân biệt giá trị vật lý, giá trị quy ước và giá trị hư cấu/custom; không ép world giả tưởng vào đơn vị Trái Đất nếu creator chọn hệ riêng.
+- Chuyển đổi đơn vị không được làm mất giá trị gốc hoặc tạo sai số tích lũy không kiểm soát.
+- Validation phải kiểm tra dimension; cấm phép toán không tương thích như cộng khối lượng với nhiệt độ.
+- Hỗ trợ các nhóm đơn vị cần thiết như length, area, volume, mass, time, temperature, pressure, velocity, acceleration, energy và angle; thêm đơn vị thiên văn/địa chất khi domain yêu cầu.
+
+**Acceptance:** resize/zoom/projection không làm đổi canonical coordinates; cùng một entity hiển thị đúng ở nhiều scale; geometry nêu rõ CRS và unit; chuyển đổi đơn vị có test round-trip/precision; dimension mismatch bị phát hiện; dữ liệu custom của world hư cấu được bảo toàn.
+
+#### 2.7.3 Generation & Provenance Contract — P0 cho dữ liệu sinh tự động, P1 mở rộng AI
+
+Mọi kết quả được sinh bằng generator, rule engine, simulation hoặc AI cần có metadata đủ để giải thích, kiểm tra và tái tạo ở mức đã cam kết.
+
+**Generation manifest** tối thiểu:
+- generator/model/provider ID và version;
+- algorithm/build version, configuration và parameters;
+- random seed và randomness source nếu có;
+- ruleset ID/version, input entity/version và dependency versions;
+- output entity/change IDs, timestamp, actor và execution environment cần thiết;
+- reproducibility class: deterministic, version-bound deterministic, approximate hoặc non-deterministic;
+- provenance/licensing metadata đối với model, dữ liệu tham chiếu và asset đầu vào khi áp dụng.
+
+Seed đơn lẻ không bảo đảm tái tạo nếu thuật toán, model, thư viện hoặc ruleset thay đổi. Khi không thể tái tạo chính xác, phải lưu kết quả đã xác nhận và mô tả giới hạn; không hứa deterministic generation cho model/dịch vụ không đảm bảo điều đó.
+
+**Data Lineage:** với Derived Data, lưu input references, transformation/generator, version, ruleset, parameters, time và quality/uncertainty metadata. Người dùng/Advisor có thể truy vấn “kết quả này đến từ đâu?” và xem chuỗi nguyên nhân ở mức dễ hiểu. Provenance không được làm lộ secret, API key hoặc dữ liệu riêng tư của creator.
+
+**Canonical vs Derived vs Cache:** canonical data chỉ đổi qua Change/Transaction Contract; derived data được đánh dấu stale khi input/version thay đổi và tính lại theo dependency graph; cache có thể xóa/tái tạo và không được dùng làm nguồn sự thật. Phân biệt Local, Regional và Global recompute; phạm vi phải do dependency/impact analysis xác định, không hardcode giả định “thay đổi nhỏ luôn chỉ ảnh hưởng cục bộ”.
+
+**Acceptance:** generator output liên kết được với manifest; seed/version/parameters đủ để tái tạo trong phạm vi reproducibility đã công bố; derived result có thể truy xuất input và ruleset; thay đổi input làm stale đúng các kết quả phụ thuộc; không ghi đè canonical data khi preview/recompute; AI-generated result mặc định cần creator approval trước khi thành canon.
+
+#### 2.7.4 Project Security & Portability Contract — P0
+
+Project phải tiếp tục thuộc quyền kiểm soát của creator và có thể lưu trữ, backup, di chuyển, mở lại qua nhiều phiên bản. Bảo mật và portability là thuộc tính của Core, không chỉ là tính năng dành cho cloud.
+
+**Ownership, visibility và access:**
+- Phân biệt project owner, editor, viewer và các actor hệ thống/plugin.
+- Visibility có thể gồm private, unlisted và public; publication phải dựa trên snapshot riêng theo mục 2.7.5.
+- Capability phải theo nguyên tắc least privilege, scope theo project/module/action và có thể thu hồi.
+- Plugin/extension không mặc định có quyền đọc toàn project, filesystem, network hoặc thông tin tài khoản.
+- Local-first không đồng nghĩa dữ liệu được mã hóa hoặc bảo vệ tuyệt đối; chỉ đưa ra cam kết bảo mật sau khi threat model và triển khai được kiểm chứng.
+
+**Import security và atomicity:**
+`Inspect → Validate Archive/Manifest → Validate Schema → Resolve Dependencies → Preview → Confirm → Commit`.
+- Kiểm tra kích thước nén/giải nén, số lượng entry, path traversal, duplicate path/ID, MIME/signature, schema, references, dependency và resource exhaustion.
+- Import vào staging trước; không mutate project đích trong lúc parse/validate.
+- Mặc định từ chối hoặc yêu cầu xử lý rõ ràng với xung đột ID, schema không hỗ trợ và dependency thiếu; không âm thầm overwrite.
+- Khi bất kỳ bước bắt buộc nào thất bại, project đích và project count phải giữ nguyên (all-or-nothing semantics).
+- Preview nêu rõ dữ liệu thêm/sửa/bỏ qua, Pack/asset thiếu và nguy cơ tương thích.
+
+**Schema Migration & Recovery:**
+- Mọi project/archive có schema/format version tường minh.
+- Migration có preflight, backup/checkpoint, migration path có version, post-migration validation và report.
+- Có rollback hoặc recovery strategy; nếu migration không an toàn thì dừng với thông báo, không ghi đè bản gốc.
+- Unknown/unavailable module data được giữ nguyên khi có thể; migration không được âm thầm loại bỏ field chưa hiểu.
+- Phân biệt autosave, manual save, checkpoint, local backup, archive, snapshot và restore point; định nghĩa rõ retention và recovery behavior.
+
+**Acceptance:** project export/import trên môi trường khác giữ được dữ liệu và asset references; malformed archive không tạo partial project; migration có test thành công/thất bại/interrupted recovery; unknown fields được bảo toàn theo policy; quyền extension có scope và có thể thu hồi.
+
+#### 2.7.5 Collaboration & Publication Contract — P1 thiết kế, P2 triển khai sản phẩm
+
+Không triển khai real-time collaboration trong First Usable Build. Tuy nhiên, changeset, actor, base version, branch và snapshot cần đủ metadata để không khóa đường mở rộng.
+
+**Actor identity:** mỗi thay đổi phân biệt user, system process, import process, plugin và AI agent; actor metadata không chứa credential hoặc secret. Mọi thao tác ghi canonical data phải có actor/source và audit reference.
+
+**Conflict model:**
+- Phát hiện xung đột theo entity và property, dựa trên base version, current version và change set.
+- Phân loại same-property edit, delete-vs-update, relation conflict, branch divergence và schema/ruleset incompatibility.
+- Tự động kết hợp chỉ khi policy chứng minh hai thay đổi không xung đột; không dùng last-write-wins âm thầm cho canonical world data.
+- Conflict preview cho biết hai bên thay đổi gì; creator chọn giữ, sửa, kết hợp hoặc tạo branch. Merge tạo version/changeset mới và giữ lịch sử.
+- Bắt đầu với branch isolation và manual merge; chỉ xem xét real-time co-editing khi có nhu cầu và mô hình đồng bộ được kiểm chứng.
+
+**Publication Snapshot:**
+- Draft đang chỉnh sửa tách biệt với Published Snapshot bất biến theo version.
+- Publication lưu snapshot ID, version, owner/creator, visibility, thời điểm, schema compatibility và các phần dữ liệu/asset được phép công khai.
+- Creator có thể publish version mới, unpublish hoặc thay đổi visibility; không sửa ngược snapshot cũ khi draft thay đổi.
+- Public view không được lộ private notes, draft, hidden entities, local paths, secret hoặc metadata không được phép.
+- Export/publish phải hiển thị license/attribution cho tài nguyên liên quan.
+
+**Community/Marketplace governance:** trước khi mở nội dung cộng đồng cần có quy trình report, moderation, copyright/license review, takedown, appeal/dispute, plugin trust/capability review, creator support và retention/deletion policy. Đây là yêu cầu vận hành sản phẩm tương lai, không phải phạm vi MVP.
+
+**Acceptance:** hai branch chỉnh sửa độc lập không làm thay đổi lẫn nhau; stale/conflicting change được phát hiện; merge có preview và audit record; publication không đổi khi draft tiếp tục chỉnh sửa; unpublish/visibility update hoạt động theo quyền; public snapshot không chứa dữ liệu riêng tư không được chọn.
+
+#### 2.7.6 Các khoảng trống kỹ thuật và trải nghiệm cần xử lý
+
+Các điểm sau được ghi nhận từ đợt rà soát mã nguồn có chọn lọc; chúng là **đầu mối cần xác minh**, không phải kết luận rằng toàn bộ repository đã được kiểm toán:
+- UI/layout controller có dấu hiệu tập trung nhiều trách nhiệm và kết nối nhiều service; cần lập dependency map, xác định state ownership và tách theo vertical slice khi có test bảo vệ.
+- Một số service cấp project có import trực tiếp nhiều domain service/engine; cần kiểm tra dependency direction, vòng phụ thuộc và public contract trước khi mở rộng thêm Studio.
+- Persistence hiện được ghi nhận tập trung vào project/recent-project stores; cần kiểm tra nhu cầu store/index/migration khi Entity, Event, Branch, Snapshot và Job được triển khai. Không tạo object store chỉ vì roadmap có tên entity; quyết định theo data ownership và access patterns.
+- History service hiện có records như calendars/eras/periods/events không tự động chứng minh đã có causal event graph, replay, multi-branch state reconstruction hoặc cross-module transaction.
+- Asset Pack registry/install behavior không tự động chứng minh đã có đầy đủ lifecycle/version/dependency/persistent management; tiếp tục xác minh trong Phase 5.
+
+**Architecture Discovery gate trước khi triển khai sâu World Data Core (sau First Usable Build):**
+1. Module inventory: module/service/UI/controller, owner và trạng thái code thực tế.
+2. Dependency graph: static imports, runtime wiring, dependency cycles và direction violations.
+3. Data ownership map: canonical state, derived state, storage location, IDs và schema version.
+4. Persistence map: save/load/import/export, transaction boundaries, migration, backup/recovery.
+5. Reference vertical slice: một workflow xuyên UI → application service → domain contract → persistence → reopen/export, có tests.
+6. Performance baseline: workload, dataset, hardware/browser, memory, CPU, latency và giới hạn đã đo.
+7. Gap register: implemented / partial / documented-only / missing / refactor-needed, mỗi mục có evidence và next action.
+
+Không dùng discovery làm lý do trì hoãn First Usable Build hoặc đại tu codebase. Sửa coupling theo từng lát cắt có regression tests; tránh big-bang rewrite và tránh tạo service/framework chưa có use case.
+
+**Product UX bổ sung:**
+- Content Development Status phải tách khỏi Entity Lifecycle. Ví dụ lifecycle của quốc gia là active/dormant/destroyed, còn tiến độ hồ sơ là not-started/draft/in-progress/reviewed/established.
+- Contextual Help ở từng Studio gồm mục đích, thao tác, giải thích thông số, ví dụ, cảnh báo và bước tiếp theo; hỗ trợ Beginner/Advanced/Expert bằng progressive disclosure, không biến thành ba bộ quyền truy cập khác nhau.
+- Impact Analysis phải trình bày affected entities/modules, certainty, assumptions, data requiring recompute và lựa chọn Preview/Apply/Cancel/Create Branch; Preview không được mutate canonical data.
+- Advisor cần phân biệt fact/model/hypothesis/heuristic/fictional rule/unknown và giải thích nguồn căn cứ; creator có quyền override nội dung hư cấu, nhưng không thể override integrity errors làm hỏng dữ liệu.
+
+**Acceptance:** trạng thái tiến độ nội dung không thay đổi lifecycle của entity; người mới có thể tìm được trợ giúp theo ngữ cảnh; impact preview không mutate project; mọi cảnh báo có mức độ/căn cứ/đường xử lý rõ.
+
+#### 2.7.7 Thứ tự triển khai và nguyên tắc không phình phạm vi
+
+Giữ nguyên ưu tiên First Usable Build: **Phase 4.4 → Phase 5 → Phase 6 → Phase 7**. Không chen các hệ thống world simulation, collaboration, marketplace hoặc AI generation vào trước khi luồng Asset Pack + Map Studio + save/reopen + export/import được nghiệm thu.
+
+Sau First Usable Build, dùng roadmap hiện có tại mục 7.4 làm khung; các contract ở 2.7 là nền tảng xuyên phase, không tạo một roadmap phase song song:
+- Trước Geography/Environment/Ocean/Climate chuyên sâu: chốt Spatial & Measurement contract và data ownership.
+- Trước thao tác liên domain ghi canonical state: chốt Transaction/Change Set contract, base version, recovery và audit.
+- Trước generator/simulation/AI output thành dữ liệu world: chốt Generation/Provenance, canonical-vs-derived và creator approval.
+- Trước project migration/import mở rộng: tăng cường Security/Portability contract và migration/recovery tests ngay từ Core.
+- Trước Showcase/publication: chốt immutable Published Snapshot, visibility/access, privacy filtering, license/attribution và moderation policy.
+- Trước collaboration/sync: chốt actor/version/branch/conflict model; triển khai manual merge trước, real-time collaboration sau nếu cần.
+
+**Quy tắc triển khai:** thiết kế contract đủ sớm để tránh khóa kiến trúc, nhưng chỉ implement phần cần cho vertical slice hiện tại. Không tạo năm service lớn chỉ để khớp tên hợp đồng; contract có thể được hiện thực bằng application/domain services nhỏ trong modular monolith. Mỗi lát cắt phải có owner, schema/version, error/recovery behavior, automated tests và browser acceptance phù hợp. Tài liệu mô tả mục tiêu không được báo cáo như code đã hoàn tất.
+
 ## 3. Hiện trạng kỹ thuật
 
 > Trạng thái phản ánh tài liệu và xác nhận gần nhất ngày 13/11/2026. Khi code thay đổi, cần kiểm tra repository và QA trước khi cập nhật.
@@ -1712,6 +1883,8 @@ File này là nguồn Markdown tổng hợp chuẩn duy nhất ở repository ro
 | 14/11/2026 | Chủ dự án xác nhận Phase 4.2 hoàn tất sau khi chạy kiểm thử; chuyển trọng tâm sang Phase 4.4 QA acceptance. |
 | 13/11/2026 | Bổ sung định hướng World Environment Studio: lục địa, địa chất, khí hậu, thời tiết, gió mùa, hải lưu, thủy văn và biome. |
 | 13/11/2026 | Hợp nhất tài liệu Markdown tổng hợp thành file master duy nhất; loại bỏ các bản trùng lặp và lịch sử roadmap lặp lại. |
+| 14/11/2026 | Bổ sung mục 2.7 về năm hợp đồng nền tảng: Data Transaction & Change, Spatial & Measurement, Generation & Provenance, Project Security & Portability, Collaboration & Publication; thêm Architecture Discovery gate, UX gaps, acceptance criteria và thứ tự triển khai nhưng giữ nguyên ưu tiên Phase 4.4 → 5 → 6 → 7. Đây là đặc tả/roadmap, chưa xác nhận đã triển khai trong code. |
+
 
 ---
 
