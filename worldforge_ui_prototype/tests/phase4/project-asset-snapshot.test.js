@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { AssetRegistry } from '../../src/assets/asset-registry.js';
 import { AssetLoader } from '../../src/assets/asset-loader.js';
 import { captureProjectAssetSnapshots, sha256Fallback, validateImageBytes } from '../../src/services/project-asset-snapshot-service.js';
-import { createEmptyMap } from '../../src/engine/MapCanvasEngine.js';
+import { MapCanvasEngine, createEmptyMap } from '../../src/engine/MapCanvasEngine.js';
 import { createZipArchive, readZipArchive } from '../../src/services/archive-service.js';
 import { ProjectService } from '../../src/services/project-service.js';
 import { createFixturePng } from '../assets/fixture-png.js';
@@ -87,6 +87,55 @@ function archiveProjectService() {
     });
 }
 
+function unknownFieldProject() {
+    const map = createEmptyMap();
+    map.mapUnknown = { source: 'map-sentinel', nested: { value: 17 } };
+    map.layers[0] = {
+        ...map.layers[0],
+        name: '  Background  ',
+        layerUnknown: { source: 'layer-sentinel', nested: { value: 23 } },
+        objects: [{
+            id: 'unknown-object',
+            type: 'rect',
+            x: 10,
+            y: 20,
+            width: 40,
+            height: 50,
+            objectUnknown: { source: 'object-sentinel', nested: { value: 29 } }
+        }]
+    };
+    return {
+        id: 'unknown-fields-project',
+        name: 'Unknown Fields',
+        description: '',
+        coverImage: '',
+        createdAt: '2026-11-13T00:00:00.000Z',
+        updatedAt: '2026-11-13T00:00:00.000Z',
+        schemaVersion: 2,
+        data: { map, geography: {}, civilization: {}, history: {} }
+    };
+}
+
+function persistentProjectService(project) {
+    let stored = structuredClone(project);
+    return {
+        service: new ProjectService({
+            async getProject(id) {
+                return id === stored.id ? structuredClone(stored) : null;
+            },
+            async putProject(next) {
+                stored = structuredClone(next);
+            },
+            async addProject(next) {
+                stored = structuredClone(next);
+            },
+            async putRecentProject() {
+            }
+        }),
+        getStored: () => structuredClone(stored)
+    };
+}
+
 function projectWithSnapshot() {
     const bytes = createFixturePng(8, 8, 'mountain');
     let binary = '';
@@ -119,6 +168,76 @@ function projectWithSnapshot() {
         bytes
     };
 }
+
+test('preserves unknown map fields through normalization and a known-field edit', async () => {
+    const project = unknownFieldProject();
+    const { service } = persistentProjectService(project);
+    const loaded = await service.openProject(project.id);
+    loaded.data.map.width = 2048;
+    const saved = await service.saveProject(project.id, loaded.data);
+
+    assert.deepEqual(saved.data.map.mapUnknown, { source: 'map-sentinel', nested: { value: 17 } });
+});
+
+test('preserves unknown layer fields through normalization and a known-field edit', async () => {
+    const project = unknownFieldProject();
+    const { service } = persistentProjectService(project);
+    const loaded = await service.openProject(project.id);
+    loaded.data.map.layers[0].name = 'Renamed Background';
+    const saved = await service.saveProject(project.id, loaded.data);
+
+    assert.deepEqual(saved.data.map.layers[0].layerUnknown, {
+        source: 'layer-sentinel',
+        nested: { value: 23 }
+    });
+});
+
+test('preserves nested unknown fields on map objects', async () => {
+    const project = unknownFieldProject();
+    const { service } = persistentProjectService(project);
+    const loaded = await service.openProject(project.id);
+    loaded.data.map.layers[0].objects[0].width = 80;
+    const saved = await service.saveProject(project.id, loaded.data);
+
+    assert.deepEqual(saved.data.map.layers[0].objects[0].objectUnknown, {
+        source: 'object-sentinel',
+        nested: { value: 29 }
+    });
+});
+
+test('preserves map and layer unknown fields through archive export and import', async () => {
+    const project = unknownFieldProject();
+    const { service } = persistentProjectService(project);
+    const loaded = await service.openProject(project.id);
+    const saved = await service.saveProject(project.id, loaded.data);
+    const imported = await service.importProjectPackage(service.exportProjectPackage(saved));
+
+    assert.deepEqual(imported.project.data.map.mapUnknown, {
+        source: 'map-sentinel',
+        nested: { value: 17 }
+    });
+    assert.deepEqual(imported.project.data.map.layers[0].layerUnknown, {
+        source: 'layer-sentinel',
+        nested: { value: 23 }
+    });
+    assert.deepEqual(imported.project.data.map.layers[0].objects[0].objectUnknown, {
+        source: 'object-sentinel',
+        nested: { value: 29 }
+    });
+});
+
+test('continues normalizing known map fields while preserving unknown fields', () => {
+    const project = unknownFieldProject();
+    const validator = Object.create(MapCanvasEngine.prototype);
+    validator.renderers = new Map([['canvas', true]]);
+    const normalized = validator.validateMap(project.data.map);
+
+    assert.equal(normalized.layers[0].name, 'Background');
+    assert.equal(normalized.layers[0].visible, true);
+    assert.equal(normalized.layers[0].objects[0].width, 40);
+    assert.deepEqual(normalized.mapUnknown, project.data.map.mapUnknown);
+    assert.deepEqual(normalized.layers[0].layerUnknown, project.data.map.layers[0].layerUnknown);
+});
 
 function webpFixture(kind, width, height) {
     const payload = kind === 'VP8X'
@@ -236,6 +355,28 @@ test('imports legacy formatVersion 1 project packages', async () => {
     });
     const result = await service.importProjectPackage(archive);
     assert.equal(result.project.data.legacyAsset, `data:image/png;base64,${Buffer.from(bytes).toString('base64')}`);
+});
+
+test('preserves unknown map and layer fields during v1 to v2 migration', async () => {
+    const service = archiveProjectService();
+    const project = unknownFieldProject();
+    project.schemaVersion = 1;
+    delete project.data.history;
+    const archive = createZipArchive({
+        'project.json': JSON.stringify(project),
+        'manifest.json': JSON.stringify({
+            format: 'WorldForgeStudioProject',
+            formatVersion: 1,
+            projectEntry: 'project.json',
+            assetCount: 0
+        })
+    });
+
+    const result = await service.importProjectPackage(archive);
+
+    assert.equal(result.project.schemaVersion, 2);
+    assert.deepEqual(result.project.data.map.mapUnknown, project.data.map.mapUnknown);
+    assert.deepEqual(result.project.data.map.layers[0].layerUnknown, project.data.map.layers[0].layerUnknown);
 });
 
 test('rejects a formatVersion 2 archive with a missing snapshot entry', () => {

@@ -112,7 +112,7 @@ export class MapCanvasEngine {
                 throw new Error('Layer groups must have unique IDs and valid names.');
             }
             groupIds.add(group.id);
-            return { id: group.id, name: group.name.trim() };
+            return { ...group, id: group.id, name: group.name.trim() };
         });
         const ids = new Set();
         const objectIds = new Set();
@@ -143,6 +143,7 @@ export class MapCanvasEngine {
                 return normalizedObject;
             });
             return {
+                ...layer,
                 id: layer.id,
                 name: layer.name.trim(),
                 visible: layer.visible !== false,
@@ -154,7 +155,7 @@ export class MapCanvasEngine {
                 objects
             };
         });
-        return { width, height, layers: normalizedLayers, groups: normalizedGroups };
+        return { ...map, width, height, layers: normalizedLayers, groups: normalizedGroups };
     }
 
     validateObject(object) {
