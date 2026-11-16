@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const database = new DatabaseManager();
     const ui = new UIController(new ProjectService(database));
     try {
+        void database.requestStoragePersistence();
         await database.open();
         await ui.init();
         console.log('WorldForge Studio Project Manager initialized.');

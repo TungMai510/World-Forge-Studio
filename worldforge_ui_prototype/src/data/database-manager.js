@@ -1,9 +1,33 @@
+import { requestStoragePersistence } from '../services/storage-persistence-service.js';
+
 const DATABASE_NAME = 'worldforge-studio';
 const DATABASE_VERSION = 1;
+
+function markWriteFailure(error, storeName) {
+    const failure = error || new Error(`Database write failed for "${storeName}".`);
+    if (typeof failure === 'object') {
+        failure.persistenceFailure = true;
+        failure.persistenceStore = storeName;
+    }
+    return failure;
+}
 
 export class DatabaseManager {
     constructor() {
         this.databasePromise = null;
+        this.storagePersistence = { status: 'not-requested', persisted: false };
+        this.storagePersistencePromise = null;
+    }
+
+    requestStoragePersistence(navigatorLike = globalThis.navigator) {
+        if (!this.storagePersistencePromise) {
+            this.storagePersistencePromise = requestStoragePersistence(navigatorLike)
+                .then(result => {
+                    this.storagePersistence = result;
+                    return result;
+                });
+        }
+        return this.storagePersistencePromise;
     }
 
     open() {
@@ -54,7 +78,13 @@ export class DatabaseManager {
             };
             request.onerror = () => {
                 settled = true;
-                reject(request.error || new Error(`Database request failed for "${storeName}".`));
+                if (mode === 'readwrite' && typeof transaction.abort === 'function' &&
+                    (transaction.readyState === undefined || transaction.readyState === 'active')) {
+                    transaction.abort();
+                }
+                reject(mode === 'readwrite'
+                    ? markWriteFailure(request.error, storeName)
+                    : request.error || new Error(`Database request failed for "${storeName}".`));
             };
             transaction.oncomplete = () => {
                 if (!settled) resolve(result);
@@ -62,13 +92,21 @@ export class DatabaseManager {
             transaction.onerror = () => {
                 if (!settled) {
                     settled = true;
-                    reject(transaction.error || new Error(`Database transaction failed for "${storeName}".`));
+                    if (mode === 'readwrite' && typeof transaction.abort === 'function' &&
+                        (transaction.readyState === undefined || transaction.readyState === 'active')) {
+                        transaction.abort();
+                    }
+                    reject(mode === 'readwrite'
+                        ? markWriteFailure(transaction.error, storeName)
+                        : transaction.error || new Error(`Database transaction failed for "${storeName}".`));
                 }
             };
             transaction.onabort = () => {
                 if (!settled) {
                     settled = true;
-                    reject(transaction.error || new Error(`Database transaction was aborted for "${storeName}".`));
+                    reject(mode === 'readwrite'
+                        ? markWriteFailure(transaction.error, storeName)
+                        : transaction.error || new Error(`Database transaction was aborted for "${storeName}".`));
                 }
             };
         });

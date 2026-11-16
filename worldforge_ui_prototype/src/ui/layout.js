@@ -10,6 +10,7 @@ import { CIVILIZATION_TYPES, CivilizationService, TYPE_LABELS } from '../service
 import { DATE_PRECISIONS, HistoryService, HISTORY_TYPES, LABELS, RELATION_TYPES } from '../services/history-service.js';
 import { MapExportService } from '../services/map-export-service.js';
 import { captureProjectAssetSnapshots } from '../services/project-asset-snapshot-service.js';
+import { formatPersistenceError } from '../services/storage-persistence-service.js';
 
 const MAX_COVER_FILE_SIZE = 2 * 1024 * 1024;
 const MAX_IMPORT_SIZE = 100 * 1024 * 1024;
@@ -713,7 +714,7 @@ export class UIController {
             this.notify(`Đã lưu dự án "${this.currentProject.name}".`);
         } catch (error) {
             status.textContent = 'Lưu thất bại';
-            this.notify(`Không thể lưu dự án: ${error.message}`, true);
+            this.notify(`Không thể lưu dự án: ${formatPersistenceError(error)}`, true);
         }
     }
 
